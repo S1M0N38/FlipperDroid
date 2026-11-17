@@ -49,21 +49,19 @@ Run a single unit test class/method:
 
 ### Driving a leased emulator
 
-`agent-device` is the first choice and `adb` the fallback, not the other way round. **Prefer agent-device for anything it can do** (UI actions, snapshots, screenshots, recording, permission grants, OS settings, install/uninstall, session logs, HTTP traffic, perf, replayable suites, telephony, orientation, clipboard) and defer to `adb` only for what it has no command for — Gradle builds/installs, `logcat`, `adb shell` one-offs, port forwards, pulling files.
+`agent-device` first, `adb` only where it has no command (Gradle builds, `logcat`, `adb shell` one-offs, port forwards, pulling files). The loop, the ref rules, `batch`, replayable flows and the gotcha list live in [`docs/device-interaction.md`](docs/device-interaction.md) — read it before driving the UI.
 
 ```bash
-# device_open prints the launcher bound to the lease; there is no stable name for it.
-AGENT_DEVICE="<the command device_open printed>"
+AGENT_DEVICE="<the command device_open printed>"     # per-lease, per-thread, no stable name
 "$AGENT_DEVICE" open com.example.flipperdroid.debug --relaunch
-"$AGENT_DEVICE" snapshot -i           # @eN refs for Compose screens
-"$AGENT_DEVICE" press @e3 --settle    # prints a UI diff
-"$AGENT_DEVICE" settings permission grant camera
-"$AGENT_DEVICE" screenshot /tmp/shot.png
+"$AGENT_DEVICE" press @e3 --settle                    # prints a UI diff
+"$AGENT_DEVICE" replay docs/flows/home-smoke.yaml --maestro
 ```
 
-- **The lease is bound to that launcher**, which is under a per-lease, per-thread path (`~/.local/share/t3/userdata/device/targets/t3-<hash>/agent-device`). A plain `agent-device` from `mise` cannot reach it: without `--config <host>.json` **and** `--session t3-<id>` it answers `DEVICE_NOT_FOUND`, and the session id changes per thread — so no saved project script can launch the app. The project scripts are deliberately `install`, `test` and `lint` only; launching is the launcher's job.
-- The lease is **wiped when it ends** and starts with no apps installed, so reinstall each session; `scripts/adb-env.sh` resolves the changing adb port/serial for `installDebug`.
-- `takeover` hands the device to a human for what an emulator cannot do (NFC tap, IR blaster, Wi-Fi monitor mode); the API 34 `google_apis` image also has no real BT/Wi-Fi radio.
+- The lease is bound to that launcher (`--config <host>.json` + `--session t3-<id>`, both per-thread), which is why no saved project script can launch the app — `t3.json` ships `install`, `test` and `lint` only.
+- The lease starts with no apps installed and is wiped when it ends; `scripts/adb-env.sh` resolves the changing adb port/serial, but prefer `agent-device install` (Gradle's `installDebug` hits every attached device).
+- `agent-device close` **ends the lease** (wipe + panel loses the device); use `device_close` for the panel entry.
+- `takeover` hands the device to a human for what an emulator cannot fake (NFC tap, IR LED); the API 34 image has no real BT/Wi-Fi radio either.
 
 ## Architecture
 

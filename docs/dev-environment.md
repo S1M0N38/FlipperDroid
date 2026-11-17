@@ -69,42 +69,27 @@ silently changes which Android version every test runs on.
 
 ## Running the app on an emulator
 
-```bash
-# 1. open a device: T3 Code → Device panel, or the device_* tools of the agent.
-#    It prints the launcher bound to that lease; keep it in $LAUNCHER.
-LAUNCHER="<the agent-device path device_open printed>"
+Driving the UI is documented once, in
+[`device-interaction.md`](device-interaction.md): the `open` → `--settle` diff loop,
+ref pins, `batch`, replayable flows, and the full gotcha list. This section keeps
+only what belongs to *this machine*.
 
-# 2. build and install (agent-device install needs the thread's workspace root)
+```bash
+LAUNCHER="<the agent-device path device_open printed>"
 ./gradlew assembleDebug
 "$LAUNCHER" install com.example.flipperdroid.debug build/outputs/apk/debug/Flipperdroid-debug.apk
-
-# 3. drive it
-"$LAUNCHER" open com.example.flipperdroid.debug
-"$LAUNCHER" snapshot -i                 # @eN accessibility refs
-"$LAUNCHER" press @e3 --settle
-"$LAUNCHER" screenshot /tmp/shot.png
+"$LAUNCHER" replay docs/flows/home-smoke.yaml --maestro
 ```
 
-Rules that are easy to get wrong:
+Environment facts:
 
-- **Prefer agent-device for everything it can do.** It has 75 commands: UI
-  actions, snapshots, screenshots, screen recording, permission grants and OS
-  settings, app install/uninstall, session logs, HTTP traffic, perf, replayable
-  test suites, telephony, orientation, clipboard, `takeover` to hand the device
-  back to a human.
-- **Fall back to adb only for what agent-device cannot do**: Gradle
-  builds/installs, `logcat`, `adb shell` one-offs, port forwards, pulling files.
-- **UI actions and screenshots go through the launcher**, not `adb`. The lease is
-  bound to that agent-device session.
 - **The launcher is the only handle on the lease, and it has no stable name.** It
-  lives under `~/.local/share/t3/userdata/device/targets/t3-<hash>/agent-device`,
-  and it supplies `--config <host>.json` + `--session t3-<thread>` for you. A
-  plain `agent-device` from `mise` answers `DEVICE_NOT_FOUND` against the lease,
-  because those two values are per-thread and change every session. That is also
-  why a static project script cannot launch the app by itself.
-- **`install` must run from the install directory** (the thread workspace root).
-- **The lease is wiped when it ends** and starts with no apps installed, so the
-  install step is not optional.
+  lives under `~/.local/share/t3/userdata/device/targets/t3-<hash>/agent-device`
+  and supplies `--config <host>.json` + `--session t3-<thread>`, both per-thread
+  and both changing every session — which is why a static project script cannot
+  launch the app and why `t3.json` ships only `install`, `test` and `lint`.
+- **`install` must run from the install directory** (the thread workspace root),
+  and the lease starts with no apps installed because it is wiped when it ends.
 - Each `device_open` returns its own launcher; opening another device does not
   retarget the first one.
 
@@ -131,6 +116,7 @@ exports `ANDROID_SERIAL`.
 | JVM, pure logic | `./gradlew testDebugUnitTest` | JDK | IrProtocols, `.ir`/`.nfc`/`.sub` parsing, TOTP, ShellArgs, networking, Mifare, DuckyScript, BLE payloads |
 | JVM, Android framework | same task (`AndroidTierTest`) | JDK + Robolectric | `Context`, `SharedPreferences`, `android.util.Log` — anything Android-facing but radio-free |
 | Emulator | `./gradlew connectedAndroidTest` | a Simlock lease | `HomeSmokeTest`: legal gate + Home grid. Extend for navigation and non-radio screens |
+| Device flow (agent) | `$LAUNCHER replay docs/flows/home-smoke.yaml --maestro` | a Simlock lease | same path, driven through agent-device — see [`device-interaction.md`](device-interaction.md) |
 | Real phone | `./gradlew installDebug` per device | rooted Pixel 7 | NFC/EMV, IR, BLE spam/beacon/HID, Wi-Fi deauth/monitor, USB-gadget BadUSB, GPS/wardriving |
 
 Instrumented tests install the app as `com.example.flipperdroid.debug`; the
