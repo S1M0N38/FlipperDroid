@@ -57,7 +57,7 @@ FlipperDroid turns a modern Android phone into a flexible, portable alternative 
 - **Logs** — central, exportable activity log.
 - Customizable settings (theme, keep-screen-on, …).
 
-> Sub-GHz (300–900 MHz), 125 kHz LF RFID, iButton/1-Wire and GPIO are **not** possible on a phone's internal radios — they need external hardware. See [`ANDROID_CAPABILITIES.md`](ANDROID_CAPABILITIES.md).
+> Sub-GHz (300–900 MHz), 125 kHz LF RFID, iButton/1-Wire and GPIO are **not** possible on a phone's internal radios — they need external hardware. See [`docs/ANDROID_CAPABILITIES.md`](docs/ANDROID_CAPABILITIES.md).
 
 ---
 
@@ -87,10 +87,25 @@ Misuse of this software for unauthorized access, emulation, or attacks on third-
 ```
 
 The Android SDK is found through `ANDROID_HOME`; `local.properties` is not
-needed. Emulator work (T3 Code + Simlock, `scripts/adb-env.sh`, and which tests
-run where) is documented in [`docs/dev-environment.md`](docs/dev-environment.md).
-See [`CLAUDE.md`](CLAUDE.md) for architecture notes and [`ROADMAP.md`](ROADMAP.md)
-for what's implemented and what's next.
+needed.
+
+---
+
+## Docs
+
+Everything long-form lives in [`docs/`](docs/). Start with
+[`docs/CONTEXT.md`](docs/CONTEXT.md) — what the pieces are and the invariants that
+bite — then:
+
+| Doc | Contents |
+|---|---|
+| [`docs/CONTEXT.md`](docs/CONTEXT.md) | project shape, package map, ViewModel patterns, invariants, BLE/IR/flipper specifics |
+| [`docs/dev-environment.md`](docs/dev-environment.md) | toolchain, keystore, emulator lease, test tiers, project scripts, CI/release |
+| [`docs/device-interaction.md`](docs/device-interaction.md) | driving a phone with agent-device: loop, refs, flows, gotchas |
+| [`docs/ROADMAP.md`](docs/ROADMAP.md) | what is implemented, what is next, what a phone cannot do |
+| [`docs/ANDROID_CAPABILITIES.md`](docs/ANDROID_CAPABILITIES.md) | native vs root vs external-hardware vs impossible |
+| [`docs/AUDIT_REPORT.md`](docs/AUDIT_REPORT.md) | quality/defect audit history and open items |
+| [`CHANGELOG.md`](CHANGELOG.md) | released changes |
 
 ---
 
@@ -103,16 +118,21 @@ FlipperDroid/
 │   │   ├── Main.kt          # MainActivity + Compose NavHost
 │   │   ├── view/            # one *Screen.kt per feature
 │   │   ├── viewmodel/       # one ViewModel per feature (StateFlow)
-│   │   ├── nfc/             # EMV reader, Mifare utils, HCE service
+│   │   ├── nfc/             # EMV reader, Mifare utils, NDEF/ISO-DEP HCE
 │   │   ├── model/           # BLE advertisement engine
 │   │   ├── infrared/        # IR protocol encoders + .ir parser
 │   │   ├── flipper/         # .nfc / .sub file readers-writers
+│   │   ├── camera/ iot/ network/ redteam/ reports/   # pure-logic helpers
 │   │   ├── security/        # TOTP generator
-│   │   ├── util/            # AppLog
+│   │   ├── util/            # AppLog, RootShell, ShellArgs, SecureStore, …
 │   │   └── ui/theme/        # Compose theme
 │   ├── assets/              # nmap binaries, infrared/*.ir, legal texts
 │   └── AndroidManifest.xml
-├── src/test/                # JVM unit tests (LogicUnitTest)
+├── src/test/                # JVM + Robolectric tests
+├── src/androidTest/         # Compose UI smoke test
+├── docs/                    # all long-form documentation (see Docs above)
+├── scripts/adb-env.sh       # exports the lease's adb port + serial
+├── t3.json                  # project scripts for T3 Code
 ├── build.gradle.kts         # Kotlin DSL build configuration
 └── gradlew / gradlew.bat    # Gradle wrapper
 ```

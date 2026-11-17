@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [2.2.0] - 2026-11-06
 
-Quality, reliability and security pass driven by `AUDIT_REPORT.md`, plus offensive-capability accuracy fixes.
+Quality, reliability and security pass driven by `docs/AUDIT_REPORT.md`, plus offensive-capability accuracy fixes.
 
 ### Offensive capability
 - BLE spam: advertising now stays in **legacy** mode whenever the payload fits in the 31-byte limit, instead of always using extended advertising on capable chips (e.g. Pixel 7). Most targets (Windows Swift Pair, iOS/macOS Continuity, Android Fast Pair) only listen to legacy advertising by default, so short spam frames sent as extended were effectively invisible — this restores their reach. Extended advertising is used only when a frame genuinely overflows 31 bytes, and that fallback is logged. Payload size is computed by a pure, unit-tested estimator (`model/object/AdvertisementPayload`).

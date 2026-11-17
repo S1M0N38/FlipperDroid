@@ -1,7 +1,8 @@
 # Development environment
 
 How this project is built and tested on the `pro` machine. Everything here is
-CLI-only: no Android Studio.
+CLI-only: no Android Studio. For what the code is made of, read
+[`CONTEXT.md`](CONTEXT.md); for driving a phone, [`device-interaction.md`](device-interaction.md).
 
 ## Toolchain
 
@@ -92,6 +93,33 @@ Environment facts:
   and the lease starts with no apps installed because it is wiped when it ends.
 - Each `device_open` returns its own launcher; opening another device does not
   retarget the first one.
+
+## Project scripts (`t3.json`)
+
+The repo ships three scripts to T3 Code, defined in [`t3.json`](../t3.json) and
+shown in the thread's scripts menu as "From t3.json":
+
+| Script | Command |
+|---|---|
+| Build + install | `eval "$(scripts/adb-env.sh)" && ./gradlew installDebug -Pandroid.injected.device.serial="$ANDROID_SERIAL"` |
+| Unit tests | `./gradlew testDebugUnitTest` (also `runOnSettle` in worktree threads) |
+| Lint | `./gradlew lint` |
+
+There is deliberately **no launch script**: the agent-device launcher path is
+per-lease and per-thread, so a static command cannot carry it (see
+[`CONTEXT.md`](CONTEXT.md) and `device-interaction.md`). Edits to `t3.json` are
+picked up by the card directly — the file is the source of truth, the per-machine
+project settings are a mirror.
+
+## CI and release
+
+`.github/workflows/build.yml`: on every push to `main` and every PR it runs
+`testDebugUnitTest`, `lintDebug`, `assembleDebug` on JDK 21 with SDK 35 and
+uploads the APK plus reports. On a `v*` tag it additionally signs a release APK
+with the keystore from repository secrets (`RELEASE_KEYSTORE_BASE64`,
+`RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`) and
+publishes a GitHub Release; a missing secret fails the job rather than shipping an
+unsigned build. Debug APKs are build artifacts only, never releases.
 
 ## Test runners, logs, builds
 
