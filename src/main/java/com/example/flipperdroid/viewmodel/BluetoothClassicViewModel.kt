@@ -342,6 +342,9 @@ class BluetoothClassicViewModel : ViewModel() {
         }
     }
 
+    // cancelDiscovery() needs BLUETOOTH_CONNECT; it is wrapped, and the screen only
+    // reaches this module once the user granted it.
+    @SuppressLint("MissingPermission")
     override fun onCleared() {
         super.onCleared()
         disconnectSpp()

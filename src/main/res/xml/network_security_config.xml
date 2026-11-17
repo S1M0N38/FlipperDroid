@@ -3,6 +3,9 @@
      HTTP on the local network. Android blocks cleartext by default since API 28;
      a network config cannot target a CIDR range, so it is allowed globally.
      The app's Internet calls do not use cleartext HTTP. -->
-<network-security-config>
-    <base-config cleartextTrafficPermitted="true" />
+<network-security-config xmlns:tools="http://schemas.android.com/tools">
+    <!-- tools:ignore: the audited devices are on the LAN at arbitrary addresses, so
+         this cannot be narrowed to hostnames. The app itself never speaks cleartext
+         HTTP to the Internet. -->
+    <base-config cleartextTrafficPermitted="true" tools:ignore="InsecureBaseConfiguration" />
 </network-security-config>

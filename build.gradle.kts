@@ -65,8 +65,14 @@ android {
         buildConfig = true
     }
     lint {
-        // The report is published by CI; legacy errors do not block the build yet.
-        abortOnError = false
+        // Errors fail the build locally and in CI. Warnings stay report-only (the CI
+        // workflow uploads build/reports/), so dependency-update nags and unused
+        // resources never block a fix.
+        abortOnError = true
+        warningsAsErrors = false
+        // Lint the release variant too, so an issue that only exists there cannot
+        // reach a tag build.
+        checkReleaseBuilds = true
     }
     testOptions {
         // JVM tests sometimes touch android.util.Log: default values are returned

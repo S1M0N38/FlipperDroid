@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.net.wifi.WifiManager
 import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import com.example.flipperdroid.util.AppLog
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,6 +25,7 @@ import java.net.URLDecoder
  * port 80, so the automatic captive popup is not guaranteed — the victims
  * must open http://<gateway>:8080. No internet access provided.
  */
+@RequiresApi(Build.VERSION_CODES.O)
 class EvilPortalViewModel : ViewModel() {
 
     @SuppressLint("StaticFieldLeak")

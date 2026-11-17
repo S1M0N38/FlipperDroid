@@ -1,5 +1,6 @@
 package com.example.flipperdroid.viewmodel
 
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
@@ -32,7 +33,20 @@ data class BleGattFuzzResult(
     val severity: String,
 )
 
-class BleGattFuzzerViewModel(private val context: Context) : ViewModel() {
+/**
+ * GATT fuzzer.
+ *
+ * Every Bluetooth call here is safe without BLUETOOTH_CONNECT: the foreground ones
+ * sit in a try/catch that reports the missing permission, and the ones inside GATT
+ * callbacks run on a binder thread where the permission cannot be checked and only
+ * a SecurityException catch helps. Lint cannot see either, hence the class-level
+ * suppression.
+ */
+@SuppressLint("MissingPermission")
+class BleGattFuzzerViewModel(context: Context) : ViewModel() {
+    // applicationContext: this ViewModel outlives the activity. The screen already
+    // passes LocalContext.current.applicationContext; lint cannot see that.
+    private val appContext: Context = context.applicationContext
     private val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
 
     private val _devices = MutableStateFlow<List<BluetoothDevice>>(emptyList())
@@ -86,28 +100,39 @@ class BleGattFuzzerViewModel(private val context: Context) : ViewModel() {
         try {
             val gattCallback = object : BluetoothGattCallback() {
                 override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
-                    if (newState == BluetoothGatt.STATE_CONNECTED) {
-                        addLog("Connected to ${safeName(device)}")
-                        gatt.discoverServices()
-                    } else if (newState == BluetoothGatt.STATE_DISCONNECTED) {
-                        addLog("Disconnected from ${safeName(device)}")
+                    // Binder thread: the permission cannot be checked here, only caught.
+                    try {
+                        if (newState == BluetoothGatt.STATE_CONNECTED) {
+                            addLog("Connected to ${safeName(device)}")
+                            gatt.discoverServices()
+                        } else if (newState == BluetoothGatt.STATE_DISCONNECTED) {
+                            addLog("Disconnected from ${safeName(device)}")
+                            _isFuzzing.value = false
+                        }
+                    } catch (e: SecurityException) {
+                        addLog("Missing BLUETOOTH_CONNECT for ${safeName(device)}")
                         _isFuzzing.value = false
                     }
                 }
 
                 override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
-                    addLog("Services discovered: ${gatt.services.size} services found")
-                    if (status == BluetoothGatt.GATT_SUCCESS) {
-                        fuzzServices(gatt)
+                    try {
+                        addLog("Services discovered: ${gatt.services.size} services found")
+                        if (status == BluetoothGatt.GATT_SUCCESS) {
+                            fuzzServices(gatt)
+                        }
+                    } catch (e: SecurityException) {
+                        addLog("Cannot read services: missing BLUETOOTH_CONNECT")
+                        _isFuzzing.value = false
                     }
                 }
             }
 
             currentGatt = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                device.connectGatt(context, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
+                device.connectGatt(appContext, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
             } else {
                 @Suppress("DEPRECATION")
-                device.connectGatt(context, false, gattCallback)
+                device.connectGatt(appContext, false, gattCallback)
             }
         } catch (e: Exception) {
             addLog("Error connecting: ${e.message}")
@@ -117,7 +142,15 @@ class BleGattFuzzerViewModel(private val context: Context) : ViewModel() {
 
     private fun fuzzServices(gatt: BluetoothGatt) {
         viewModelScope.launch(Dispatchers.IO) {
-            gatt.services.forEach { service ->
+            // getServices() requires BLUETOOTH_CONNECT from API 31 on.
+            val services = try {
+                gatt.services.toList()
+            } catch (e: SecurityException) {
+                addLog("Cannot enumerate services: missing BLUETOOTH_CONNECT")
+                _isFuzzing.value = false
+                return@launch
+            }
+            services.forEach { service ->
                 service.characteristics.forEach { characteristic ->
                     addLog("Fuzzing ${service.uuid} / ${characteristic.uuid}")
 

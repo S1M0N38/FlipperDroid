@@ -23,6 +23,7 @@ import java.util.concurrent.Executors
  * (BadKB without a cable) to a paired PC/tablet. Uses the BluetoothHidDevice
  * profile (no root required).
  */
+@androidx.annotation.RequiresApi(android.os.Build.VERSION_CODES.P)
 class HidKeyboardViewModel : ViewModel() {
 
     @SuppressLint("StaticFieldLeak")

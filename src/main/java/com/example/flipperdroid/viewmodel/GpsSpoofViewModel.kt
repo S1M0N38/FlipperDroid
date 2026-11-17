@@ -2,9 +2,9 @@ package com.example.flipperdroid.viewmodel
 
 import android.app.Application
 import android.content.Context
-import android.location.Criteria
 import android.location.Location
 import android.location.LocationManager
+import android.location.provider.ProviderProperties
 import android.os.SystemClock
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -57,7 +57,10 @@ class GpsSpoofViewModel(app: Application) : AndroidViewModel(app) {
             try {
                 manager.addTestProvider(
                     provider, false, false, false, false,
-                    true, true, true, Criteria.POWER_LOW, Criteria.ACCURACY_FINE
+                    // ProviderProperties, not Criteria: addTestProvider is annotated with
+                    // the former. The values are identical (1), the annotation is not.
+                    true, true, true,
+                    ProviderProperties.POWER_USAGE_LOW, ProviderProperties.ACCURACY_FINE
                 )
             } catch (_: IllegalArgumentException) { /* already added */ }
             manager.setTestProviderEnabled(provider, true)
