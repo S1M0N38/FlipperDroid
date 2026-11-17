@@ -1,6 +1,7 @@
 package com.example.flipperdroid.nfc
 
 import android.content.Context
+import androidx.core.content.edit
 import com.example.flipperdroid.util.SecureStore
 import org.json.JSONArray
 import org.json.JSONObject
@@ -31,7 +32,7 @@ object EmulationStore {
             .put(F_AIDS, JSONArray(aids))
             .put(F_MAP, mapObj)
         SecureStore.putString(context, KEY_DATA, obj.toString())
-        legacyPrefs(context).edit().clear().apply()
+        legacyPrefs(context).edit { clear() }
     }
 
     fun label(context: Context): String? =
@@ -61,7 +62,7 @@ object EmulationStore {
 
     fun clear(context: Context) {
         SecureStore.putString(context, KEY_DATA, null)
-        legacyPrefs(context).edit().clear().apply()
+        legacyPrefs(context).edit { clear() }
     }
 
     /** Decrypts and parses the capture; null if absent or unreadable. */
@@ -86,7 +87,7 @@ object EmulationStore {
         } catch (e: Exception) {
             // Old unreadable content: delete it without migrating.
         }
-        legacy.edit().clear().apply()
+        legacy.edit { clear() }
     }
 
     private fun legacyPrefs(context: Context) =

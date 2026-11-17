@@ -1,6 +1,7 @@
 package com.example.flipperdroid.nfc
 
 import android.content.Context
+import androidx.core.content.edit
 
 /** Persists the NDEF message (bytes) served by [NdefHceService] and its label. */
 object NdefHceStore {
@@ -17,10 +18,10 @@ object NdefHceStore {
     private fun prefs(ctx: Context) = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
     fun save(ctx: Context, label: String, ndef: ByteArray) {
-        prefs(ctx).edit()
-            .putString(KEY_LABEL, label)
-            .putString(KEY_NDEF, MifareClassicUtils.bytesToHex(ndef))
-            .apply()
+        prefs(ctx).edit {
+            putString(KEY_LABEL, label)
+            putString(KEY_NDEF, MifareClassicUtils.bytesToHex(ndef))
+        }
     }
 
     fun label(ctx: Context): String? = prefs(ctx).getString(KEY_LABEL, null)
@@ -31,6 +32,6 @@ object NdefHceStore {
     }
 
     fun clear(ctx: Context) {
-        prefs(ctx).edit().clear().apply()
+        prefs(ctx).edit { clear() }
     }
 }

@@ -17,6 +17,7 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.edit
 /**
  * Shows the settings screen with several configurable sections
  *
@@ -101,7 +102,7 @@ fun SettingsScreen(navController: NavController, themeViewModel: ThemeViewModel)
                 Card(Modifier.fillMaxWidth()) {
                     Column {
                         SettingToggle("Keep screen on", "Prevent the screen from sleeping", keepScreenOn) {
-                            keepScreenOn = it; prefs.edit().putBoolean("keepScreenOn", it).apply()
+                            keepScreenOn = it; prefs.edit { putBoolean("keepScreenOn", it) }
                         }
                     }
                 }

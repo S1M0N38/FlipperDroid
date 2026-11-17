@@ -3,6 +3,7 @@ package com.example.flipperdroid.viewmodel
 import android.app.Application
 import android.content.Context
 import android.util.Log
+import androidx.core.content.edit
 import androidx.lifecycle.AndroidViewModel
 import com.example.flipperdroid.security.TotpGenerator
 import com.example.flipperdroid.util.SecureStore
@@ -98,7 +99,7 @@ class TotpViewModel(app: Application) : AndroidViewModel(app) {
                 // Only erase the old storage if the new write is verified
                 if (persistList(merged)) {
                     try {
-                        legacyPrefs.edit().remove(LEGACY_KEY).apply()
+                        legacyPrefs.edit { remove(LEGACY_KEY) }
                         Log.i(TAG, "TOTP vault migration complete (${legacy.size} accounts)")
                     } catch (e: Exception) {
                         Log.e(TAG, "Deleting the old vault failed", e)
