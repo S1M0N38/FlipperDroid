@@ -32,7 +32,7 @@ fun IrToolsScreen(
 
     var protocol by remember { mutableStateOf("NEC") }
     var addressHex by remember { mutableStateOf("04") }
-    var delayMs by remember { mutableStateOf(300f) }
+    var delayMs by remember { mutableFloatStateOf(300f) }
     val protocols = listOf("NEC", "NECext", "Samsung32", "SIRC", "RC5", "Kaseikyo")
     // Hexadecimal address entered (0x prefix accepted); null if invalid.
     val addressValue = IrProtocols.parseHexAddress(addressHex)

@@ -38,7 +38,7 @@ fun ReportGeneratorScreen(navController: NavController) {
     var editTitle by remember { mutableStateOf(reportTitle) }
     var editTester by remember { mutableStateOf(testerName) }
     var editTarget by remember { mutableStateOf(targetSystem) }
-    var tab by remember { mutableStateOf(0) }
+    var tab by remember { mutableIntStateOf(0) }
 
     Scaffold(
         topBar = {

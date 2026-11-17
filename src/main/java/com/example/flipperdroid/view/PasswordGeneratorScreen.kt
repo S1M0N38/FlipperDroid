@@ -43,7 +43,7 @@ fun PasswordGeneratorScreen(navController: NavController) {
     SecureWindow()
 
     val context = LocalContext.current
-    var length by remember { mutableStateOf(16) }
+    var length by remember { mutableIntStateOf(16) }
     var useUpper by remember { mutableStateOf(true) }
     var useLower by remember { mutableStateOf(true) }
     var useDigits by remember { mutableStateOf(true) }
