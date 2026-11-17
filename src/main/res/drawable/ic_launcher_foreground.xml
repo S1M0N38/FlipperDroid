@@ -1,9 +1,17 @@
+<!-- The FlipperDroid logo: 4 traced paths of ~840-3700 characters, which trips
+     VectorPath. Kept as a vector on purpose: it is one asset for every density and
+     the source of the Android 13 themed (monochrome) layer, and it is drawn once
+     when the launcher starts rather than inside a render loop. The 200x200 dp
+     guidance is about the declared size (108dp here); only the path detail trips
+     the check. Re-import from the original SVG if the artwork is ever redrawn. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="1024"
     android:viewportHeight="1024"
-    android:autoMirrored="true">
+    android:autoMirrored="true"
+    tools:ignore="VectorPath">
   <group android:scaleX="0.627"
       android:scaleY="0.627"
       android:translateX="190.976"
