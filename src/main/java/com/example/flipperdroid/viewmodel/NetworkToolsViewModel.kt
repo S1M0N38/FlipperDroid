@@ -7,6 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
+import com.example.flipperdroid.util.RootShell
 import com.example.flipperdroid.util.ShellArgs
 import kotlinx.coroutines.launch
 import java.io.BufferedReader
@@ -86,7 +87,7 @@ class NetworkToolsViewModel : ViewModel() {
         val internalNmapDir = File(context.filesDir, "nmap")
         return try {
             // Already installed and executable: no ~11 MB copy on every scan.
-            val installed = Runtime.getRuntime().exec(arrayOf("su", "-c", "test -x ${ShellArgs.quote("$NMAP_DIR/nmap")}")).waitFor() == 0
+            val installed = RootShell.exitCode("test -x ${ShellArgs.quote("$NMAP_DIR/nmap")}") == 0
             if (!installed) {
                 if (internalNmapDir.exists()) deleteRecursively(internalNmapDir)
                 internalNmapDir.mkdirs()
@@ -95,7 +96,7 @@ class NetworkToolsViewModel : ViewModel() {
                 // Dedicated subdirectory: the files of other apps in /data/local/tmp are left untouched.
                 val dir = ShellArgs.quote(NMAP_DIR)
                 val cmd = "mkdir -p $dir && cp -r ${ShellArgs.quote(internalNmapDir.absolutePath)}/. $dir/ && chmod 755 $dir $dir/*"
-                val rc = Runtime.getRuntime().exec(arrayOf("su", "-c", cmd)).waitFor()
+                val rc = RootShell.exitCode(cmd)
                 if (rc != 0) return "ERROR : copy to $NMAP_DIR failed (exit $rc)"
             }
             createMissingConfigFiles()
@@ -145,7 +146,7 @@ class NetworkToolsViewModel : ViewModel() {
             """.trimIndent()
 
             val resolvCmd = "printf '%s\\n' ${ShellArgs.quote(resolvContent)} > ${ShellArgs.quote("$NMAP_DIR/resolv.conf")}"
-            Runtime.getRuntime().exec(arrayOf("su", "-c", resolvCmd)).waitFor()
+            RootShell.exitCode(resolvCmd)
             //Log.d("NMAP_COPY", "resolv.conf file created")
 
             val nsswitchContent = """
@@ -157,7 +158,7 @@ class NetworkToolsViewModel : ViewModel() {
             """.trimIndent()
 
             val nsswitchCmd = "printf '%s\\n' ${ShellArgs.quote(nsswitchContent)} > ${ShellArgs.quote("$NMAP_DIR/nsswitch.conf")}"
-            Runtime.getRuntime().exec(arrayOf("su", "-c", nsswitchCmd)).waitFor()
+            RootShell.exitCode(nsswitchCmd)
             //Log.d("NMAP_COPY", "nsswitch.conf file created")
 
         } catch (e: Exception) {
@@ -410,7 +411,7 @@ class NetworkToolsViewModel : ViewModel() {
                     "RESOLV_CONF=${ShellArgs.quote("$dir/resolv.conf")} NSSWITCH_CONF=${ShellArgs.quote("$dir/nsswitch.conf")} " +
                     "exec ${ShellArgs.quote("$dir/nmap")} $args"
 
-                val process = Runtime.getRuntime().exec(arrayOf("su", "-c", fullCommand))
+                val process = RootShell.exec(fullCommand)
                 // StringBuffer (synchronized): stdout and stderr are read by two threads.
                 val output = StringBuffer()
                 val outputThread = Thread {
@@ -428,7 +429,7 @@ class NetworkToolsViewModel : ViewModel() {
                 }
                 if (exitCode == null) {
                     // Kill nmap itself (destroying it through the su client is not always enough).
-                    try { Runtime.getRuntime().exec(arrayOf("su", "-c", "pkill -f ${ShellArgs.quote("$dir/nmap")}")).waitFor() } catch (_: Exception) {}
+                    try { RootShell.exitCode("pkill -f ${ShellArgs.quote("$dir/nmap")}") } catch (_: Exception) {}
                     process.destroy()
                     output.append("\n[Timeout after ${NMAP_TIMEOUT_MS / 1000} s — scan killed]\n")
                 }
@@ -444,12 +445,7 @@ class NetworkToolsViewModel : ViewModel() {
         }
     }
 
-    private fun hasRoot(): Boolean = try {
-        val p = Runtime.getRuntime().exec(arrayOf("su", "-c", "id"))
-        val out = p.inputStream.bufferedReader().readText()
-        p.waitFor()
-        out.contains("uid=0")
-    } catch (_: Exception) { false }
+    private fun hasRoot(): Boolean = RootShell.isAvailable()
 
     /**
      * Wake-on-LAN: sends a "magic packet" to the provided MAC address (UDP broadcast port 9).

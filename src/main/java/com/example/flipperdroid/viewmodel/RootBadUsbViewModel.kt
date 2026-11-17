@@ -1,6 +1,7 @@
 package com.example.flipperdroid.viewmodel
 
 import android.util.Log
+import com.example.flipperdroid.util.RootShell
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.CancellationException
 import androidx.lifecycle.ViewModel
@@ -68,7 +69,7 @@ class RootBadUsbViewModel : ViewModel() {
 
                 _status.value = "Opening $dev..."
                 // Persistent root shell whose stdin is redirected to the HID device.
-                val process = Runtime.getRuntime().exec(arrayOf("su", "-c", "cat > $dev"))
+                val process = RootShell.exec("cat > $dev")
                 val out = process.outputStream
                 try {
                     _status.value = "Executing DuckyScript..."
@@ -198,22 +199,13 @@ class RootBadUsbViewModel : ViewModel() {
 
     // --- Root environment ---
 
-    private fun hasRoot(): Boolean {
-        return try {
-            val p = Runtime.getRuntime().exec(arrayOf("su", "-c", "id"))
-            val o = BufferedReader(InputStreamReader(p.inputStream)).readText()
-            p.waitFor()
-            o.contains("uid=0")
-        } catch (e: Exception) { false }
-    }
+    private fun hasRoot(): Boolean = RootShell.isAvailable()
 
     private fun firstHidDevice(): String? {
         for (i in 0..3) {
             val path = "/dev/hidg$i"
             try {
-                val p = Runtime.getRuntime().exec(arrayOf("su", "-c", "ls $path"))
-                val out = BufferedReader(InputStreamReader(p.inputStream)).readText().trim()
-                p.waitFor()
+                val out = RootShell.output("ls $path").trim()
                 if (out == path) return path
             } catch (_: Exception) {}
         }

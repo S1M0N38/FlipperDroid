@@ -14,6 +14,7 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.flipperdroid.util.RootShell
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -385,25 +386,14 @@ class WifiDeautherViewModel : ViewModel() {
         }
     }
 
-    /** Checks for root access by running `id` through su. */
-    private fun hasRoot(): Boolean {
-        return try {
-            val process = Runtime.getRuntime().exec(arrayOf("su", "-c", "id"))
-            val output = BufferedReader(InputStreamReader(process.inputStream)).readText()
-            process.waitFor()
-            output.contains("uid=0")
-        } catch (e: Exception) {
-            false
-        }
-    }
+    /** Checks for a usable root shell; [RootShell] resolves the device's `su` dialect. */
+    private fun hasRoot(): Boolean = RootShell.isAvailable()
 
     /** Detects an injection tool available in the PATH. */
     private fun findDeauthTool(): String? {
         for (tool in listOf("aireplay-ng", "mdk4")) {
             try {
-                val process = Runtime.getRuntime().exec(arrayOf("su", "-c", "command -v $tool"))
-                val output = BufferedReader(InputStreamReader(process.inputStream)).readText().trim()
-                process.waitFor()
+                val output = RootShell.output("command -v $tool").trim()
                 if (output.isNotEmpty()) return tool
             } catch (_: Exception) { /* try the next one */ }
         }
@@ -420,7 +410,7 @@ class WifiDeautherViewModel : ViewModel() {
     private fun runRootCommand(command: String, timeoutMs: Long = 2000): Int {
         var process: Process? = null
         return try {
-            val p = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
+            val p = RootShell.exec(command)
             process = p
             drainStream(p.inputStream)
             drainStream(p.errorStream)
