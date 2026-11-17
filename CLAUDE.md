@@ -29,7 +29,6 @@ Gradle Kotlin DSL, single module rooted at the repo root (there is **no** `app/`
 ./gradlew installDebug           # build + install on connected device/emulator
 ./gradlew connectedAndroidTest   # instrumented tests, needs a device (src/androidTest)
 ./gradlew lint                   # Android lint
-./gradlew dokkaHtml              # generate API docs (Dokka is configured)
 ```
 
 Run a single unit test class/method:
@@ -38,11 +37,15 @@ Run a single unit test class/method:
 ./gradlew testDebugUnitTest --tests "com.example.flipperdroid.LogicUnitTest.totp_rfc6238_vectors"
 ```
 
-- **JVM tests** (`src/test`): `LogicUnitTest` plus per-area files (`IrLogicTest`, `NfcLogicTest`, `NetLogicTest`, `TotpReportTest`, `ShellArgsTest`) cover the pure-logic cores. Keep that logic free of `android.*` imports (pattern: `camera/OnvifTools.kt`, `nfc/Type4Responder`, `util/ShellArgs`). `unitTests.isReturnDefaultValues = true` is set, but don't rely on it.
+- **Test tiers** — see [`docs/dev-environment.md`](docs/dev-environment.md) for the full matrix:
+  1. **JVM, pure logic** (`src/test`, no device): `LogicUnitTest` plus per-area files (`IrLogicTest`, `NfcLogicTest`, `NetLogicTest`, `TotpReportTest`, `ShellArgsTest`, `BleLogicTest`). Keep that logic free of `android.*` imports (pattern: `camera/OnvifTools.kt`, `util/ShellArgs`).
+  2. **JVM, Android framework** (`AndroidTierTest`, Robolectric, `@Config(sdk = [34])`): real `SharedPreferences`/`Log`/`Context` without a device. This is the tier to extend for anything Android-facing but radio-free; `unitTests.isReturnDefaultValues = true` only *stubs* `android.*` and hides such gaps.
+  3. **Emulator** (`src/androidTest`, Compose UI): `HomeSmokeTest` only — legal gate + Home grid. Run it against the Simlock lease: `eval "$(scripts/adb-env.sh)" && ./gradlew connectedAndroidTest`.
+  4. **Real phone**: anything that needs NFC, IR, BLE/BT radios, Wi-Fi monitor/injection, USB gadget or `su` against real hardware.
 - `java.time` is available on `minSdk` 24 through core-library desugaring (`desugar_jdk_libs`). `Process.waitFor(timeout, unit)` is NOT (API 26): poll `exitValue()` instead.
-- SDK: `compileSdk`/`targetSdk` 35, `minSdk` 24, JVM target 11. `applicationId`/`namespace` = `com.example.flipperdroid` (still the default — change before shipping).
-- `local.properties` must point at a local Android SDK (`sdk.dir`).
-- Dependency versions are split: some come from the version catalog (`gradle/libs.versions.toml`, `libs.*`) and some are hardcoded inline in `build.gradle.kts` (lifecycle, navigation-compose, material-icons-extended, `com.google.zxing:core`, `com.journeyapps:zxing-android-embedded`). When bumping versions, check both places.
+- SDK: `compileSdk`/`targetSdk` 35, `minSdk` 24, JVM target 11. `applicationId`/`namespace` = `com.example.flipperdroid` (still the default — change before shipping); the `debug` build type adds `.debug` so two worktrees can be installed side by side on one emulator.
+- The Android SDK is found through `ANDROID_HOME` (exported by mise: `android-sdk = "23.0"`), so **no `local.properties` is needed** — deliberately, because git-ignored files are not copied into new worktrees. If you add one, every worktree has to add it again.
+- Every dependency version lives in the version catalog (`gradle/libs.versions.toml`). Only `com.android.tools:desugar_jdk_libs` is declared inline in `build.gradle.kts`.
 
 ## Architecture
 
@@ -50,7 +53,7 @@ MVVM with Compose. Single Activity, string-route navigation.
 
 - **`Main.kt` (`MainActivity`)** — the single entry point + `NavHost` inside `AppNavigation()`. To add a screen: create the `view/` composable (+ a `viewmodel/` if it has state), and add a `composable("route")` block, plus a `FeatureItem` tile in `HomeScreen`.
 - **Two ViewModel-ownership patterns coexist** (don't "fix" this into one):
-  - ViewModels that must receive **hardware intents** or be shared are declared in `MainActivity` via `by viewModels()`: `nfcViewModel`, `emvReaderViewModel`, `badUsbViewModel`, `bluetoothViewModel`, `bleSpamViewModel`, `themeViewModel`. `MainActivity` routes NFC foreground-dispatch tags to `NfcViewModel.onTagScanned` **and** `EmvReaderViewModel.readCard` (each ignores tags of the wrong tech), and USB-attach intents to `BadUsbViewModel.connectUsb`.
+  - ViewModels that must receive **hardware intents** or be shared are declared in `MainActivity` via `by viewModels()`: `nfcViewModel`, `emvReaderViewModel`, `emvCardEmulationViewModel`, `badUsbViewModel`, `bluetoothViewModel`, `bleSpamViewModel`, `networkToolsViewModel`, `wifiDeautherViewModel`, `themeViewModel`. `MainActivity` routes NFC foreground-dispatch tags to `NfcViewModel.onTagScanned` **and** `EmvReaderViewModel.readCard` (each ignores tags of the wrong tech), and USB-attach intents to `BadUsbViewModel.connectUsb`.
   - Everything else constructs its ViewModel with the default Compose `viewModel()` **inside** the `composable(...)` block (WiFi analyzer/deauther, wardriving, skimmer, beacon, TOTP, IR remote, Evil Portal, HID keyboard, root BadUSB, …).
 - **API-gated screens**: `HidKeyboardScreen` (BluetoothHidDevice, API 28+) and `EvilPortalScreen` (LocalOnlyHotspot, API 26+) check `Build.VERSION.SDK_INT` first and render `UnsupportedScreen` (defined in `HidKeyboardScreen.kt`) below their floor, because `minSdk` is 24. Follow this pattern for any newer-API-only class referenced in a ViewModel field.
 
@@ -63,15 +66,16 @@ Package layout under `src/main/java/com/example/flipperdroid/`:
 - `infrared/` — protocol-agnostic IR: `IrProtocols` (encoders → µs patterns for `ConsumerIrManager`), `IrFile` (Flipper `.ir` parser, parsed + raw). Bundled remotes live in `assets/infrared/*.ir`.
 - `flipper/` — `FlipperNfc` / `FlipperSub` readers-writers for Flipper `.nfc` / `.sub` files.
 - `security/` — `TotpGenerator` (RFC 6238 TOTP + Base32).
-- `util/` — `AppLog` (app-wide log surfaced by `LogsScreen`; never log secrets or captured credentials into it), `SecureStore` (Keystore AES-GCM for secrets: TOTP vault, captured APDUs), `SecureFlag.SecureWindow()` (FLAG_SECURE on sensitive screens), `ShellArgs` (quoting/validation for every `su -c` command), `WifiChannels` (single 2.4/5/6 GHz channel table).
+- `util/` — `AppLog` (app-wide log surfaced by `LogsScreen`; never log secrets or captured credentials into it), `SecureStore` (Keystore AES-GCM for secrets: TOTP vault, captured APDUs), `SecureFlag.SecureWindow()` (FLAG_SECURE on sensitive screens), `ShellArgs` (quoting/validation for every root command), `RootShell` (the single root-shell entry point), `WifiChannels` (single 2.4/5/6 GHz channel table).
 - `ui/theme/` — `FlipperDroidTheme`; dark mode is a runtime toggle driven by `ThemeViewModel.isDarkMode` (persisted).
 
 ### BLE advertisement engine (`model/`)
 `IAdvertisementService` has two implementations chosen at runtime by API level via `BluetoothHelpers.getAdvertisementService`: `ModernAdvertisementService` (extended advertising, API 26+) and `LegacyAdvertisementService`. `AdvertisementSetQueueHandler` cycles through `AdvertisementSet`s and notifies `IAdvertisementServiceCallback`s. Payloads come from the `*AdvertisementSetGenerator` objects — Apple Continuity, Samsung EasySetup, **SwiftPair (Microsoft)**, **FastPair (Google)** — selected in `BleSpamViewModel` by the `BleSpamBrand` enum. `AdvertiseData.build()` supports both manufacturer data and service data (FastPair uses service data UUID 0xFE2C).
 
 ### Root & native code
-Root-dependent modules shell out through `su -c` and **report honestly when root/tooling is missing**:
-- **Every `su -c` string must be built with `ShellArgs`** (quote user/network data, validate hosts/interfaces/MACs). Unquoted concatenation previously allowed root command injection.
+Root-dependent modules shell out through `su` and **report honestly when root/tooling is missing**:
+- **Never call `su` directly: go through `util/RootShell`.** It probes the device's `su` dialect once (`su -c '<cmd>'` for Magisk/SuperSU, `su 0 sh -c '<cmd>'` for the AOSP/toybox `su` on userdebug and emulator images, which rejects `-c`) and exposes `isAvailable()`, `exec()`, `output()`, `exitCode()` and `commandLine()`. Before it existed, three copies of `hasRoot()` and five raw `su` call sites reported "no root" on the emulator purely because of an argv mismatch.
+- **Every command string must be built with `ShellArgs`** (quote user/network data, validate hosts/interfaces/MACs). Unquoted concatenation previously allowed root command injection.
 - **Network tools** ship a prebuilt `nmap` + `.so`s in `assets/nmap/`; installed once into `/data/local/tmp/flipperdroid/` (`NetworkToolsViewModel.NMAP_DIR`), then run with `LD_LIBRARY_PATH`/`RESOLV_CONF`/`NSSWITCH_CONF` under a 120 s timeout. Options are filtered by `ShellArgs.splitSafeOptions` (no `-o*`, `-i*`, `--script`). The "traceroute" is honestly a TCP reachability probe.
 - **Wi-Fi deauth** checks for root + an injection tool (`aireplay-ng`/`mdk4`) and explains that most phone Wi-Fi chipsets can't do monitor-mode/injection.
 - **MAC spoof** uses `ip link set … address …`.

@@ -96,7 +96,7 @@ object IrFile {
         }
 
         // lines() handles "\n" and "\r\n"; a possible BOM at the start of the file is stripped.
-        for (raw in text.removePrefix("﻿").lines()) {
+        for (raw in text.removePrefix("\uFEFF").lines()) {
             val line = raw.trim()
             if (line.isEmpty() || line.startsWith("#") || line.startsWith("Filetype") || line.startsWith("Version")) {
                 continue

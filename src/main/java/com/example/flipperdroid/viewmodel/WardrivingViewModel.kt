@@ -123,12 +123,24 @@ class WardrivingViewModel(app: Application) : AndroidViewModel(app) {
         // Scan loop
         scanJob = viewModelScope.launch(Dispatchers.IO) {
             while (isActive && _isRunning.value) {
-                try { wifiManager?.startScan() } catch (_: Exception) {}
+                scanOnce()
                 delay(30_000) // respects the Android scan throttling
             }
         }
     }
 
+    /**
+     * One Wi-Fi scan. startScan() needs the location permission and Android throttles
+     * it; a refusal must degrade to an empty scan, not crash the wardriving loop.
+     */
+    @SuppressLint("MissingPermission")
+    private fun scanOnce() {
+        try { wifiManager?.startScan() } catch (_: Exception) {}
+    }
+
+    // Needs ACCESS_FINE_LOCATION; callers only get here after hasPermissions(), and a
+    // refusal degrades to "no last fix" instead of a crash.
+    @SuppressLint("MissingPermission")
     private fun lastKnown(lm: LocationManager, provider: String): Location? =
         try { lm.getLastKnownLocation(provider) } catch (e: Exception) { null }
 

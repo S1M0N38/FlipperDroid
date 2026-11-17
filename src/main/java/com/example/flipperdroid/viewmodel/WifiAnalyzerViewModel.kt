@@ -12,6 +12,7 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.flipperdroid.util.RootShell
 import com.example.flipperdroid.util.WifiChannels
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -137,7 +138,7 @@ class WifiAnalyzerViewModel : ViewModel() {
             val cmd = "ip link set $iface down; ip link set $iface address $target; r=\$?; " +
                 "ip link set $iface up; exit \$r"
             try {
-                val process = ProcessBuilder("su", "-c", cmd).redirectErrorStream(true).start()
+                val process = ProcessBuilder(RootShell.commandLine(cmd)).redirectErrorStream(true).start()
                 val output = process.inputStream.bufferedReader().use { it.readText() }
                 val code = process.waitFor()
                 _status.value = if (code == 0) "MAC set to $target on $iface"

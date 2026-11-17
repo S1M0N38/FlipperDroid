@@ -82,10 +82,15 @@ Misuse of this software for unauthorized access, emulation, or attacks on third-
 ```bash
 ./gradlew assembleDebug          # build the debug APK
 ./gradlew installDebug           # build + install on a connected device
-./gradlew testDebugUnitTest      # run JVM unit tests (no device needed)
+./gradlew testDebugUnitTest      # JVM unit tests (no device needed)
+./gradlew connectedAndroidTest   # Compose UI smoke test (needs a device/emulator)
 ```
 
-`local.properties` must point at your Android SDK (`sdk.dir`). See [`CLAUDE.md`](CLAUDE.md) for architecture notes and [`ROADMAP.md`](ROADMAP.md) for what's implemented and what's next.
+The Android SDK is found through `ANDROID_HOME`; `local.properties` is not
+needed. Emulator work (T3 Code + Simlock, `scripts/adb-env.sh`, and which tests
+run where) is documented in [`docs/dev-environment.md`](docs/dev-environment.md).
+See [`CLAUDE.md`](CLAUDE.md) for architecture notes and [`ROADMAP.md`](ROADMAP.md)
+for what's implemented and what's next.
 
 ---
 

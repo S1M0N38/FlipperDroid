@@ -18,6 +18,13 @@ import com.example.flipperdroid.model.`object`.AdvertisementPayload
 import com.example.flipperdroid.model.`object`.AdvertisementPayload.LEGACY_MAX_PAYLOAD_BYTES as LEGACY_MAX
 import com.example.flipperdroid.model.`object`.BluetoothHelpers.bluetoothAdapter
 
+/**
+ * Extended advertising (AdvertisingSet) exists from Android 8 (API 26).
+ * [com.example.flipperdroid.model.object.BluetoothHelpers.getAdvertisementService]
+ * only instantiates it when the device is new enough; the annotation states the
+ * floor so lint does not have to infer it from a caller's boolean.
+ */
+@RequiresApi(Build.VERSION_CODES.O)
 class ModernAdvertisementService(
     private val context: Context,
 ): IAdvertisementService {

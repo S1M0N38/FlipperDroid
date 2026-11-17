@@ -13,7 +13,11 @@ import java.util.Locale
  */
 object AppLog {
     private const val MAX = 500
-    private val fmt = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+
+    // Locale.US, not getDefault(): this is a static field, so a locale change while
+    // the app runs would be ignored and the log stamps would drift from the system.
+    // The pattern is plain digits either way.
+    private val fmt = SimpleDateFormat("HH:mm:ss", Locale.US)
 
     private val _entries = MutableStateFlow<List<String>>(emptyList())
     val entries: StateFlow<List<String>> = _entries

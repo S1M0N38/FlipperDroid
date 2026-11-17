@@ -1,3 +1,12 @@
+> **Historical document — audit of 2.1.0, kept for reference.**
+> It was written against `2.1.0` and describes code as it was then. Do not treat
+> it as the current state: the project is now 2.2.x. Fixed since: `java.time`
+> desugaring, release signing in CI, root shell injection (`ShellArgs`),
+> `network_security_config` for ONVIF, `allowBackup=false` with backup rules,
+> IR burst polarity, the fake traceroute/BLE-fuzzer/MQTT/CoAP behaviour, and the
+> unauthenticated HTTP file server. The `NfcRelayAttack` module mentioned below
+> no longer exists. Open items are tracked in [`ROADMAP.md`](ROADMAP.md).
+
 # FlipperDroid 2.1.0 — Quality, defect and opportunity audit
 
 Date: 2026-11-03 · Audited branch: `claude/happy-franklin-wjei0n` (HEAD `1a745d4`) · ~20,300 lines of Kotlin, 48 screens, 32 ViewModels.

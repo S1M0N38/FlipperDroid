@@ -2,6 +2,7 @@ package com.example.flipperdroid.network
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import com.example.flipperdroid.util.RootShell
 import com.example.flipperdroid.util.ShellArgs
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -47,7 +48,7 @@ object PacketSniffer {
             if (outputFile != null) args.addAll(listOf("-w", outputFile))
             if (filter.isNotBlank()) args.add(filter.trim())
 
-            val process = Runtime.getRuntime().exec(arrayOf("su", "-c", ShellArgs.join(args)))
+            val process = RootShell.exec(ShellArgs.join(args))
             currentProcess = process
             val stderr = StringBuffer()
             val errThread = Thread {
