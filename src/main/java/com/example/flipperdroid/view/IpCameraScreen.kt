@@ -22,10 +22,10 @@ import com.example.flipperdroid.camera.IpCamera
 import com.example.flipperdroid.viewmodel.IpCameraViewModel
 
 /**
- * Caméras IP : découverte ONVIF (WS-Discovery) + scan de sous-réseau, sonde RTSP,
- * audit d'identifiants par défaut, et pilotage PTZ ONVIF (ContinuousMove/Stop).
+ * IP cameras: ONVIF discovery (WS-Discovery) + subnet scan, RTSP probe,
+ * default-credential audit, and ONVIF PTZ control (ContinuousMove/Stop).
  *
- * Réservé aux tests autorisés sur du matériel dont on a la permission.
+ * For authorized testing on hardware you have permission to test only.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,7 +74,7 @@ fun IpCameraScreen(
             )
             Spacer(Modifier.height(8.dp))
 
-            // --- Découverte ---
+            // --- Discovery ---
             Text("Discovery", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             Button(
                 onClick = { viewModel.discover() },
@@ -103,7 +103,7 @@ fun IpCameraScreen(
             }
 
             Spacer(Modifier.height(8.dp))
-            // --- Identifiants ONVIF partagés ---
+            // --- Shared ONVIF credentials ---
             Text("ONVIF credentials", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             Row(Modifier.fillMaxWidth()) {
                 OutlinedTextField(
@@ -222,7 +222,7 @@ private fun CameraCard(
     }
 }
 
-/** Petite grille de boutons d'action. */
+/** Small grid of action buttons. */
 @Composable
 private fun FlowButtons(vararg actions: Pair<String, () -> Unit>) {
     Column {
@@ -239,7 +239,7 @@ private fun FlowButtons(vararg actions: Pair<String, () -> Unit>) {
     }
 }
 
-/** Croix directionnelle PTZ + zoom. Presse = ContinuousMove, "Stop" = arrêt. */
+/** PTZ directional pad + zoom. Press = ContinuousMove, "Stop" = halt. */
 @Composable
 private fun PtzPad(onMove: (Float, Float, Float) -> Unit, onStop: () -> Unit) {
     val speed = 0.5f

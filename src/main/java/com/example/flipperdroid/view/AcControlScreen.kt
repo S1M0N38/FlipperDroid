@@ -46,10 +46,10 @@ fun AcControlScreen(
         "High" to AcProtocols.FAN_HIGH
     )
 
-    // L'oscillation n'est transmise que si la marque l'encode (sinon elle est ignorée de toute façon).
+    // Oscillation is only transmitted if the brand encodes it (otherwise it is ignored anyway).
     fun send() = viewModel.send(brand, power, mode, temp.toInt(), fan, swing && brand.supportsSwing)
 
-    // Le mode "Fan" n'est proposé que pour les marques qui l'encodent réellement.
+    // The "Fan" mode is only offered for the brands that actually encode it.
     val availableModes = modes.filter { (_, value) -> value != AcProtocols.MODE_FAN || brand.supportsFanMode }
 
     Scaffold(
@@ -80,7 +80,7 @@ fun AcControlScreen(
                 Spacer(Modifier.height(12.dp))
             }
 
-            // Sélecteur de marque.
+            // Brand selector.
             Text("Brand", style = MaterialTheme.typography.labelLarge)
             Spacer(Modifier.height(4.dp))
             Box {
@@ -96,7 +96,7 @@ fun AcControlScreen(
                             onClick = {
                                 brand = b
                                 brandMenu = false
-                                // Mode Fan absent pour cette marque : on repasse sur Cool.
+                                // Fan mode missing on this brand: fall back to Cool.
                                 if (mode == AcProtocols.MODE_FAN && !b.supportsFanMode) mode = AcProtocols.MODE_COOL
                             }
                         )

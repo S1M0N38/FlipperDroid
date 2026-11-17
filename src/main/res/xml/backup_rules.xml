@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Sauvegarde désactivée (allowBackup="false") ; ces exclusions restent une
-     défense en profondeur si elle est réactivée : secrets et captures ne doivent
-     jamais quitter l'appareil. -->
+<!-- Backup disabled (allowBackup="false"); these exclusions remain a
+     defence in depth if it is re-enabled: secrets and captures must
+     never leave the device. -->
 <full-backup-content>
     <exclude domain="sharedpref" path="secure_store.xml" />
     <exclude domain="sharedpref" path="totp_vault.xml" />

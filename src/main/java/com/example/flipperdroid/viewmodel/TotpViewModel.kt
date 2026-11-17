@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** Un compte 2FA (label + secret Base32, paramètres TOTP). */
+/** A 2FA account (label + Base32 secret, TOTP parameters). */
 data class TotpAccount(
     val label: String,
     val secret: String,
@@ -21,9 +21,9 @@ data class TotpAccount(
 )
 
 /**
- * Coffre 2FA/TOTP : les comptes sont stockés chiffrés (AES-GCM via l'Android Keystore,
- * voir [SecureStore]) et les codes sont générés à la volée. Les secrets ne quittent
- * jamais l'appareil.
+ * 2FA/TOTP vault: accounts are stored encrypted (AES-GCM via the Android Keystore,
+ * see [SecureStore]) and codes are generated on the fly. Secrets never leave
+ * the device.
  */
 class TotpViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -31,9 +31,9 @@ class TotpViewModel(app: Application) : AndroidViewModel(app) {
 
     private companion object {
         const val TAG = "TotpViewModel"
-        /** Clé du coffre chiffré dans SecureStore. */
+        /** Key of the encrypted vault in SecureStore. */
         const val STORE_KEY = "totp_accounts"
-        /** Ancien stockage en clair (SharedPreferences "totp_vault", clé "accounts"), migré puis supprimé. */
+        /** Former plaintext storage (SharedPreferences "totp_vault", key "accounts"), migrated then deleted. */
         const val LEGACY_PREFS = "totp_vault"
         const val LEGACY_KEY = "accounts"
     }
@@ -43,7 +43,7 @@ class TotpViewModel(app: Application) : AndroidViewModel(app) {
     private val _accounts = MutableStateFlow<List<TotpAccount>>(emptyList())
     val accounts: StateFlow<List<TotpAccount>> = _accounts
 
-    /** Dernier message d'erreur à afficher (null = aucun). */
+    /** Last error message to display (null = none). */
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
@@ -54,54 +54,54 @@ class TotpViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun load() {
-        // Données chiffrées actuelles
+        // Current encrypted data
         val hasEncrypted = appContext
             .getSharedPreferences(SecureStore.PREFS, Context.MODE_PRIVATE)
             .contains(STORE_KEY)
         val decrypted = try {
             SecureStore.getString(appContext, STORE_KEY)
         } catch (e: Exception) {
-            Log.e(TAG, "Lecture du coffre impossible", e)
+            Log.e(TAG, "Vault read failed", e)
             null
         }
 
         var list: List<TotpAccount> = when {
             decrypted != null -> parseAccounts(decrypted) ?: run {
-                Log.e(TAG, "Coffre corrompu : démarrage avec un coffre vide")
-                _error.value = "Coffre corrompu : données ignorées"
+                Log.e(TAG, "Corrupted vault: starting with an empty vault")
+                _error.value = "Corrupted vault: data ignored"
                 emptyList()
             }
             hasEncrypted -> {
-                Log.e(TAG, "Coffre illisible (clé Keystore perdue ou données altérées)")
-                _error.value = "Coffre illisible (clé Keystore perdue ou données altérées)"
+                Log.e(TAG, "Unreadable vault (Keystore key lost or data altered)")
+                _error.value = "Unreadable vault (Keystore key lost or data altered)"
                 emptyList()
             }
             else -> emptyList()
         }
 
-        // Migration de l'ancien stockage en clair
+        // Migration of the former plaintext storage
         val legacyJson = try {
             legacyPrefs.getString(LEGACY_KEY, null)
         } catch (e: Exception) {
-            Log.e(TAG, "Lecture de l'ancien coffre impossible", e)
+            Log.e(TAG, "Reading the old vault failed", e)
             null
         }
         if (legacyJson != null) {
             val legacy = parseAccounts(legacyJson)
             if (legacy == null) {
-                // Donnée illisible : on la laisse en place, sans la migrer
-                Log.e(TAG, "Ancien coffre corrompu, migration ignorée")
+                // Unreadable data: we leave it in place, without migrating it
+                Log.e(TAG, "Old vault corrupted, migration skipped")
             } else {
                 val merged = list + legacy.filter { l ->
                     list.none { it.label == l.label && it.secret == l.secret }
                 }
-                // N'effacer l'ancien stockage que si la nouvelle écriture est vérifiée
+                // Only erase the old storage if the new write is verified
                 if (persistList(merged)) {
                     try {
                         legacyPrefs.edit().remove(LEGACY_KEY).apply()
-                        Log.i(TAG, "Migration du coffre TOTP terminée (${legacy.size} comptes)")
+                        Log.i(TAG, "TOTP vault migration complete (${legacy.size} accounts)")
                     } catch (e: Exception) {
-                        Log.e(TAG, "Suppression de l'ancien coffre impossible", e)
+                        Log.e(TAG, "Deleting the old vault failed", e)
                     }
                 }
                 list = merged
@@ -112,8 +112,8 @@ class TotpViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Parse le JSON du coffre. Les comptes invalides sont ignorés.
-     * @return null si le JSON lui-même est corrompu.
+     * Parses the vault JSON. Invalid accounts are skipped.
+     * @return null if the JSON itself is corrupted.
      */
     private fun parseAccounts(json: String): List<TotpAccount>? = try {
         val arr = JSONArray(json)
@@ -121,7 +121,7 @@ class TotpViewModel(app: Application) : AndroidViewModel(app) {
         for (i in 0 until arr.length()) {
             val o = arr.optJSONObject(i)
             if (o == null) {
-                Log.w(TAG, "Entrée ignorée à l'index $i (format inattendu)")
+                Log.w(TAG, "Entry skipped at index $i (unexpected format)")
                 continue
             }
             val account = TotpAccount(
@@ -132,17 +132,17 @@ class TotpViewModel(app: Application) : AndroidViewModel(app) {
                 algorithm = o.optString("algorithm", "SHA1")
             )
             val problem = validationError(account)
-            if (problem == null) out.add(account) else Log.w(TAG, "Compte ignoré à l'index $i : $problem")
+            if (problem == null) out.add(account) else Log.w(TAG, "Account skipped at index $i: $problem")
         }
         out
     } catch (e: Exception) {
-        Log.e(TAG, "JSON du coffre invalide", e)
+        Log.e(TAG, "Invalid vault JSON", e)
         null
     }
 
     /**
-     * Enregistre la liste dans le coffre chiffré et vérifie la relecture.
-     * @return true si l'écriture a réussi.
+     * Saves the list into the encrypted vault and verifies the read-back.
+     * @return true if the write succeeded.
      */
     private fun persistList(list: List<TotpAccount>): Boolean = try {
         val arr = JSONArray()
@@ -158,22 +158,22 @@ class TotpViewModel(app: Application) : AndroidViewModel(app) {
         val json = arr.toString()
         SecureStore.putString(appContext, STORE_KEY, json)
         if (SecureStore.getString(appContext, STORE_KEY) != json) {
-            throw IllegalStateException("Relecture du coffre différente de l'écriture")
+            throw IllegalStateException("Vault read-back differs from the write")
         }
         true
     } catch (e: Exception) {
-        Log.e(TAG, "Sauvegarde du coffre impossible", e)
-        _error.value = "Impossible de sauvegarder le coffre chiffré"
+        Log.e(TAG, "Saving the vault failed", e)
+        _error.value = "Unable to save the encrypted vault"
         false
     }
 
-    /** Message d'erreur de validation d'un compte, ou null s'il est valide. */
+    /** Validation error message for an account, or null if it is valid. */
     private fun validationError(a: TotpAccount): String? = when {
-        !TotpGenerator.isValidBase32(a.secret) -> "Secret Base32 invalide"
-        a.digits !in 6..8 -> "Nombre de chiffres non supporté : ${a.digits} (6 à 8)"
-        a.period <= 0 -> "Période invalide : ${a.period} (doit être > 0)"
+        !TotpGenerator.isValidBase32(a.secret) -> "Invalid Base32 secret"
+        a.digits !in 6..8 -> "Unsupported digit count: ${a.digits} (6 to 8)"
+        a.period <= 0 -> "Invalid period: ${a.period} (must be > 0)"
         !TotpGenerator.isSupportedAlgorithm(a.algorithm) ->
-            "Algorithme non supporté : ${a.algorithm} (SHA1, SHA256, SHA512)"
+            "Unsupported algorithm: ${a.algorithm} (SHA1, SHA256, SHA512)"
         else -> null
     }
 
@@ -183,17 +183,17 @@ class TotpViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Ajoute un compte depuis un label + secret, ou depuis une URI otpauth://.
-     * @return true si le compte a été ajouté ; sinon [error] contient la raison.
+     * Adds an account from a label + secret, or from an otpauth:// URI.
+     * @return true if the account was added; otherwise [error] holds the reason.
      */
     fun addAccount(labelOrUri: String, secret: String): Boolean {
         val input = labelOrUri.trim()
         val account: TotpAccount
         if (input.startsWith("otpauth://", ignoreCase = true)) {
             val data = TotpGenerator.parseOtpauthUri(input)
-                ?: return fail("URI otpauth:// invalide (secret requis, digits/period numériques)")
+                ?: return fail("Invalid otpauth:// URI (secret required, numeric digits/period)")
             if (data.type != "totp") {
-                return fail("Type '${data.type}' non pris en charge (TOTP uniquement)")
+                return fail("Type '${data.type}' not supported (TOTP only)")
             }
             account = TotpAccount(
                 label = data.label,
@@ -203,7 +203,7 @@ class TotpViewModel(app: Application) : AndroidViewModel(app) {
                 algorithm = data.algorithm
             )
         } else {
-            if (secret.isBlank()) return fail("Secret Base32 requis")
+            if (secret.isBlank()) return fail("Base32 secret required")
             account = TotpAccount(label = input.ifBlank { "Account" }, secret = secret)
         }
 

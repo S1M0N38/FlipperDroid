@@ -33,7 +33,7 @@ class LegacyAdvertisementService(context: Context): IAdvertisementService {
     override fun startAdvertisement(advertisementSet: AdvertisementSet) {
         if (_advertiser != null) {
             if (advertisementSet.validate()) {
-                // Permission check à adapter selon ta gestion
+                // Permission check to be adapted to your own handling
                 val preparedAdvertisementSet = prepareAdvertisementSet(advertisementSet)
                 if (preparedAdvertisementSet.scanResponse != null) {
                     _advertiser!!.startAdvertising(
@@ -116,8 +116,8 @@ class LegacyAdvertisementService(context: Context): IAdvertisementService {
         return object : AdvertiseCallback() {
             override fun onStartFailure(errorCode: Int) {
                 super.onStartFailure(errorCode)
-                // On mappe le vrai code d'erreur (auparavant tout était réduit à UNKNOWN,
-                // masquant notamment DATA_TOO_LARGE pour les payloads > 31 octets).
+                // Map the real error code (previously everything was reduced to UNKNOWN,
+                // notably hiding DATA_TOO_LARGE for payloads > 31 bytes).
                 val advertisementError = when (errorCode) {
                     ADVERTISE_FAILED_ALREADY_STARTED -> AdvertisementError.ADVERTISE_FAILED_ALREADY_STARTED
                     ADVERTISE_FAILED_DATA_TOO_LARGE -> AdvertisementError.ADVERTISE_FAILED_DATA_TOO_LARGE

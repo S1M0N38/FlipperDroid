@@ -17,7 +17,7 @@ import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
-/** Un rastreador (tracker) BLE détecté à proximité. */
+/** A BLE tracker detected nearby. */
 data class DetectedTracker(
     val type: String,
     val address: String,
@@ -26,8 +26,8 @@ data class DetectedTracker(
 )
 
 /**
- * Détecteur de trackers BLE (anti-stalking) : repère les balises de suivi proches
- * — Apple Find My/AirTag, Samsung SmartTag, Tile — via leurs signatures d'advertising.
+ * BLE tracker detector (anti-stalking): spots nearby tracking tags
+ * — Apple Find My/AirTag, Samsung SmartTag, Tile — through their advertising signatures.
  */
 class TrackerDetectorViewModel : ViewModel() {
 
@@ -90,10 +90,10 @@ class TrackerDetectorViewModel : ViewModel() {
         }
     }
 
-    /** Reconnaît une signature de tracker connue, ou null. */
+    /** Recognizes a known tracker signature, or null. */
     private fun classify(result: ScanResult): String? {
         val record = result.scanRecord ?: return null
-        // Apple Find My / AirTag : manufacturer 0x004C, 1er octet 0x12 (offline finding).
+        // Apple Find My / AirTag: manufacturer 0x004C, first byte 0x12 (offline finding).
         val apple = record.getManufacturerSpecificData(0x004C)
         if (apple != null && apple.isNotEmpty() && (apple[0].toInt() and 0xFF) == 0x12) {
             return "Apple Find My / AirTag"
@@ -114,9 +114,9 @@ class TrackerDetectorViewModel : ViewModel() {
                 if (s.startsWith("0000feed") || s.startsWith("0000feec")) return "Tile"
             }
         }
-        // Le seul identifiant fabricant 0x0075 (Samsung) n'est PAS retenu : téléphones,
-        // montres et écouteurs Samsung l'émettent aussi (faux positifs massifs). Le
-        // SmartTag est reconnu par son UUID de service 0xFD5A ci-dessus.
+        // The manufacturer id 0x0075 (Samsung) alone is NOT used: Samsung phones,
+        // watches and earbuds emit it too (massive false positives). The
+        // SmartTag is recognized by its service UUID 0xFD5A above.
         return null
     }
 

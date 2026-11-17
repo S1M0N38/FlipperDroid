@@ -28,15 +28,15 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Donnees representant un reseau Wifi
+ * Data representing a Wifi network
  *
- * @param ssid Nom du reseau Wifi
- * @param bssid Adresse MAC du point d acces
- * @param rssi Niveau du signal en dBm
- * @param frequency Frequence radio en MHz
- * @param capabilities Capacites et securite du reseau
- * @param lastSeen Heure de la detection formatee en chaine
- * @param channel Canal radio calcule a partir de la frequence
+ * @param ssid Name of the Wifi network
+ * @param bssid MAC address of the access point
+ * @param rssi Signal level in dBm
+ * @param frequency Radio frequency in MHz
+ * @param capabilities Capabilities and security of the network
+ * @param lastSeen Time of detection formatted as a string
+ * @param channel Radio channel computed from the frequency
  */
 data class WifiNetwork(
     val ssid: String,
@@ -60,16 +60,16 @@ data class WifiNetwork(
             )
         }
 
-        /** Délègue au calcul unique (2.4 / 5 / 6 GHz) de [com.example.flipperdroid.util.WifiChannels]. */
+        /** Delegates to the single (2.4 / 5 / 6 GHz) computation in [com.example.flipperdroid.util.WifiChannels]. */
         fun frequencyToChannel(frequency: Int): Int =
             com.example.flipperdroid.util.WifiChannels.frequencyToChannel(frequency)
     }
 }
 
 /**
- * ViewModel gerant la detection des reseaux Wifi et la lecture des resultats de scan
+ * ViewModel handling the detection of Wifi networks and the reading of scan results
  *
- * Gere la detection, la liste des reseaux disponibles, l etat du scan et des permissions
+ * Handles detection, the list of available networks, the scan state and permissions
  */
 class WifiDeautherViewModel : ViewModel() {
     private var wifiManager: WifiManager? = null
@@ -88,11 +88,11 @@ class WifiDeautherViewModel : ViewModel() {
     private val _permissionsGranted = MutableStateFlow(false)
     val permissionsGranted: StateFlow<Boolean> = _permissionsGranted
 
-    // Réseau actuellement sélectionné comme cible
+    // Network currently selected as target
     private val _selectedNetwork = MutableStateFlow<WifiNetwork?>(null)
     val selectedNetwork: StateFlow<WifiNetwork?> = _selectedNetwork
 
-    // Etat et journal de l'attaque de deauth
+    // State and log of the deauth attack
     private val _isDeauthing = MutableStateFlow(false)
     val isDeauthing: StateFlow<Boolean> = _isDeauthing
 
@@ -101,9 +101,9 @@ class WifiDeautherViewModel : ViewModel() {
 
     private var deauthJob: Job? = null
 
-    // NEARBY_WIFI_DEVICES n'existe (et ne peut être accordée) qu'à partir d'Android 13
-    // (API 33). L'exiger inconditionnellement bloquait le scan sur les versions
-    // antérieures : la permission n'étant jamais accordée, "all granted" restait faux.
+    // NEARBY_WIFI_DEVICES only exists (and can only be granted) from Android 13 (API 33).
+    // Requiring it unconditionally blocked the scan on earlier versions: the permission
+    // was never granted, so "all granted" stayed false.
     private val requiredPermissions: List<String> = buildList {
         add(Manifest.permission.ACCESS_FINE_LOCATION)
         add(Manifest.permission.ACCESS_COARSE_LOCATION)
@@ -116,20 +116,20 @@ class WifiDeautherViewModel : ViewModel() {
     }
 
     /**
-     * Initialise le ViewModel avec le contexte et configure le WifiManager et le BroadcastReceiver
+     * Initializes the ViewModel with the context and configures the WifiManager and the BroadcastReceiver
      *
-     * @param context Contexte Android
+     * @param context Android Context
      */
 
     fun initialize(context: Context) {
-        // Contexte applicatif : ce ViewModel vit dans MainActivity et survit aux recréations.
+        // Application context: this ViewModel lives in MainActivity and survives recreations.
         this.context = context.applicationContext
         wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
         setupScanReceiver()
         checkPermissions()
     }
     /**
-     * Configure et enregistre le BroadcastReceiver pour intercepter les resultats de scan Wifi
+     * Configures and registers the BroadcastReceiver to intercept Wifi scan results
      */
     private fun setupScanReceiver() {
         try {
@@ -162,7 +162,7 @@ class WifiDeautherViewModel : ViewModel() {
         )
     }
     /**
-     * Traite les resultats du scan lorsqu ils sont disponibles
+     * Handles the scan results when they are available
      */
     private fun scanSuccess() {
         viewModelScope.launch {
@@ -202,7 +202,7 @@ class WifiDeautherViewModel : ViewModel() {
     }
 
     /**
-     * Traite les resultats caches ou precedents si le scan echoue
+     * Handles cached or previous results if the scan fails
      */
     private fun scanFailure() {
         viewModelScope.launch {
@@ -231,7 +231,7 @@ class WifiDeautherViewModel : ViewModel() {
         }
     }
     /**
-     * Verifie si toutes les permissions necessaires sont accordées
+     * Checks whether all required permissions are granted
      * (ACCESS_FINE_LOCATION, ACCESS_WIFI_STATE, etc.)
      */
     private fun checkPermissions() {
@@ -254,7 +254,7 @@ class WifiDeautherViewModel : ViewModel() {
     }
 
     /**
-     * Lance un scan Wifi si les permissions sont accordees et que le Wifi est active
+     * Starts a Wifi scan if permissions are granted and Wifi is enabled
      */
     fun startScan() {
         if (!permissionsGranted.value) {
@@ -270,7 +270,7 @@ class WifiDeautherViewModel : ViewModel() {
                         Log.d("WifiDeauther", "WiFi is disabled, enabling...")
                         wifi.isWifiEnabled = true
                         
-                        // Attendre que le WiFi soit activé
+                        // Wait for WiFi to be enabled
                         var attempts = 0
                         while (!wifi.isWifiEnabled && attempts < 10) {
                             Log.d("WifiDeauther", "Waiting for WiFi to enable... attempt $attempts")
@@ -307,7 +307,7 @@ class WifiDeautherViewModel : ViewModel() {
     }
 
     /**
-     * Sélectionne un réseau comme cible (déclenché au clic sur une carte).
+     * Selects a network as target (triggered on card click).
      */
     fun selectNetwork(network: WifiNetwork) {
         _selectedNetwork.value = network
@@ -321,13 +321,13 @@ class WifiDeautherViewModel : ViewModel() {
     }
 
     /**
-     * Lance une attaque de deauthentification 802.11 sur le réseau cible.
+     * Launches an 802.11 deauthentication attack on the target network.
      *
-     * IMPORTANT — limites Android : une vraie deauth nécessite le mode moniteur
-     * et l'injection de paquets, que la majorité des puces Wi-Fi de smartphones
-     * ne supportent pas, même rootées. Cette fonction vérifie honnêtement les
-     * prérequis (root + outil d'injection mdk4/aireplay-ng) et rapporte l'état,
-     * plutôt que de faire croire à une action qui n'a pas lieu.
+     * IMPORTANT — Android limitations: a real deauth requires monitor mode and
+     * packet injection, which most smartphone Wi-Fi chipsets do not support, even
+     * when rooted. This function honestly checks the prerequisites (root + an
+     * injection tool mdk4/aireplay-ng) and reports the state, rather than pretending
+     * an action took place that does not.
      */
     fun startDeauth(network: WifiNetwork) {
         if (_isDeauthing.value) return
@@ -353,12 +353,12 @@ class WifiDeautherViewModel : ViewModel() {
                 return@launch
             }
 
-            // Interface moniteur présumée ; à adapter selon l'appareil.
+            // Assumed monitor interface; adapt per device.
             val iface = "wlan0"
             val command = when (tool) {
-                // Salve bornée (64 trames) au lieu de --deauth 0 (infini) : la boucle
-                // relance la commande chaque seconde, une commande infinie ne rendrait
-                // jamais la main.
+                // Bounded burst (64 frames) instead of --deauth 0 (infinite): the loop
+                // re-launches the command every second, an infinite command would never
+                // return.
                 "aireplay-ng" -> "aireplay-ng --deauth 64 -a ${network.bssid} $iface"
                 else -> "mdk4 $iface d -B ${network.bssid}"
             }
@@ -368,7 +368,7 @@ class WifiDeautherViewModel : ViewModel() {
             while (isActive && _isDeauthing.value) {
                 val rc = runRootCommand(command)
                 rounds++
-                // Statut honnête : un code de sortie non nul signifie que l'outil a échoué.
+                // Honest status: a non-zero exit code means the tool failed.
                 _deauthStatus.value = if (rc == 0) "Burst #$rounds: $tool exited OK"
                     else "Burst #$rounds: $tool failed (exit $rc) — interface not in monitor mode?"
                 delay(1000)
@@ -385,7 +385,7 @@ class WifiDeautherViewModel : ViewModel() {
         }
     }
 
-    /** Vérifie la présence d'un accès root en exécutant `id` via su. */
+    /** Checks for root access by running `id` through su. */
     private fun hasRoot(): Boolean {
         return try {
             val process = Runtime.getRuntime().exec(arrayOf("su", "-c", "id"))
@@ -397,7 +397,7 @@ class WifiDeautherViewModel : ViewModel() {
         }
     }
 
-    /** Détecte un outil d'injection disponible dans le PATH. */
+    /** Detects an injection tool available in the PATH. */
     private fun findDeauthTool(): String? {
         for (tool in listOf("aireplay-ng", "mdk4")) {
             try {
@@ -405,17 +405,17 @@ class WifiDeautherViewModel : ViewModel() {
                 val output = BufferedReader(InputStreamReader(process.inputStream)).readText().trim()
                 process.waitFor()
                 if (output.isNotEmpty()) return tool
-            } catch (_: Exception) { /* essaie le suivant */ }
+            } catch (_: Exception) { /* try the next one */ }
         }
         return null
     }
 
     /**
-     * Exécute une commande shell root et retourne son code de sortie.
+     * Runs a root shell command and returns its exit code.
      *
-     * Draine stdout/stderr en arrière-plan (sinon un outil bavard remplit le buffer
-     * du pipe et se bloque) et borne la durée de la salve : mdk4 (et aireplay en mode
-     * continu) tourneraient indéfiniment et waitFor() ne rendrait jamais la main.
+     * Drains stdout/stderr in the background (otherwise a chatty tool fills the pipe
+     * buffer and blocks) and bounds the duration of the burst: mdk4 (and aireplay in
+     * continuous mode) would run forever and waitFor() would never return.
      */
     private fun runRootCommand(command: String, timeoutMs: Long = 2000): Int {
         var process: Process? = null
@@ -438,7 +438,7 @@ class WifiDeautherViewModel : ViewModel() {
         }
     }
 
-    /** Vide un flux de process en arrière-plan (thread daemon) pour éviter les blocages. */
+    /** Drains a process stream in the background (daemon thread) to avoid blocking. */
     private fun drainStream(stream: java.io.InputStream) {
         Thread {
             try { stream.bufferedReader().use { r -> while (r.readLine() != null) { /* ignore */ } } }
@@ -459,10 +459,10 @@ class WifiDeautherViewModel : ViewModel() {
     }
 
     /**
-     * Retourne une evaluation qualitative de la puissance du signal Wifi
+     * Returns a qualitative evaluation of the Wifi signal strength
      *
-     * @param rssi Niveau du signal en dBm
-     * @return Enum representant la qualite du signal
+     * @param rssi Signal level in dBm
+     * @return Enum representing the signal quality
      */
     fun getNetworkStrength(rssi: Int): NetworkStrength {
         return when {
@@ -473,10 +473,10 @@ class WifiDeautherViewModel : ViewModel() {
         }
     }
     /**
-     * Analyse la chaine des capacites pour determiner le type de securite du reseau Wifi
+     * Analyzes the capabilities string to determine the Wifi network security type
      *
-     * @param capabilities Chaine des capacites du reseau
-     * @return Enum representant le type de securite
+     * @param capabilities Capabilities string of the network
+     * @return Enum representing the security type
      */
     fun getSecurityType(capabilities: String): SecurityType {
         return when (com.example.flipperdroid.util.WifiSecurityClassifier.classify(capabilities)) {
@@ -491,8 +491,8 @@ class WifiDeautherViewModel : ViewModel() {
     }
 
     /**
-     * Libellé de sécurité enrichi (WPA3-SAE, OWE, transition WPA2/WPA3), avec
-     * les drapeaux Entreprise (EAP) et WPS qui élargissent la surface d'attaque.
+     * Enriched security label (WPA3-SAE, OWE, WPA2/WPA3 transition), with the
+     * Enterprise (EAP) and WPS flags that widen the attack surface.
      */
     fun getSecurityLabel(capabilities: String): String =
         com.example.flipperdroid.util.WifiSecurityClassifier.label(capabilities)

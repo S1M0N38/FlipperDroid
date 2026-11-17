@@ -1,156 +1,156 @@
-# FlipperDroid — Roadmap de Evolução
+# FlipperDroid — Evolution Roadmap
 
-Comparação com o [firmware oficial do Flipper Zero](https://github.com/flipperdevices/flipperzero-firmware)
-e propostas de novas funcionalidades, com avaliação **honesta** da viabilidade em Android.
+Comparison with the [official Flipper Zero firmware](https://github.com/flipperdevices/flipperzero-firmware)
+and proposals for new features, with an **honest** assessment of Android feasibility.
 
-## ✅ Implementado
+## ✅ Implemented
 
-- **QR / Barcode Scanner** real com câmera (dep. `com.journeyapps:zxing-android-embedded`).
-- **BLE Scanner + GATT Explorer** (estilo nRF Connect): scan, conectar, descobrir serviços/características, ler valores.
-- **BLE Spam** expandido: além de Apple/Samsung, agora **Microsoft SwiftPair** e **Google Fast Pair**.
-- **NFC avançado:** ataque por dicionário de chaves Mifare Classic, leitura NDEF, clone de UID corrigido (carta "magic"), export de dump.
-- **Infravermelho:** transmissão real via `ConsumerIrManager` (NEC) + teclado numérico.
-- **Base de códigos IR (telecomando universal):** encoders NEC/NECext/Samsung32/Sony-SIRC/RC5, **parser do formato `.ir` do Flipper** (parsed + raw), remotes de exemplo empacotados, **import de `.ir` externos** (Flipper-IRDB via SAF) e **power sweep** (TV-B-Gone simplificado).
-- **Wardriving** (inspirado no Evil-M5Project): scan Wi-Fi + GPS → **export CSV Wigle/WiGLE**.
-- **Skimmer Detector** (Bluetooth Classic + BLE por assinatura de módulo série).
-- **WiFi Analyzer** (gráfico de ocupação de canais 2.4/5 GHz) + **MAC spoofing (root)**.
-- **BLE Beacon** emitter: iBeacon, Eddystone-URL, manufacturer data custom.
-- **BLE GATT write + notify** (além de read) no BLE Scanner.
-- **NFC NDEF write** (texto/URI, formata o tag se preciso).
-- **Network extras** nativos: Wake-on-LAN, tabela ARP (`/proc/net/arp`), ping sweep /24.
-- **BadUSB real via USB Gadget (root)** + **parser DuckyScript** (escreve em `/dev/hidgX`).
-- **BLE HID device** (celular como teclado Bluetooth sem fio, via `BluetoothHidDevice`).
-- **Evil Portal** (LocalOnlyHotspot + servidor HTTP embutido que captura credenciais).
-- **2FA Vault (TOTP)** — RFC 6238, validado contra os vetores oficiais.
-- **Decoders de formato Flipper** — `.nfc` (ler/gerar), `.sub` (ler/analisar) + salvar `.nfc` no NFC.
-- **Tela de Logs** central (`AppLog`) com export.
-- **SettingsScreen** — toggles conectados/persistidos (keep-screen-on funcional).
-- **Testes unitários** (`src/test/LogicUnitTest.kt`) da lógica pura: TOTP, encoders IR, parser `.ir`, DuckyScript, Mifare, Wi-Fi channel, skimmer, `.nfc`/`.sub`.
-- Permissões novas no manifesto: `TRANSMIT_IR`, `CAMERA`.
+- **QR / Barcode Scanner** for real, with the camera (dep. `com.journeyapps:zxing-android-embedded`).
+- **BLE Scanner + GATT Explorer** (nRF Connect style): scan, connect, discover services/characteristics, read values.
+- **BLE Spam** expanded: besides Apple/Samsung, now **Microsoft SwiftPair** and **Google Fast Pair**.
+- **Advanced NFC:** Mifare Classic key dictionary attack, NDEF read, fixed UID clone ("magic" card), dump export.
+- **Infrared:** real transmission via `ConsumerIrManager` (NEC) + numeric keypad.
+- **IR code base (universal remote):** NEC/NECext/Samsung32/Sony-SIRC/RC5 encoders, **parser for the Flipper `.ir` format** (parsed + raw), bundled example remotes, **import of external `.ir`** (Flipper-IRDB via SAF) and **power sweep** (simplified TV-B-Gone).
+- **Wardriving** (inspired by Evil-M5Project): Wi-Fi + GPS scan → **Wigle/WiGLE CSV export**.
+- **Skimmer Detector** (Bluetooth Classic + BLE by serial module signature).
+- **WiFi Analyzer** (2.4/5 GHz channel occupancy graph) + **MAC spoofing (root)**.
+- **BLE Beacon** emitter: iBeacon, Eddystone-URL, custom manufacturer data.
+- **BLE GATT write + notify** (besides read) in the BLE Scanner.
+- **NFC NDEF write** (text/URI, formats the tag if needed).
+- **Native network extras**: Wake-on-LAN, ARP table (`/proc/net/arp`), /24 ping sweep.
+- **Real BadUSB via USB Gadget (root)** + **DuckyScript parser** (writes to `/dev/hidgX`).
+- **BLE HID device** (phone as a wireless Bluetooth keyboard, via `BluetoothHidDevice`).
+- **Evil Portal** (LocalOnlyHotspot + embedded HTTP server that captures credentials).
+- **2FA Vault (TOTP)** — RFC 6238, validated against the official vectors.
+- **Flipper format decoders** — `.nfc` (read/generate), `.sub` (read/analyze) + save `.nfc` in NFC.
+- Central **Logs screen** (`AppLog`) with export.
+- **SettingsScreen** — connected/persisted toggles (working keep-screen-on).
+- **Unit tests** (`src/test/LogicUnitTest.kt`) for the pure logic: TOTP, IR encoders, `.ir` parser, DuckyScript, Mifare, Wi-Fi channel, skimmer, `.nfc`/`.sub`.
+- New manifest permissions: `TRANSMIT_IR`, `CAMERA`.
 
-### Nota sobre build/SDK
-A CI (GitHub Actions) compila, roda os testes JVM e o lint a cada push/PR. Localmente, aponte `local.properties` para o seu Android SDK (`sdk.dir`) e rode:
-- `./gradlew testDebugUnitTest` — roda os testes unitários (não precisa de device).
-- `./gradlew assembleDebug` — compila o APK.
+### Note on build/SDK
+CI (GitHub Actions) builds, runs the JVM tests and lint on every push/PR. Locally, point `local.properties` at your Android SDK (`sdk.dir`) and run:
+- `./gradlew testDebugUnitTest` — runs the unit tests (no device needed).
+- `./gradlew assembleDebug` — builds the APK.
 
-### Do Evil-M5Project — o que é portável
-- ✅ **Nativo:** Wardriving (feito), port scan (nmap, feito), skimmer detection (BLE/Wi-Fi), open-Wi-Fi checker.
-- ⚠️ **Parcial nativo:** Evil Portal (`LocalOnlyHotspot` + servidor HTTP; sem roteamento de internet).
-- ❌ **Só via M5:** deauth, beacon spam, karma, evil twin, sniffing/handshake (exigem injeção 802.11).
-- 🔌 **Melhor caminho:** um **controlador do Evil-M5** no app (Web UI HTTP / UART-USB / BLE) para disparar os ataques do ESP32.
+### From Evil-M5Project — what is portable
+- ✅ **Native:** Wardriving (done), port scan (nmap, done), skimmer detection (BLE/Wi-Fi), open-Wi-Fi checker.
+- ⚠️ **Partially native:** Evil Portal (`LocalOnlyHotspot` + HTTP server; no internet routing).
+- ❌ **M5 only:** deauth, beacon spam, karma, evil twin, sniffing/handshake (they require 802.11 injection).
+- 🔌 **Best path:** an **Evil-M5 controller** inside the app (HTTP Web UI / UART-USB / BLE) to trigger the ESP32 attacks.
 
-O restante abaixo permanece como backlog.
+The rest below remains as backlog.
 
-## Contexto: o que o Flipper Zero tem vs. o que um celular tem
+## Context: what the Flipper Zero has vs. what a phone has
 
-| Interface Flipper Zero | Rádio/hardware dedicado | Celular Android tem? |
+| Flipper Zero interface | Dedicated radio/hardware | Does an Android phone have it? |
 |---|---|---|
-| **Sub-GHz** (300–928 MHz, CC1101) | Sim | ❌ Não (sem rádio Sub-GHz) |
-| **RFID 125 kHz** (LF) | Sim | ❌ Não (NFC do celular é 13.56 MHz apenas) |
-| **NFC 13.56 MHz** | Sim | ✅ Sim (limitado pelo controlador NFC) |
-| **Infravermelho** | Sim (TX+RX) | ⚠️ Só alguns celulares (TX apenas, sem RX) |
-| **iButton / 1-Wire** | Sim | ❌ Não |
-| **GPIO** | Sim | ❌ Não (sem pinos expostos) |
-| **BadUSB (HID gadget)** | Sim | ⚠️ Precisa de kernel com USB gadget + root |
-| **Bluetooth LE** | Sim | ✅ Sim |
-| **U2F** | Sim | ✅ Sim (via API) |
+| **Sub-GHz** (300–928 MHz, CC1101) | Yes | ❌ No (no Sub-GHz radio) |
+| **RFID 125 kHz** (LF) | Yes | ❌ No (the phone's NFC is 13.56 MHz only) |
+| **NFC 13.56 MHz** | Yes | ✅ Yes (limited by the NFC controller) |
+| **Infrared** | Yes (TX+RX) | ⚠️ Only some phones (TX only, no RX) |
+| **iButton / 1-Wire** | Yes | ❌ No |
+| **GPIO** | Yes | ❌ No (no exposed pins) |
+| **BadUSB (HID gadget)** | Yes | ⚠️ Requires a kernel with USB gadget + root |
+| **Bluetooth LE** | Yes | ✅ Yes |
+| **U2F** | Yes | ✅ Yes (via API) |
 
-> **Conclusão-chave:** um celular **nunca** substitui o Sub-GHz, o RFID 125 kHz, o iButton nem o GPIO
-> do Flipper — falta o hardware de rádio. Onde o FlipperDroid pode brilhar é em **NFC, IR, BLE, Wi-Fi e USB**,
-> e em compatibilidade de formatos de arquivo (`.nfc`, `.ir`, `.sub`) para interoperar com um Flipper real.
-
----
-
-## Prioridade ALTA — alto valor, viável em Android
-
-### 1. Controle remoto IR universal (base de códigos)
-- **O que faz:** telecomando universal de TV/AC/som, como o app *Infrared Remote* do Flipper.
-- **Mapeia para:** Infrared.
-- **Viabilidade:** ✅ Viável em celulares **com blaster IR** (Xiaomi, alguns Samsung/Huawei). Sem RX, não dá para *aprender* códigos capturando — só transmitir.
-- **Como:** `ConsumerIrManager.transmit()` (já implementado com NEC nesta base). Falta uma **base de dados de códigos** por marca. Importar o [Flipper-IRDB](https://github.com/logickworkshop/Flipper-IRDB) e um parser do formato `.ir` (protocolos NEC, RC5, RC6, SIRC, Samsung32, RAW).
-- **Esforço:** M
-
-### 2. NFC avançado — salvar, reemitir e dicionário de chaves Mifare
-- **O que faz:** salvar dumps de tags, reemular/reescrever, e **ataque de dicionário** de chaves Mifare Classic (como o app NFC do Flipper).
-- **Mapeia para:** NFC.
-- **Viabilidade:** ✅ Viável. (O Nested/Darkside do Flipper **não** é replicável — o controlador NFC do Android não expõe o rádio; só dá para testar dicionário de chaves conhecidas.)
-- **Como:** `MifareClassic.authenticateSectorWithKeyA/B` iterando sobre um dicionário (`std.keys` do Flipper/mfoc). Persistir dumps em formato `.nfc` compatível com Flipper. Já existe `MifareClassicUtils.writeBlock`/`cloneUid` (cartões "magic").
-- **Esforço:** M
-
-### 3. QR / Barcode Scanner (com câmera)
-- **O que faz:** ler QR/códigos de barras — a tela atual é só "Coming Soon".
-- **Viabilidade:** ✅ Totalmente viável (ZXing já é dependência do projeto).
-- **Como:** CameraX + `zxing` (ou ML Kit Barcode). Já geramos QR; falta a leitura.
-- **Esforço:** S
-
-### 4. Compatibilidade com formatos de arquivo do Flipper
-- **O que faz:** importar/exportar `.nfc`, `.ir`, `.sub` para interoperar com um Flipper real.
-- **Viabilidade:** ✅ Parsing é 100% viável (o uso do `.sub` depende de hardware externo).
-- **Como:** parsers de texto simples desses formatos + Storage Access Framework.
-- **Esforço:** M
-
-### 5. BLE além do spam — Scanner + GATT Explorer
-- **O que faz:** listar dispositivos BLE, serviços/características GATT, ler/escrever (base para pentest de IoT).
-- **Mapeia para:** Bluetooth.
-- **Viabilidade:** ✅ Viável. O `BluetoothViewModel` já existe mas está **incompleto** (sem `startScan()` público). Completá-lo.
-- **Como:** `BluetoothLeScanner` + `BluetoothGatt`.
-- **Esforço:** M
+> **Key conclusion:** a phone **never** replaces the Sub-GHz, the 125 kHz RFID, the iButton or the GPIO
+> of the Flipper — the radio hardware is missing. Where FlipperDroid can shine is **NFC, IR, BLE, Wi-Fi and USB**,
+> and in file-format compatibility (`.nfc`, `.ir`, `.sub`) to interoperate with a real Flipper.
 
 ---
 
-## Prioridade MÉDIA — viável com root ou ressalvas
+## HIGH priority — high value, feasible on Android
+
+### 1. Universal IR remote (code base)
+- **What it does:** universal TV/AC/sound remote, like the Flipper's *Infrared Remote* app.
+- **Maps to:** Infrared.
+- **Feasibility:** ✅ Feasible on phones **with an IR blaster** (Xiaomi, some Samsung/Huawei). Without RX, you cannot *learn* codes by capturing them — only transmit.
+- **How:** `ConsumerIrManager.transmit()` (already implemented with NEC in this codebase). A **code database** per brand is missing. Import [Flipper-IRDB](https://github.com/logickworkshop/Flipper-IRDB) and a parser for the `.ir` format (NEC, RC5, RC6, SIRC, Samsung32, RAW protocols).
+- **Effort:** M
+
+### 2. Advanced NFC — save, re-emit and Mifare key dictionary
+- **What it does:** save tag dumps, re-emulate/rewrite, and a **dictionary attack** on Mifare Classic keys (like the Flipper's NFC app).
+- **Maps to:** NFC.
+- **Feasibility:** ✅ Feasible. (The Flipper's Nested/Darkside is **not** replicable — the Android NFC controller does not expose the radio; you can only test a dictionary of known keys.)
+- **How:** `MifareClassic.authenticateSectorWithKeyA/B` iterating over a dictionary (the Flipper/mfoc `std.keys`). Persist dumps in a Flipper-compatible `.nfc` format. `MifareClassicUtils.writeBlock`/`cloneUid` already exist ("magic" cards).
+- **Effort:** M
+
+### 3. QR / Barcode Scanner (with camera)
+- **What it does:** read QR/barcodes — the current screen is only "Coming Soon".
+- **Feasibility:** ✅ Fully feasible (ZXing is already a project dependency).
+- **How:** CameraX + `zxing` (or ML Kit Barcode). We already generate QR; reading is missing.
+- **Effort:** S
+
+### 4. Flipper file-format compatibility
+- **What it does:** import/export `.nfc`, `.ir`, `.sub` to interoperate with a real Flipper.
+- **Feasibility:** ✅ Parsing is 100% feasible (using `.sub` depends on external hardware).
+- **How:** simple text parsers for those formats + Storage Access Framework.
+- **Effort:** M
+
+### 5. BLE beyond spam — Scanner + GATT Explorer
+- **What it does:** list BLE devices, GATT services/characteristics, read/write (basis for IoT pentesting).
+- **Maps to:** Bluetooth.
+- **Feasibility:** ✅ Feasible. `BluetoothViewModel` already exists but is **incomplete** (no public `startScan()`). Complete it.
+- **How:** `BluetoothLeScanner` + `BluetoothGatt`.
+- **Effort:** M
+
+---
+
+## MEDIUM priority — feasible with root or caveats
 
 ### 6. Wi-Fi Evil Portal / Captive Portal
-- **O que faz:** cria um AP com portal cativo para captura de credenciais (teste autorizado).
-- **Viabilidade:** ⚠️ Parcial. `WifiManager.startLocalOnlyHotspot` + servidor HTTP local (NanoHTTPD). SSID e redirecionamento total são limitados vs. um AP real.
-- **Esforço:** M
+- **What it does:** creates an AP with a captive portal to capture credentials (authorized test).
+- **Feasibility:** ⚠️ Partial. `WifiManager.startLocalOnlyHotspot` + local HTTP server (NanoHTTPD). SSID and full redirection are limited compared to a real AP.
+- **Effort:** M
 
 ### 7. U2F / FIDO2 Authenticator
-- **O que faz:** o celular como chave de segurança U2F.
-- **Mapeia para:** U2F.
-- **Viabilidade:** ✅ Via API (FIDO2 API / Credential Manager) — abordagem diferente do Flipper mas mesmo resultado.
-- **Esforço:** M
+- **What it does:** the phone as a U2F security key.
+- **Maps to:** U2F.
+- **Feasibility:** ✅ Via API (FIDO2 API / Credential Manager) — a different approach from the Flipper but the same result.
+- **Effort:** M
 
-### 8. BadUSB de verdade (USB HID Gadget) — **corrigir arquitetura**
-- **O que faz:** o celular age como teclado ao ser plugado num PC (DuckyScript).
-- **Viabilidade:** ⚠️ **A implementação atual está invertida.** Ela usa a API **USB Host** (celular como host) para mandar HID a um periférico — isso *não* é BadUSB. BadUSB real exige o celular em modo **USB Gadget/Peripheral** via `configfs` (`/dev/hidgX`), o que precisa de **kernel com HID gadget + root**.
-- **Como:** script root que configura o gadget HID via `configfs` e escreve relatórios em `/dev/hidg0`. Adicionar um **parser DuckyScript** (DELAY, STRING, ENTER, GUI, CTRL, etc.).
-- **Esforço:** L
+### 8. Real BadUSB (USB HID Gadget) — **fix the architecture**
+- **What it does:** the phone acts as a keyboard when plugged into a PC (DuckyScript).
+- **Feasibility:** ⚠️ **The current implementation is inverted.** It uses the **USB Host** API (phone as host) to send HID to a peripheral — that is *not* BadUSB. Real BadUSB requires the phone in **USB Gadget/Peripheral** mode via `configfs` (`/dev/hidgX`), which needs a **kernel with HID gadget + root**.
+- **How:** root script that configures the HID gadget via `configfs` and writes reports to `/dev/hidg0`. Add a **DuckyScript parser** (DELAY, STRING, ENTER, GUI, CTRL, etc.).
+- **Effort:** L
 
-### 9. Deauth Wi-Fi funcional (via companheiro ESP32)
-- **O que faz:** deauth 802.11 de verdade.
-- **Viabilidade:** ❌ no rádio interno da maioria dos celulares (sem monitor mode/injeção), mesmo com root. ✅ Com um **ESP32 externo** (ex.: ESP32 Marauder) via USB/BLE.
-- **Como:** protocolo serial com firmware ESP32 Marauder. (Nesta base o deauth já reporta honestamente os pré-requisitos em vez de falhar em silêncio.)
-- **Esforço:** L
+### 9. Working Wi-Fi deauth (via an ESP32 companion)
+- **What it does:** a real 802.11 deauth.
+- **Feasibility:** ❌ on the internal radio of most phones (no monitor mode/injection), even with root. ✅ With an **external ESP32** (e.g. ESP32 Marauder) over USB/BLE.
+- **How:** serial protocol with the ESP32 Marauder firmware. (In this codebase the deauth already honestly reports the prerequisites instead of failing silently.)
+- **Effort:** L
 
 ---
 
-## Prioridade BAIXA / Não viável em celular (documentar honestamente)
+## LOW priority / Not feasible on a phone (document honestly)
 
-| Funcionalidade | Veredito | Motivo / alternativa |
+| Feature | Verdict | Reason / alternative |
 |---|---|---|
-| **Sub-GHz** (garagem 433 MHz, etc.) | ❌ Não viável | Sem rádio Sub-GHz. Alternativa: dongle CC1101 externo via USB. |
-| **RFID 125 kHz** (crachás LF) | ❌ Não viável | NFC do celular é 13.56 MHz. Precisa de leitor LF externo. |
-| **iButton / 1-Wire** | ❌ Não viável | Sem hardware 1-Wire. |
-| **GPIO / debug hardware** | ❌ Não viável | Sem pinos. Alternativa: adaptador USB-serial/OTG. |
-| **App Catalog / plugins** | ⚠️ Repensar | Módulos internos + deep links; não faz sentido copiar o `.fap` do Flipper. |
+| **Sub-GHz** (433 MHz garage, etc.) | ❌ Not feasible | No Sub-GHz radio. Alternative: external CC1101 dongle over USB. |
+| **RFID 125 kHz** (LF badges) | ❌ Not feasible | The phone's NFC is 13.56 MHz. Requires an external LF reader. |
+| **iButton / 1-Wire** | ❌ Not feasible | No 1-Wire hardware. |
+| **GPIO / hardware debug** | ❌ Not feasible | No pins. Alternative: USB-serial/OTG adapter. |
+| **App Catalog / plugins** | ⚠️ Rethink | Internal modules + deep links; copying the Flipper `.fap` makes no sense. |
 
 ---
 
-## Correções técnicas recomendadas (dívida técnica)
+## Recommended technical fixes (technical debt)
 
-- **`BluetoothViewModel`**: incompleto (sem `startScan()` nem StateFlows públicos) — ou completar (item 5) ou remover.
-- **BadUSB**: reescrever para USB Gadget (item 8).
-- **`namespace`/`applicationId` = `com.example.flipperdroid`**: trocar por um domínio real antes de publicar.
-- **Testes**: só há os `ExampleUnitTest`/`ExampleInstrumentedTest` gerados — adicionar cobertura para parsers (NEC/IR, `.nfc`, dicionário Mifare).
+- **`BluetoothViewModel`**: incomplete (no `startScan()` or public StateFlows) — either complete it (item 5) or remove it.
+- **BadUSB**: rewrite for USB Gadget (item 8).
+- **`namespace`/`applicationId` = `com.example.flipperdroid`**: change to a real domain before publishing.
+- **Tests**: only the generated `ExampleUnitTest`/`ExampleInstrumentedTest` exist — add coverage for the parsers (NEC/IR, `.nfc`, Mifare dictionary).
 
 ---
 
-## Sugestão de sequência
+## Suggested sequence
 
-1. QR Scanner (S) → vitória rápida, fecha um "Coming Soon".
-2. IR universal + base de códigos + parser `.ir` (M).
-3. NFC: salvar/reemitir dumps + dicionário Mifare + formato `.nfc` (M).
-4. BLE Scanner/GATT (M) completando o `BluetoothViewModel`.
+1. QR Scanner (S) → quick win, closes a "Coming Soon".
+2. Universal IR + code base + `.ir` parser (M).
+3. NFC: save/re-emit dumps + Mifare dictionary + `.nfc` format (M).
+4. BLE Scanner/GATT (M) completing `BluetoothViewModel`.
 5. BadUSB via USB Gadget + DuckyScript (L).
-6. Ponte ESP32 para Sub-GHz + deauth real (L) — a única via para “paridade de rádio” com o Flipper.
+6. ESP32 bridge for Sub-GHz + real deauth (L) — the only path to "radio parity" with the Flipper.

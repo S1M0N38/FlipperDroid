@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-/** Un réseau observé pour l'analyseur de canaux. */
+/** A network observed by the channel analyzer. */
 data class WifiAp(
     val ssid: String,
     val bssid: String,
@@ -30,12 +30,12 @@ data class WifiAp(
 
 private val MAC_REGEX = Regex("^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$")
 
-/** Nom d'interface Linux valide (évite toute injection dans la commande root). */
+/** Valid Linux interface name (prevents any injection into the root command). */
 private val IFACE_REGEX = Regex("^[A-Za-z0-9._-]{1,15}$")
 
 /**
- * Analyseur Wi-Fi : scanne les réseaux et agrège l'occupation par canal
- * (2.4 / 5 / 6 GHz). Inclut un outil de spoofing MAC (root).
+ * Wi-Fi analyzer: scans the networks and aggregates channel usage
+ * (2.4 / 5 / 6 GHz). Includes a MAC spoofing tool (root).
  */
 class WifiAnalyzerViewModel : ViewModel() {
 
@@ -86,7 +86,7 @@ class WifiAnalyzerViewModel : ViewModel() {
         if (wifi == null) { _status.value = "Wi-Fi service unavailable"; return }
         try {
             wifi.startScan()
-            processResults() // affiche les résultats en cache immédiatement
+            processResults() // display the cached results immediately
         } catch (e: Exception) {
             _status.value = "Scan error: ${e.message}"
         }
@@ -115,15 +115,15 @@ class WifiAnalyzerViewModel : ViewModel() {
         }
     }
 
-    /** Occupation par canal : canal -> nombre de réseaux. */
+    /** Channel usage: channel -> number of networks. */
     fun channelUsage(band: String): Map<Int, Int> {
         return _aps.value.filter { it.band == band && it.channel > 0 }
             .groupingBy { it.channel }.eachCount()
     }
 
     /**
-     * Spoof l'adresse MAC de l'interface Wi-Fi (nécessite root).
-     * @param mac au format AA:BB:CC:DD:EE:FF ; vide = MAC aléatoire.
+     * Spoofs the MAC address of the Wi-Fi interface (requires root).
+     * @param mac in the form AA:BB:CC:DD:EE:FF; empty = random MAC.
      */
     fun spoofMac(mac: String, iface: String = "wlan0") {
         if (!IFACE_REGEX.matches(iface)) { _status.value = "Invalid interface name"; return }
@@ -133,7 +133,7 @@ class WifiAnalyzerViewModel : ViewModel() {
                 _status.value = "Invalid MAC format"
                 return@launch
             }
-            // L'interface est remise UP dans tous les cas, même si le changement d'adresse échoue.
+            // The interface is brought back UP in every case, even if the address change fails.
             val cmd = "ip link set $iface down; ip link set $iface address $target; r=\$?; " +
                 "ip link set $iface up; exit \$r"
             try {

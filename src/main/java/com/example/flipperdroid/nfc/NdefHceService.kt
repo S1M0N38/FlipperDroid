@@ -4,20 +4,20 @@ import android.nfc.cardemulation.HostApduService
 import android.os.Bundle
 
 /**
- * Émule une tag NFC Forum Type 4 (HCE) : le téléphone répond comme une tag NDEF
- * en lecture, servant le message configuré (URL/texte) via [NdefHceStore]. Un autre
- * téléphone/lecteur en mode reader lit alors la tag.
+ * Emulates an NFC Forum Type 4 tag (HCE): the phone answers as an NDEF tag on
+ * read, serving the configured message (URL/text) via [NdefHceStore]. Another
+ * phone/reader in reader mode then reads the tag.
  *
- * La logique de réponse aux APDU est dans [Type4Responder] (pure, testable en JVM).
+ * The APDU response logic lives in [Type4Responder] (pure, JVM-testable).
  */
 class NdefHceService : HostApduService() {
 
     companion object {
-        /** Réponse « instruction non supportée » (6D00). */
+        /** "Instruction not supported" response (6D00). */
         private val UNKNOWN = byteArrayOf(0x6D, 0x00)
     }
 
-    /** Répondeur de la session en cours ; recréé à chaque session pour relire le message stocké. */
+    /** Responder of the current session; recreated on each session to re-read the stored message. */
     private var responder: Type4Responder? = null
 
     override fun processCommandApdu(commandApdu: ByteArray?, extras: Bundle?): ByteArray {
@@ -32,18 +32,18 @@ class NdefHceService : HostApduService() {
 }
 
 /**
- * Répondeur NFC Forum Type 4 sans dépendance Android.
+ * NFC Forum Type 4 responder with no Android dependency.
  *
- * Fichiers : CC (E103, 15 octets) et NDEF (E104 = NLEN 2 octets + message). Application NDEF
- * D2760000850101 : il faut la sélectionner (par nom) avant de sélectionner un fichier.
- * Lecture seule : UPDATE BINARY est refusé (6982).
+ * Files: CC (E103, 15 bytes) and NDEF (E104 = 2-byte NLEN + message). NDEF application
+ * D2760000850101: it must be selected (by name) before selecting a file.
+ * Read-only: UPDATE BINARY is denied (6982).
  *
- * @param ndefMessage message NDEF brut (sans NLEN).
+ * @param ndefMessage raw NDEF message (without NLEN).
  */
 class Type4Responder(ndefMessage: ByteArray) {
 
     companion object {
-        /** AID de l'application NDEF Type 4. */
+        /** AID of the Type 4 NDEF application. */
         private val NDEF_AID = byteArrayOf(
             0xD2.toByte(), 0x76, 0x00, 0x00, 0x85.toByte(), 0x01, 0x01
         )
@@ -51,8 +51,8 @@ class Type4Responder(ndefMessage: ByteArray) {
         private const val FILE_NDEF = 0xE104
 
         /**
-         * Capability Container (15 octets) : version 2.0, MLe 0x003B, MLc 0x0034,
-         * TLV NDEF-file-control : fichier E104, taille max 0x0400, lecture libre, écriture interdite (FF).
+         * Capability Container (15 bytes): version 2.0, MLe 0x003B, MLc 0x0034,
+         * NDEF-file-control TLV: file E104, max size 0x0400, free read, write denied (FF).
          */
         private val CC = byteArrayOf(
             0x00, 0x0F, 0x20, 0x00, 0x3B, 0x00, 0x34,
@@ -76,10 +76,10 @@ class Type4Responder(ndefMessage: ByteArray) {
     ) + ndefMessage
 
     private var appSelected = false
-    /** 0 = aucun fichier sélectionné, sinon [FILE_CC] ou [FILE_NDEF]. */
+    /** 0 = no file selected, otherwise [FILE_CC] or [FILE_NDEF]. */
     private var selectedFile = 0
 
-    /** Traite une APDU de commande et renvoie la réponse complète (données + SW). */
+    /** Handles a command APDU and returns the full response (data + SW). */
     fun process(apdu: ByteArray): ByteArray {
         if (apdu.size < 4) return SW_WRONG_LENGTH
         val ins = apdu[1].toInt() and 0xFF
@@ -88,7 +88,7 @@ class Type4Responder(ndefMessage: ByteArray) {
         return when (ins) {
             0xA4 -> select(p1, apdu)
             0xB0 -> readBinary(p1, p2, apdu)
-            0xD6 -> SW_WRITE_DENIED // UPDATE BINARY : fichier en lecture seule
+            0xD6 -> SW_WRITE_DENIED // UPDATE BINARY: file is read-only
             else -> SW_INS_NOT_SUPPORTED
         }
     }
@@ -96,13 +96,13 @@ class Type4Responder(ndefMessage: ByteArray) {
     private fun select(p1: Int, apdu: ByteArray): ByteArray {
         val data = dataField(apdu) ?: return SW_WRONG_LENGTH
         return when (p1) {
-            0x04 -> { // sélection d'une application par nom
+            0x04 -> { // select an application by name
                 if (!data.contentEquals(NDEF_AID)) return SW_FILE_NOT_FOUND
                 appSelected = true
                 selectedFile = 0
                 SW_OK
             }
-            0x00 -> { // sélection d'un fichier par identifiant
+            0x00 -> { // select a file by identifier
                 if (!appSelected) return SW_FILE_NOT_FOUND
                 if (data.size != 2) return SW_FILE_NOT_FOUND
                 val id = ((data[0].toInt() and 0xFF) shl 8) or (data[1].toInt() and 0xFF)
@@ -114,11 +114,11 @@ class Type4Responder(ndefMessage: ByteArray) {
                     else -> SW_FILE_NOT_FOUND
                 }
             }
-            else -> sw(0x6A86) // P1/P2 incorrects
+            else -> sw(0x6A86) // incorrect P1/P2
         }
     }
 
-    /** READ BINARY : 00 B0 P1 P2 Le. Le = 0 signifie 256 octets. */
+    /** READ BINARY: 00 B0 P1 P2 Le. Le = 0 means 256 bytes. */
     private fun readBinary(p1: Int, p2: Int, apdu: ByteArray): ByteArray {
         if (selectedFile == 0) return SW_NO_CURRENT_EF
         if (apdu.size < 5) return SW_WRONG_LENGTH
@@ -130,7 +130,7 @@ class Type4Responder(ndefMessage: ByteArray) {
         return file.copyOfRange(offset, end) + SW_OK
     }
 
-    /** Données d'une APDU de cas 3/4 (Lc + données), ou null si tronquée. */
+    /** Data field of a case 3/4 APDU (Lc + data), or null if truncated. */
     private fun dataField(apdu: ByteArray): ByteArray? {
         if (apdu.size < 5) return if (apdu.size == 4) ByteArray(0) else null
         val lc = apdu[4].toInt() and 0xFF

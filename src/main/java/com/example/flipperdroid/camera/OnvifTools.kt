@@ -3,25 +3,24 @@ package com.example.flipperdroid.camera
 import java.security.MessageDigest
 
 /**
- * Noyau logique pur (sans dépendance Android) pour la découverte, l'audit et le
- * pilotage PTZ de caméras IP via ONVIF / RTSP.
+ * Pure logic core (no Android dependency) for discovery, auditing and PTZ
+ * control of IP cameras over ONVIF / RTSP.
  *
- * Tout ce qui est ici est déterministe et testable en JVM (voir LogicUnitTest) :
- * construction des enveloppes SOAP, du jeton de sécurité WS-UsernameToken, des
- * requêtes RTSP, et l'analyse des réponses. Les entrées/sorties réseau vivent
- * dans IpCameraViewModel.
+ * Everything here is deterministic and testable on the JVM (see LogicUnitTest):
+ * building SOAP envelopes, the WS-UsernameToken security token, RTSP requests,
+ * and parsing the responses. Network I/O lives in IpCameraViewModel.
  *
- * Principe du projet : rester honnête sur la capacité. Ces outils ne servent
- * qu'à des tests autorisés sur du matériel dont on a la permission.
+ * Project principle: stay honest about capability. These tools are only for
+ * authorized testing on hardware you have permission to test.
  */
 object OnvifTools {
 
-    // --- Espaces de noms ONVIF ---
+    // --- ONVIF namespaces ---
     private const val NS_SOAP = "http://www.w3.org/2003/05/soap-envelope"
     private const val NS_WSA = "http://schemas.xmlsoap.org/ws/2004/08/addressing"
     private const val NS_WSD = "http://schemas.xmlsoap.org/ws/2005/04/discovery"
     private const val NS_DEVICE = "http://www.onvif.org/ver10/device/wsdl"
-    /** Espace de noms du type NetworkVideoTransmitter (WS-Discovery), distinct de device/wsdl. */
+    /** Namespace of the NetworkVideoTransmitter type (WS-Discovery), distinct from device/wsdl. */
     private const val NS_NETWORK = "http://www.onvif.org/ver10/network/wsdl"
     private const val NS_MEDIA = "http://www.onvif.org/ver10/media/wsdl"
     private const val NS_PTZ = "http://www.onvif.org/ver20/ptz/wsdl"
@@ -35,7 +34,7 @@ object OnvifTools {
     private const val ENC_BASE64 =
         "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-soap-message-security-1.0#Base64Binary"
 
-    /** Ports TCP typiques des caméras IP / NVR, utilisés par l'heuristique et le scan. */
+    /** Typical IP camera / NVR TCP ports, used by the heuristic and the scan. */
     val CAMERA_PORTS = listOf(80, 443, 554, 8000, 8080, 8443, 8554, 2020, 34567, 37777, 37778, 9000)
 
     /** Multicast WS-Discovery ONVIF. */
@@ -43,15 +42,15 @@ object OnvifTools {
     const val WS_DISCOVERY_PORT = 3702
 
     // ---------------------------------------------------------------------
-    // Découverte : WS-Discovery
+    // Discovery: WS-Discovery
     // ---------------------------------------------------------------------
 
     /**
-     * Construit le message SOAP Probe WS-Discovery qui cherche les
-     * NetworkVideoTransmitter (caméras ONVIF) sur le réseau local.
+     * Builds the WS-Discovery SOAP Probe message that looks for
+     * NetworkVideoTransmitter (ONVIF cameras) on the local network.
      *
-     * @param messageId identifiant unique (ex: "uuid:...") — passé en paramètre
-     *   pour rester déterministe/testable ; le ViewModel fournit un UUID aléatoire.
+     * @param messageId unique identifier (e.g. "uuid:...") — passed in as a
+     *   parameter to stay deterministic/testable; the ViewModel supplies a random UUID.
      */
     fun wsDiscoveryProbe(messageId: String): String =
         """<?xml version="1.0" encoding="UTF-8"?>
@@ -67,8 +66,8 @@ object OnvifTools {
 </e:Envelope>"""
 
     /**
-     * Extrait les URLs de service (XAddrs) d'une réponse ProbeMatch WS-Discovery.
-     * Indépendant du préfixe d'espace de noms (d:XAddrs, wsd:XAddrs, …).
+     * Extracts the service URLs (XAddrs) from a WS-Discovery ProbeMatch response.
+     * Independent of the namespace prefix (d:XAddrs, wsd:XAddrs, …).
      */
     fun parseXAddrs(xml: String): List<String> {
         val out = LinkedHashSet<String>()
@@ -83,25 +82,25 @@ object OnvifTools {
     }
 
     // ---------------------------------------------------------------------
-    // Reconnaissance : heuristique de classification par ports
+    // Reconnaissance: port-based classification heuristic
     // ---------------------------------------------------------------------
 
-    /** Résultat de l'heuristique : la cible est-elle probablement une caméra ? */
+    /** Heuristic result: is the target probably a camera? */
     data class CameraGuess(val isLikelyCamera: Boolean, val vendorHint: String, val confidence: Int)
 
     /**
-     * Devine si un hôte est une caméra/NVR à partir de ses ports ouverts, et
-     * propose une piste constructeur. Purement indicatif (jamais une preuve).
+     * Guesses whether a host is a camera/NVR from its open ports, and
+     * suggests a vendor lead. Purely indicative (never proof).
      */
     fun classifyCameraPorts(openPorts: Collection<Int>): CameraGuess {
         val ports = openPorts.toSet()
         var score = 0
         var hint = "Unknown"
-        if (554 in ports || 8554 in ports) score += 2          // RTSP = forte présomption
+        if (554 in ports || 8554 in ports) score += 2          // RTSP = strong presumption
         if (37777 in ports || 37778 in ports || 34567 in ports) { score += 2; hint = "Dahua/XM (DVR)" }
         if (8000 in ports && (80 in ports || 554 in ports)) { score += 1; if (hint == "Unknown") hint = "Hikvision" }
         if (2020 in ports) { score += 1; if (hint == "Unknown") hint = "Amcrest/Dahua" }
-        if (80 in ports || 8080 in ports || 443 in ports || 8443 in ports) score += 1 // interface web
+        if (80 in ports || 8080 in ports || 443 in ports || 8443 in ports) score += 1 // web interface
         val likely = score >= 2
         val confidence = (score * 25).coerceAtMost(100)
         return CameraGuess(likely, hint, confidence)
@@ -111,14 +110,14 @@ object OnvifTools {
     // RTSP
     // ---------------------------------------------------------------------
 
-    /** Construit une requête RTSP OPTIONS (sonde d'ouverture / d'authentification). */
+    /** Builds an RTSP OPTIONS request (openness / authentication probe). */
     fun rtspOptions(url: String, cseq: Int = 1): String =
         "OPTIONS $url RTSP/1.0\r\nCSeq: $cseq\r\nUser-Agent: FlipperDroid\r\n\r\n"
 
-    /** Info d'authentification déduite d'une réponse RTSP. */
+    /** Authentication info inferred from an RTSP response. */
     data class RtspAuth(val status: Int, val needsAuth: Boolean, val scheme: String, val realm: String)
 
-    /** Analyse une réponse RTSP : code de statut, exigence d'auth, schéma et realm. */
+    /** Parses an RTSP response: status code, auth requirement, scheme and realm. */
     fun parseRtspAuth(response: String): RtspAuth {
         val status = Regex("RTSP/1\\.0\\s+(\\d{3})").find(response)?.groupValues?.get(1)?.toIntOrNull() ?: 0
         val authLine = response.lineSequence()
@@ -134,15 +133,15 @@ object OnvifTools {
     }
 
     // ---------------------------------------------------------------------
-    // WS-Security UsernameToken (authentification ONVIF standard)
+    // WS-Security UsernameToken (standard ONVIF authentication)
     // ---------------------------------------------------------------------
 
     /**
-     * Calcule le PasswordDigest WS-Security :
+     * Computes the WS-Security PasswordDigest:
      *   Base64( SHA1( nonce_bytes + created_bytes + password_bytes ) ).
      *
-     * @param nonce octets bruts du nonce (le même que celui encodé en Base64 dans le jeton)
-     * @param created horodatage ISO-8601 UTC (ex: "2026-09-21T10:00:00Z")
+     * @param nonce raw nonce bytes (the same ones Base64-encoded in the token)
+     * @param created ISO-8601 UTC timestamp (e.g. "2026-09-21T10:00:00Z")
      */
     fun passwordDigest(nonce: ByteArray, created: String, password: String): String {
         val sha1 = MessageDigest.getInstance("SHA-1")
@@ -153,8 +152,8 @@ object OnvifTools {
     }
 
     /**
-     * Construit l'en-tête SOAP <Security> WS-UsernameToken (mot de passe haché).
-     * @param nonce octets bruts du nonce (aléatoire, fourni par l'appelant)
+     * Builds the WS-UsernameToken SOAP <Security> header (hashed password).
+     * @param nonce raw nonce bytes (random, supplied by the caller)
      */
     fun securityHeader(username: String, password: String, nonce: ByteArray, created: String): String {
         val digest = passwordDigest(nonce, created, password)
@@ -167,16 +166,16 @@ object OnvifTools {
             "</UsernameToken></Security></s:Header>"
     }
 
-    /** Enveloppe un corps SOAP, avec en-tête de sécurité optionnel. */
+    /** Wraps a SOAP body, with an optional security header. */
     fun soapEnvelope(body: String, header: String = ""): String =
         """<?xml version="1.0" encoding="UTF-8"?>""" +
             """<s:Envelope xmlns:s="$NS_SOAP">$header<s:Body>$body</s:Body></s:Envelope>"""
 
     // ---------------------------------------------------------------------
-    // Corps SOAP ONVIF (device / media / ptz)
+    // ONVIF SOAP bodies (device / media / ptz)
     // ---------------------------------------------------------------------
 
-    /** Action HTTP SOAPAction pour GetDeviceInformation. */
+    /** SOAPAction HTTP action for GetDeviceInformation. */
     const val ACTION_DEVICE_INFO = "$NS_DEVICE/GetDeviceInformation"
     const val ACTION_GET_PROFILES = "$NS_MEDIA/GetProfiles"
     const val ACTION_CONTINUOUS_MOVE = "$NS_PTZ/ContinuousMove"
@@ -189,8 +188,8 @@ object OnvifTools {
         """<GetProfiles xmlns="$NS_MEDIA"/>"""
 
     /**
-     * Corps PTZ ContinuousMove : déplacement continu jusqu'au Stop.
-     * pan/tilt/zoom sont bornés à [-1.0, 1.0] (vitesses normalisées ONVIF).
+     * PTZ ContinuousMove body: continuous movement until Stop.
+     * pan/tilt/zoom are clamped to [-1.0, 1.0] (ONVIF normalized speeds).
      */
     fun continuousMoveBody(profileToken: String, pan: Float, tilt: Float, zoom: Float): String {
         val p = clampVel(pan); val t = clampVel(tilt); val z = clampVel(zoom)
@@ -200,16 +199,16 @@ object OnvifTools {
             """<Zoom x="$z" xmlns="$NS_SCHEMA"/></Velocity></ContinuousMove>"""
     }
 
-    /** Corps PTZ Stop : arrête pan/tilt et zoom. */
+    /** PTZ Stop body: stops pan/tilt and zoom. */
     fun stopBody(profileToken: String): String =
         """<Stop xmlns="$NS_PTZ"><ProfileToken>${escapeXml(profileToken)}</ProfileToken>""" +
             "<PanTilt>true</PanTilt><Zoom>true</Zoom></Stop>"
 
     // ---------------------------------------------------------------------
-    // Analyse des réponses ONVIF
+    // ONVIF response parsing
     // ---------------------------------------------------------------------
 
-    /** Infos matériel extraites d'une réponse GetDeviceInformation. */
+    /** Hardware info extracted from a GetDeviceInformation response. */
     data class DeviceInfo(val manufacturer: String, val model: String, val firmware: String, val serial: String)
 
     fun parseDeviceInformation(xml: String): DeviceInfo = DeviceInfo(
@@ -220,8 +219,8 @@ object OnvifTools {
     )
 
     /**
-     * Extrait les tokens de profils média (attribut token="…") d'une réponse
-     * GetProfiles. Un token de profil est requis pour piloter le PTZ.
+     * Extracts the media profile tokens (token="…" attribute) from a
+     * GetProfiles response. A profile token is required to drive PTZ.
      */
     fun parseProfileTokens(xml: String): List<String> {
         val out = LinkedHashSet<String>()
@@ -230,10 +229,10 @@ object OnvifTools {
         return out.toList()
     }
 
-    /** Détecte un SOAP Fault (mauvais identifiants, action non supportée…). */
+    /** Detects a SOAP Fault (bad credentials, unsupported action…). */
     fun soapFaultReason(xml: String): String? {
-        // Un élément nommé Fault (avec ou sans préfixe) est requis : évite les faux positifs
-        // comme « DefaultUser ».
+        // An element named Fault (with or without a prefix) is required: avoids false positives
+        // such as “DefaultUser”.
         if (!SOAP_FAULT_TAG.containsMatchIn(xml)) return null
         return tagText(xml, "Text").ifBlank { tagText(xml, "faultstring") }
             .ifBlank { "SOAP Fault" }
@@ -242,18 +241,18 @@ object OnvifTools {
     private val SOAP_FAULT_TAG = Regex("<(\\w+:)?Fault[\\s>]")
 
     // ---------------------------------------------------------------------
-    // Utilitaires
+    // Utilities
     // ---------------------------------------------------------------------
 
     private fun clampVel(v: Float): String {
         val c = v.coerceIn(-1.0f, 1.0f)
-        // Format stable, insensible à la locale (pas de virgule décimale).
+        // Stable, locale-independent format (no decimal comma).
         return String.format(java.util.Locale.US, "%.2f", c)
     }
 
-    /** Contenu textuel d'une balise, insensible au préfixe d'espace de noms. */
+    /** Text content of a tag, independent of the namespace prefix. */
     private fun tagText(xml: String, local: String): String =
-        // Accepte des attributs sur la balise (ex. <env:Text xml:lang="en">).
+        // Accepts attributes on the tag (e.g. <env:Text xml:lang="en">).
         Regex("<(?:[A-Za-z0-9]+:)?$local(?:\\s[^>]*)?>(.*?)</(?:[A-Za-z0-9]+:)?$local>",
             setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
             .find(xml)?.groupValues?.get(1)?.trim() ?: ""
@@ -265,9 +264,9 @@ object OnvifTools {
     private const val B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 
     /**
-     * Encodeur Base64 standard (avec padding) en Kotlin pur : évite
-     * android.util.Base64 (non mocké en tests JVM) et java.util.Base64 (API 26+,
-     * alors que minSdk = 24).
+     * Standard Base64 encoder (with padding) in pure Kotlin: avoids
+     * android.util.Base64 (not mocked in JVM tests) and java.util.Base64 (API 26+,
+     * while minSdk = 24).
      */
     fun base64(data: ByteArray): String {
         if (data.isEmpty()) return ""
@@ -287,40 +286,40 @@ object OnvifTools {
     }
 }
 
-/** Une caméra/NVR découverte ou saisie manuellement. */
+/** A discovered or manually entered camera/NVR. */
 data class IpCamera(
     val host: String,
     val openPorts: List<Int> = emptyList(),
     val vendorHint: String = "",
     val confidence: Int = 0,
-    val xaddr: String = "",              // URL du service ONVIF device (WS-Discovery)
-    val rtsp: String = "",               // état de la sonde RTSP
-    val deviceInfo: String = "",         // résultat GetDeviceInformation / audit
-    val foundCredentials: String = "",   // identifiants par défaut validés (audit)
+    val xaddr: String = "",              // ONVIF device service URL (WS-Discovery)
+    val rtsp: String = "",               // RTSP probe state
+    val deviceInfo: String = "",         // GetDeviceInformation / audit result
+    val foundCredentials: String = "",   // confirmed default credentials (audit)
     val profileTokens: List<String> = emptyList()
 )
 
-/** Un couple d'identifiants par défaut couramment livré sur les caméras IP. */
+/** A default credential pair commonly shipped on IP cameras. */
 data class CameraCredential(val username: String, val password: String, val vendor: String)
 
 /**
- * Petit dictionnaire d'identifiants par défaut de caméras IP, pour l'audit
- * (même logique que le dictionnaire de clés Mifare). Test autorisé uniquement.
+ * Small dictionary of IP camera default credentials, for auditing
+ * (same idea as the Mifare key dictionary). Authorized testing only.
  */
 val DEFAULT_CAMERA_CREDENTIALS = listOf(
-    CameraCredential("admin", "admin", "Générique"),
-    CameraCredential("admin", "12345", "Hikvision (ancien)"),
-    CameraCredential("admin", "", "Générique (vide)"),
-    CameraCredential("admin", "password", "Générique"),
-    CameraCredential("admin", "123456", "Générique"),
+    CameraCredential("admin", "admin", "Generic"),
+    CameraCredential("admin", "12345", "Hikvision (legacy)"),
+    CameraCredential("admin", "", "Generic (blank)"),
+    CameraCredential("admin", "password", "Generic"),
+    CameraCredential("admin", "123456", "Generic"),
     CameraCredential("admin", "888888", "Dahua"),
     CameraCredential("admin", "9999", "Dahua"),
-    CameraCredential("root", "root", "Axis/Générique"),
+    CameraCredential("root", "root", "Axis/Generic"),
     CameraCredential("root", "pass", "Vivotek"),
-    CameraCredential("root", "12345", "Générique"),
-    CameraCredential("user", "user", "Générique"),
-    CameraCredential("supervisor", "supervisor", "Générique"),
+    CameraCredential("root", "12345", "Generic"),
+    CameraCredential("user", "user", "Generic"),
+    CameraCredential("supervisor", "supervisor", "Generic"),
     CameraCredential("admin", "meinsm", "Panasonic"),
-    CameraCredential("admin", "4321", "Ubiquiti/Générique"),
+    CameraCredential("admin", "4321", "Ubiquiti/Generic"),
     CameraCredential("service", "service", "Bosch")
 )

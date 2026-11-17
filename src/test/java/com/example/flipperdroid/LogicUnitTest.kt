@@ -22,7 +22,7 @@ class LogicUnitTest {
     // --- TOTP (RFC 6238 test vectors) ---
     @Test
     fun totp_rfc6238_vectors() {
-        val secret = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ" // "12345678901234567890" en Base32
+        val secret = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ" // "12345678901234567890" in Base32
         assertEquals("94287082", TotpGenerator.generate(secret, 59, 8))
         assertEquals("07081804", TotpGenerator.generate(secret, 1111111109, 8))
         assertEquals("89005924", TotpGenerator.generate(secret, 1234567890, 8))
@@ -30,7 +30,7 @@ class LogicUnitTest {
 
     @Test
     fun totp_base32_decode() {
-        // "JBSWY3DPEE======" est le Base32 de "Hello!"
+        // "JBSWY3DPEE======" is the Base32 of "Hello!"
         assertArrayEquals("Hello!".toByteArray(), TotpGenerator.base32Decode("JBSWY3DPEE======"))
     }
 
@@ -54,7 +54,7 @@ class LogicUnitTest {
 
     @Test
     fun ir_necext_uses_inverted_command() {
-        // NECext = adresse 16 bits + commande + inverse
+        // NECext = 16-bit address + command + inverted command
         val (_, pattern) = IrProtocols.encode("NECext", 0xC2EA, 0x57)!!
         assertEquals(67, pattern.size)
     }
@@ -77,7 +77,7 @@ class LogicUnitTest {
     fun ir_pioneer_uses_nec_structure() {
         val (freq, pattern) = IrProtocols.encode("PIONEER", 0xA5, 0x1A)!!
         assertEquals(40000, freq)
-        assertEquals(67, pattern.size)   // même structure que NEC
+        assertEquals(67, pattern.size)   // same structure as NEC
         assertEquals(9000, pattern[0])
     }
 
@@ -95,13 +95,13 @@ class LogicUnitTest {
     fun ir_rc6_structure() {
         val (freq, pattern) = IrProtocols.encode("RC6", 0x00, 0x0C)!!
         assertEquals(36000, freq)
-        assertEquals(2664, pattern[0])   // en-tête mark = 6T (T=444)
+        assertEquals(2664, pattern[0])   // header mark = 6T (T=444)
         assertTrue(pattern.size > 20)
     }
 
     @Test
     fun ir_rc5x_extends_command() {
-        // RC5X doit encoder une commande 7 bits (0..127) sans planter.
+        // RC5X must encode a 7-bit command (0..127) without crashing.
         val (freq, pattern) = IrProtocols.encode("RC5X", 0x05, 0x50)!!
         assertEquals(36000, freq)
         assertTrue(pattern.isNotEmpty())
@@ -111,7 +111,7 @@ class LogicUnitTest {
     fun ir_denon_sharp_15bits() {
         val (fd, denon) = IrProtocols.encode("DENON", 0x02, 0x40)!!
         assertEquals(38000, fd)
-        assertEquals(31, denon.size)     // pas d'en-tête : 15 bits * 2 + trailer(1)
+        assertEquals(31, denon.size)     // no header: 15 bits * 2 + trailer(1)
         assertEquals(264, denon[0])
         val (fs, sharp) = IrProtocols.encode("SHARP", 0x02, 0x40)!!
         assertEquals(38000, fs)
@@ -145,17 +145,17 @@ class LogicUnitTest {
         assertEquals(277, pattern[1])
     }
 
-    // --- TV-B-Gone : rafales répétées (fiabilité réelle) ---
+    // --- TV-B-Gone: repeated bursts (real-world reliability) ---
     @Test
     fun ir_burst_nec_uses_repeat_codes() {
-        // La rafale NEC = trame complète (67) + 2 codes de répétition NEC (gap + 9000/2250/560).
+        // The NEC burst = full frame (67) + 2 NEC repeat codes (gap + 9000/2250/560).
         val (_, base) = IrProtocols.encode("NEC", 0x04, 0x08)!!
         val (freq, burst) = IrProtocols.encodePowerBurst("NEC", 0x04, 0x08)!!
         assertEquals(38000, freq)
-        assertEquals(67 + 2 * (1 + 3), burst.size)   // 3 trames, 2 répétitions de 3 valeurs
-        // Les premières valeurs sont exactement la trame de base.
+        assertEquals(67 + 2 * (1 + 3), burst.size)   // 3 frames, 2 repeats of 3 values
+        // The first values are exactly the base frame.
         for (i in base.indices) assertEquals(base[i], burst[i])
-        // Le code de répétition NEC apparaît après le premier espace inter-trame.
+        // The NEC repeat code appears after the first inter-frame space.
         assertEquals(9000, burst[68])
         assertEquals(2250, burst[69])
         assertEquals(560, burst[70])
@@ -163,23 +163,23 @@ class LogicUnitTest {
 
     @Test
     fun ir_burst_sony_repeats_full_frame_at_least_3x() {
-        // Sony SIRC DOIT être émis >=3 fois ; la rafale répète la trame complète.
-        // La trame SIRC finit sur un space : l'intervalle inter-trame se fusionne dans ce space
-        // (un élément ajouté ferait basculer les répétitions d'un mark à un space).
+        // Sony SIRC MUST be emitted >=3 times; the burst repeats the full frame.
+        // The SIRC frame ends on a space: the inter-frame interval merges into that space
+        // (an added element would flip the repeats from a mark to a space).
         val (_, base) = IrProtocols.encode("SIRC", 0x01, 0x15)!!
         val (freq, burst) = IrProtocols.encodePowerBurst("SIRC", 0x01, 0x15)!!
         assertEquals(40000, freq)
-        assertEquals(3 * base.size, burst.size)   // 3 trames complètes, intervalles fusionnés
+        assertEquals(3 * base.size, burst.size)   // 3 full frames, intervals merged
         for (i in 0 until base.size - 1) assertEquals(base[i], burst[i])
-        assertEquals(base.last() + 24000, burst[base.size - 1])   // espace final + intervalle
-        assertEquals(base[0], burst[base.size])   // la 2e trame recommence par son mark d'en-tête
+        assertEquals(base.last() + 24000, burst[base.size - 1])   // final space + interval
+        assertEquals(base[0], burst[base.size])   // the 2nd frame restarts with its header mark
     }
 
     @Test
     fun ir_burst_respects_presses_override() {
         val (_, base) = IrProtocols.encode("NEC", 0x04, 0x08)!!
         val (_, once) = IrProtocols.encodePowerBurst("NEC", 0x04, 0x08, presses = 1)!!
-        assertEquals(base.size, once.size)   // une seule trame
+        assertEquals(base.size, once.size)   // a single frame
         val (_, five) = IrProtocols.encodePowerBurst("NEC", 0x04, 0x08, presses = 5)!!
         assertEquals(base.size + 4 * (1 + 3), five.size)
     }
@@ -204,14 +204,14 @@ class LogicUnitTest {
 
     @Test
     fun ac_gree_temp_is_clamped() {
-        // Deux températures hors bornes doivent produire des trames valides
+        // Two out-of-range temperatures must produce valid frames
         val (_, hot) = AcProtocols.gree(true, AcProtocols.MODE_HEAT, 99, AcProtocols.FAN_HIGH, true)
         val (_, cold) = AcProtocols.gree(true, AcProtocols.MODE_COOL, 0, AcProtocols.FAN_LOW, false)
         assertEquals(140, hot.size)
         assertEquals(140, cold.size)
     }
 
-    // --- AC : toutes les marques encodent une trame déterministe et non vide ---
+    // --- AC: every brand encodes a deterministic, non-empty frame ---
     @Test
     fun ac_all_brands_encode() {
         for (brand in AcProtocols.Brand.values()) {
@@ -220,8 +220,8 @@ class LogicUnitTest {
                 tempC = 24, fan = AcProtocols.FAN_AUTO, swing = false
             )
             assertEquals(38000, freq)
-            assertTrue("trame vide pour $brand", pattern.size > 8)
-            // Déterministe : mêmes entrées → même trame.
+            assertTrue("empty frame for $brand", pattern.size > 8)
+            // Deterministic: same inputs → same frame.
             val (_, again) = AcProtocols.encode(
                 brand, true, AcProtocols.MODE_COOL, 24, AcProtocols.FAN_AUTO, false
             )
@@ -231,11 +231,11 @@ class LogicUnitTest {
 
     @Test
     fun ac_temp_changes_frame() {
-        // Deux températures différentes doivent produire des trames différentes.
+        // Two different temperatures must produce different frames.
         for (brand in listOf(AcProtocols.Brand.LG, AcProtocols.Brand.FUJITSU, AcProtocols.Brand.DAIKIN)) {
             val (_, a) = AcProtocols.encode(brand, true, AcProtocols.MODE_COOL, 18, AcProtocols.FAN_AUTO, false)
             val (_, b) = AcProtocols.encode(brand, true, AcProtocols.MODE_COOL, 28, AcProtocols.FAN_AUTO, false)
-            assertFalse("température ignorée pour $brand", a.contentEquals(b))
+            assertFalse("temperature ignored for $brand", a.contentEquals(b))
         }
     }
 
@@ -291,7 +291,7 @@ class LogicUnitTest {
         assertEquals(1, WifiNetwork.frequencyToChannel(2412))
         assertEquals(6, WifiNetwork.frequencyToChannel(2437))
         assertEquals(13, WifiNetwork.frequencyToChannel(2472))
-        assertEquals(14, WifiNetwork.frequencyToChannel(2484)) // cas particulier Japon
+        assertEquals(14, WifiNetwork.frequencyToChannel(2484)) // Japan special case
         assertEquals(36, WifiNetwork.frequencyToChannel(5180))
         assertEquals(165, WifiNetwork.frequencyToChannel(5825))
     }
@@ -300,7 +300,7 @@ class LogicUnitTest {
     @Test
     fun skimmer_flags_hc05() {
         assertTrue(SkimmerDetectorViewModel.evaluate("HC-05", "12:34:56:78:9A:BC").first)
-        assertTrue(SkimmerDetectorViewModel.evaluate("MyPhone", "00:14:03:11:22:33").first) // OUI suspect
+        assertTrue(SkimmerDetectorViewModel.evaluate("MyPhone", "00:14:03:11:22:33").first) // suspicious OUI
         assertFalse(SkimmerDetectorViewModel.evaluate("AirPods", "AA:BB:CC:DD:EE:FF").first)
     }
 
@@ -314,7 +314,7 @@ class LogicUnitTest {
         assertEquals(1, card.blocks.size)
     }
 
-    // --- ONVIF / IP cameras (noyau logique pur) ---
+    // --- ONVIF / IP cameras (pure logic core) ---
     @Test
     fun onvif_ws_discovery_probe_targets_cameras() {
         val probe = OnvifTools.wsDiscoveryProbe("uuid:1234")
@@ -352,7 +352,7 @@ class LogicUnitTest {
         assertTrue(a.needsAuth)
         assertEquals("Digest", a.scheme)
         assertEquals("IP Camera", a.realm)
-        // Flux ouvert
+        // Open stream
         val ok = OnvifTools.parseRtspAuth("RTSP/1.0 200 OK\r\nCSeq: 1\r\n\r\n")
         assertFalse(ok.needsAuth)
     }
@@ -361,14 +361,14 @@ class LogicUnitTest {
     fun onvif_base64_matches_jdk() {
         val data = "FlipperDroid".toByteArray()
         assertEquals(java.util.Base64.getEncoder().encodeToString(data), OnvifTools.base64(data))
-        // Cas de padding
+        // Padding cases
         assertEquals("TQ==", OnvifTools.base64("M".toByteArray()))
         assertEquals("TWE=", OnvifTools.base64("Ma".toByteArray()))
     }
 
     @Test
     fun onvif_password_digest_vector() {
-        // Base64(SHA1(nonce + created + password)), vérifié contre un calcul JDK indépendant.
+        // Base64(SHA1(nonce + created + password)), checked against an independent JDK computation.
         val nonce = byteArrayOf(0, 1, 2, 3, 4, 5, 6, 7)
         val created = "2010-09-16T07:50:45Z"
         val password = "userpassword"
@@ -391,7 +391,7 @@ class LogicUnitTest {
     fun onvif_ptz_continuous_move_clamps_and_formats() {
         val body = OnvifTools.continuousMoveBody("Profile_1", 2.0f, -0.5f, 0.0f)
         assertTrue(body.contains("<ProfileToken>Profile_1</ProfileToken>"))
-        assertTrue(body.contains("x=\"1.00\""))   // pan borné à 1.0
+        assertTrue(body.contains("x=\"1.00\""))   // pan clamped to 1.0
         assertTrue(body.contains("y=\"-0.50\""))  // tilt
         assertTrue(body.contains("ContinuousMove"))
     }

@@ -16,7 +16,7 @@ import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.Socket
 
-/** Un service découvert sur le réseau local (mDNS ou SSDP/UPnP). */
+/** A service discovered on the local network (mDNS or SSDP/UPnP). */
 data class LanService(
     val label: String,
     val host: String,
@@ -27,8 +27,8 @@ data class LanService(
 )
 
 /**
- * Découverte de services sur la LAN : mDNS/Bonjour (NsdManager) + SSDP/UPnP, avec
- * récupération de bannière (HTTP/SSH/FTP) sur les ports ouverts. Sans root.
+ * LAN service discovery: mDNS/Bonjour (NsdManager) + SSDP/UPnP, with
+ * banner grabbing (HTTP/SSH/FTP) on the open ports. No root.
  */
 class LanDiscoveryViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -40,15 +40,15 @@ class LanDiscoveryViewModel(app: Application) : AndroidViewModel(app) {
         "_workstation._tcp.", "_smb._tcp.", "_afpovertcp._tcp.", "_ftp._tcp."
     )
 
-    /** Protégé par synchronized(listeners). */
+    /** Guarded by synchronized(listeners). */
     private val listeners = mutableListOf<NsdManager.DiscoveryListener>()
-    /** Protégé par synchronized(this) (méthodes @Synchronized). */
+    /** Guarded by synchronized(this) (@Synchronized methods). */
     private val resolveQueue = ArrayDeque<NsdServiceInfo>()
     private var resolving = false
 
     /**
-     * Services découverts. Écrit par les callbacks NSD, la boucle SSDP (IO) et les
-     * bannières (IO) : tout accès passe par synchronized(map).
+     * Discovered services. Written by the NSD callbacks, the SSDP loop (IO) and the
+     * banners (IO): every access goes through synchronized(map).
      */
     private val map = LinkedHashMap<String, LanService>()
 
@@ -177,7 +177,7 @@ class LanDiscoveryViewModel(app: Application) : AndroidViewModel(app) {
             } catch (e: Exception) {
                 _status.value = "SSDP error: ${e.message}"
             } finally {
-                // Socket fermé dans tous les cas (y compris en cas d'erreur d'envoi).
+                // Socket closed in every case (including a send error).
                 socket?.close()
                 if (_isScanning.value) {
                     _status.value = "Found ${synchronized(map) { map.size }} services."
@@ -186,18 +186,18 @@ class LanDiscoveryViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** Récupère une bannière (HTTP/SSH/FTP…) sur host:port. */
+    /** Grabs a banner (HTTP/SSH/FTP…) on host:port. */
     fun grabBanner(host: String, port: Int) {
         viewModelScope.launch(Dispatchers.IO) {
             val banner = if (port == 443) {
-                // Port TLS : une requête HTTP en clair n'a pas de sens, on ne sonde pas.
+                // TLS port: a cleartext HTTP request makes no sense, so we don't probe.
                 "TLS — not probed"
             } else {
                 try {
                     Socket().use { s ->
                         s.connect(InetSocketAddress(host, port), 3000)
                         s.soTimeout = 3000
-                        // HTTP : provoque une réponse ; sinon on lit ce que le service envoie.
+                        // HTTP: triggers a response; otherwise we read what the service sends.
                         if (port == 80 || port == 8080 || port == 8000) {
                             s.getOutputStream().write("HEAD / HTTP/1.0\r\nHost: $host\r\n\r\n".toByteArray())
                             s.getOutputStream().flush()
@@ -222,7 +222,7 @@ class LanDiscoveryViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** Ajoute un service si absent. */
+    /** Adds a service if absent. */
     private fun addService(s: LanService) {
         val key = "${s.source}:${s.host}:${s.port}:${s.label}"
         synchronized(map) {
@@ -230,7 +230,7 @@ class LanDiscoveryViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** Publie la liste triée. À appeler avec le verrou sur [map] tenu. */
+    /** Publishes the sorted list. To be called with the lock on [map] held. */
     private fun emit() {
         _services.value = map.values.sortedWith(compareBy({ it.host }, { it.port }))
     }

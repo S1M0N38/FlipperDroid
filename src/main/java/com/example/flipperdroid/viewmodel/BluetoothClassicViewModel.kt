@@ -26,7 +26,7 @@ import kotlinx.coroutines.flow.StateFlow
 import java.io.OutputStream
 import java.util.UUID
 
-/** Un appareil Bluetooth classique (BR/EDR) découvert. */
+/** A discovered classic Bluetooth (BR/EDR) device. */
 data class ClassicDevice(
     val name: String,
     val address: String,
@@ -37,11 +37,11 @@ data class ClassicDevice(
 )
 
 /**
- * Bluetooth « classique » (BR/EDR), par opposition au BLE :
- * - scan/découverte des appareils (nom, MAC, RSSI, classe, appairé),
- * - découverte de services par SDP (A2DP/HFP/SPP/OBEX…),
- * - terminal série SPP/RFCOMM (dialoguer avec HC-05/HC-06, Arduino BT…).
- * Sans root.
+ * "Classic" Bluetooth (BR/EDR), as opposed to BLE:
+ * - device scan/discovery (name, MAC, RSSI, class, paired),
+ * - service discovery via SDP (A2DP/HFP/SPP/OBEX…),
+ * - SPP/RFCOMM serial terminal (talk to HC-05/HC-06, Arduino BT…).
+ * No root.
  */
 class BluetoothClassicViewModel : ViewModel() {
 
@@ -135,7 +135,7 @@ class BluetoothClassicViewModel : ViewModel() {
         _status.value = "Stopped. $flagged devices."
     }
 
-    /** Découverte des services d'un appareil via SDP (résultats via ACTION_UUID). */
+    /** Service discovery on a device via SDP (results via ACTION_UUID). */
     @SuppressLint("MissingPermission")
     fun discoverServices(address: String) {
         val adapter = bluetoothAdapter ?: return

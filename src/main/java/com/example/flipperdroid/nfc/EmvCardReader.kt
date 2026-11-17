@@ -9,24 +9,24 @@ import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 
 /**
- * Lecteur de cartes bancaires contactless (EMV).
+ * Contactless bank card reader (EMV).
  *
- * Suit le vrai flux EMV plutôt que de deviner des SFI :
- *   1. SELECT PPSE (2PAY.SYS.DDF01) -> découverte des AID (tag 4F)
- *   2. SELECT AID -> FCI (peut contenir un PDOL, tag 9F38)
- *   3. GET PROCESSING OPTIONS (GPO) -> AIP + AFL (tag 94, ou template 80/77)
- *   4. READ RECORD sur chaque enregistrement pointé par l'AFL
- *   5. Parsing BER-TLV ([EmvTlv]) -> PAN (5A), expiration (5F24), porteur (5F20), Track2 (57)
- * Repli : lecture "brute" de quelques SFI/enregistrements si le GPO échoue.
+ * Follows the real EMV flow instead of guessing SFIs:
+ *   1. SELECT PPSE (2PAY.SYS.DDF01) -> AID discovery (tag 4F)
+ *   2. SELECT AID -> FCI (may contain a PDOL, tag 9F38)
+ *   3. GET PROCESSING OPTIONS (GPO) -> AIP + AFL (tag 94, or template 80/77)
+ *   4. READ RECORD on every record pointed to by the AFL
+ *   5. BER-TLV parsing ([EmvTlv]) -> PAN (5A), expiry (5F24), cardholder (5F20), Track2 (57)
+ * Fallback: "raw" read of a few SFIs/records if the GPO fails.
  *
- * NB : à usage de test/recherche autorisé uniquement.
+ * NB: for authorized testing/research only.
  */
 class EmvCardReader {
 
     companion object {
         private const val TAG = "EmvCardReader"
 
-        /** AID de repli si le PPSE ne renvoie rien d'exploitable. */
+        /** Fallback AIDs if the PPSE returns nothing usable. */
         private val KNOWN_AIDS = listOf(
             "A0000000041010", // Mastercard
             "A0000000031010", // Visa
@@ -49,17 +49,17 @@ class EmvCardReader {
 
         private const val SELECT_PPSE = "2PAY.SYS.DDF01"
 
-        /** Repli brute-force : SFI 1..3 et enregistrements 1..5 seulement. */
+        /** Brute-force fallback: SFI 1..3 and records 1..5 only. */
         private const val FALLBACK_MAX_SFI = 3
         private const val FALLBACK_MAX_RECORD = 5
 
-        /** Nombre maximal d'échanges de chaînage (GET RESPONSE / rejeu Le) par commande. */
+        /** Maximum number of chaining exchanges (GET RESPONSE / Le replay) per command. */
         private const val MAX_CHAINING = 16
     }
 
     /**
-     * Lit une carte EMV à partir d'un tag NFC.
-     * @return les données extraites, ou null si aucune donnée EMV exploitable (ou tag retiré).
+     * Reads an EMV card from an NFC tag.
+     * @return the extracted data, or null if no usable EMV data (or the tag was removed).
      */
     suspend fun readCard(tag: Tag): EmvCardData? = withContext(Dispatchers.IO) {
         val iso = IsoDep.get(tag) ?: return@withContext null
@@ -67,7 +67,7 @@ class EmvCardReader {
             if (!iso.isConnected) iso.connect()
             iso.timeout = 5000
 
-            // 1) PPSE -> AID candidats (ordre : ceux de la carte d'abord)
+            // 1) PPSE -> candidate AIDs (order: the card's own first)
             val aids = LinkedHashSet<String>()
             val ppse = selectPpse(iso)
             if (ppse != null && isSuccessful(ppse)) {
@@ -79,7 +79,7 @@ class EmvCardReader {
                 val card = try {
                     tryAid(iso, aidHex)
                 } catch (e: TagLostException) {
-                    throw e // carte retirée : inutile de continuer avec les autres AID
+                    throw e // card removed: no point continuing with the other AIDs
                 } catch (e: Exception) {
                     Log.e(TAG, "AID $aidHex failed", e)
                     null
@@ -88,7 +88,7 @@ class EmvCardReader {
             }
             null
         } catch (e: TagLostException) {
-            Log.w(TAG, "Carte retirée pendant la lecture : arrêt")
+            Log.w(TAG, "Card removed during the read: stopping")
             null
         } catch (e: Exception) {
             Log.e(TAG, "Error reading EMV card", e)
@@ -98,7 +98,7 @@ class EmvCardReader {
         }
     }
 
-    /** Sélectionne un AID, tente le GPO puis lit les enregistrements et parse les données. */
+    /** Selects an AID, tries the GPO, then reads the records and parses the data. */
     private fun tryAid(iso: IsoDep, aidHex: String): EmvCardData? {
         val aid = MifareClassicUtils.hexToBytes(aidHex) ?: return null
         val selResp = transceive(iso, buildSelectCommand(aid)) ?: return null
@@ -110,14 +110,14 @@ class EmvCardReader {
         val pool = ByteArrayOutputStream()
         fun collect(resp: ByteArray) { if (resp.size >= 2) pool.write(resp, 0, resp.size - 2) }
 
-        // GPO (avec le PDOL demandé par la carte, rempli de valeurs par défaut)
+        // GPO (with the PDOL requested by the card, filled with default values)
         val pdol = EmvTlv.findFirst(selResp, 0x9F38)
         val gpoResp = gpo(iso, pdol)
         var readAny = false
         if (gpoResp != null && isSuccessful(gpoResp)) {
             collect(gpoResp)
             val afl = EmvTlv.findFirst(gpoResp, 0x94) ?: run {
-                // Format 1 : template 80 = AIP(2 octets) + AFL
+                // Format 1: template 80 = AIP(2 bytes) + AFL
                 val fmt1 = EmvTlv.findFirst(gpoResp, 0x80)
                 if (fmt1 != null && fmt1.size > 2) fmt1.copyOfRange(2, fmt1.size) else null
             }
@@ -138,7 +138,7 @@ class EmvCardReader {
             }
         }
 
-        // Repli : lecture brute limitée (SFI 1..3, enregistrements 1..5)
+        // Fallback: limited raw read (SFI 1..3, records 1..5)
         if (!readAny) {
             for (sfi in 1..FALLBACK_MAX_SFI) {
                 for (rec in 1..FALLBACK_MAX_RECORD) {
@@ -159,7 +159,7 @@ class EmvCardReader {
     private fun gpo(iso: IsoDep, pdol: ByteArray?): ByteArray? {
         val pdolData = buildPdolData(pdol)
         val body = ByteArrayOutputStream().apply {
-            write(0x83)              // tag 83 : Command Template
+            write(0x83)              // tag 83: Command Template
             write(pdolData.size)
             write(pdolData)
         }.toByteArray()
@@ -170,7 +170,7 @@ class EmvCardReader {
         return transceive(iso, apdu)
     }
 
-    /** Construit les données du PDOL demandé, avec des valeurs par défaut raisonnables. */
+    /** Builds the data for the requested PDOL, with reasonable default values. */
     private fun buildPdolData(pdol: ByteArray?): ByteArray {
         if (pdol == null || pdol.isEmpty()) return ByteArray(0)
         val out = ByteArrayOutputStream()
@@ -188,15 +188,15 @@ class EmvCardReader {
                 val len = pdol[i].toInt() and 0xFF; i++
                 out.write(defaultPdolValue(tag, len))
             }
-        } catch (_: Exception) { /* PDOL malformé : on renvoie ce qu'on a */ }
+        } catch (_: Exception) { /* malformed PDOL: return what we have */ }
         return out.toByteArray()
     }
 
-    /** Valeur par défaut pour une entrée PDOL (zéros, sauf quelques champs terminal utiles). */
+    /** Default value for one PDOL entry (zeros, except a few useful terminal fields). */
     private fun defaultPdolValue(tag: Int, len: Int): ByteArray {
         val v = ByteArray(if (len in 0..255) len else 0)
         when (tag) {
-            0x9F66 -> if (v.isNotEmpty()) v[0] = 0x36.toByte() // TTQ : mode EMV contactless supporté
+            0x9F66 -> if (v.isNotEmpty()) v[0] = 0x36.toByte() // TTQ: EMV contactless mode supported
             0x9F35 -> if (v.isNotEmpty()) v[0] = 0x22.toByte() // Terminal Type
         }
         return v
@@ -215,9 +215,9 @@ class EmvCardReader {
     }
 
     /**
-     * Envoie une commande en suivant le chaînage ISO 7816-4 : SW 61xx -> GET RESPONSE
-     * (00 C0 00 00 xx), SW 6Cxx -> rejoue la commande avec Le = xx.
-     * @return données + SW finaux, ou null. Une perte de tag ([TagLostException]) est relancée.
+     * Sends a command following ISO 7816-4 chaining: SW 61xx -> GET RESPONSE
+     * (00 C0 00 00 xx), SW 6Cxx -> replays the command with Le = xx.
+     * @return data + final SW, or null. A tag loss ([TagLostException]) is rethrown.
      */
     private fun transceive(iso: IsoDep, apdu: ByteArray): ByteArray? {
         var resp = rawTransceive(iso, apdu) ?: return null
@@ -232,7 +232,7 @@ class EmvCardReader {
                     resp = rawTransceive(iso, byteArrayOf(0x00, 0xC0.toByte(), 0x00, 0x00, sw2.toByte())) ?: return null
                 }
                 0x6C -> {
-                    // Le incorrect : on rejoue la même commande avec Le = sw2 (dernier octet de nos APDU).
+                    // wrong Le: replay the same command with Le = sw2 (last byte of our APDU).
                     val retry = apdu.copyOf()
                     retry[retry.size - 1] = sw2.toByte()
                     resp = rawTransceive(iso, retry) ?: return null
@@ -246,7 +246,7 @@ class EmvCardReader {
         return null
     }
 
-    /** Un seul échange brut. Relance [TagLostException] ; toute autre erreur donne null. */
+    /** A single raw exchange. Rethrows [TagLostException]; any other error yields null. */
     private fun rawTransceive(iso: IsoDep, apdu: ByteArray): ByteArray? =
         try {
             iso.transceive(apdu)
@@ -256,14 +256,14 @@ class EmvCardReader {
             null
         }
 
-    /** Construit une commande SELECT (CLA 00, INS A4, P1 04, P2 00). */
+    /** Builds a SELECT command (CLA 00, INS A4, P1 04, P2 00). */
     private fun buildSelectCommand(data: ByteArray): ByteArray =
         ByteArrayOutputStream().apply {
             write(0x00); write(0xA4); write(0x04); write(0x00)
             write(data.size); write(data); write(0x00)
         }.toByteArray()
 
-    /** Extrait PAN / expiration / porteur des TLV collectés. */
+    /** Extracts PAN / expiry / cardholder from the collected TLVs. */
     private fun parseEmv(data: ByteArray, cardData: EmvCardData) {
         EmvTlv.findFirst(data, 0x5A)?.let {
             cardData.pan = formatPan(MifareClassicUtils.bytesToHex(it).trimEnd('F', 'f'))
@@ -275,7 +275,7 @@ class EmvCardReader {
             val name = String(it, Charsets.UTF_8).trim()
             if (name.isNotBlank()) cardData.cardholderName = name
         }
-        // Track2 (tag 57) : repli pour PAN/expiration
+        // Track2 (tag 57): fallback for PAN/expiry
         if (cardData.pan == null || cardData.expiryDate == null) {
             EmvTlv.findFirst(data, 0x57)?.let { t2 ->
                 val s = MifareClassicUtils.bytesToHex(t2)
@@ -288,7 +288,7 @@ class EmvCardReader {
                 }
             }
         }
-        // Nom applicatif (label) si pas de type déjà défini
+        // Application name (label) if no type is already defined
         if (cardData.cardType.isNullOrBlank()) {
             (EmvTlv.findFirst(data, 0x50) ?: EmvTlv.findFirst(data, 0x9F12))?.let {
                 val label = String(it, Charsets.UTF_8).trim()
@@ -325,35 +325,35 @@ class EmvCardReader {
 }
 
 /**
- * Analyseur BER-TLV pur (aucune dépendance Android, testable en JVM).
- * Gère les tags multi-octets (ex. 9F38), les longueurs courtes et longues (0x81, 0x82…)
- * et les templates constructés imbriqués. Une entrée tronquée ou mal formée arrête
- * simplement l'analyse : aucune exception n'est levée.
+ * Pure BER-TLV parser (no Android dependency, JVM-testable).
+ * Handles multi-byte tags (e.g. 9F38), short and long lengths (0x81, 0x82…)
+ * and nested constructed templates. A truncated or malformed entry simply stops
+ * the parse: no exception is thrown.
  */
 object EmvTlv {
 
-    /** Profondeur maximale de templates imbriqués (protège contre les données hostiles). */
+    /** Maximum depth of nested templates (protects against hostile data). */
     private const val MAX_DEPTH = 8
 
-    /** Toutes les valeurs (récursivement) pour le tag [wanted]. */
+    /** All values (recursively) for tag [wanted]. */
     fun findAll(data: ByteArray, wanted: Int): List<ByteArray> {
         val out = ArrayList<ByteArray>()
         walk(data, 0, data.size, wanted, out, 0)
         return out
     }
 
-    /** Première valeur pour le tag [wanted], ou null. */
+    /** First value for tag [wanted], or null. */
     fun findFirst(data: ByteArray, wanted: Int): ByteArray? = findAll(data, wanted).firstOrNull()
 
     private fun walk(data: ByteArray, from: Int, to: Int, wanted: Int, out: MutableList<ByteArray>, depth: Int) {
         var i = from
         while (i < to) {
             val first = data[i].toInt() and 0xFF
-            if (first == 0x00 || first == 0xFF) { i++; continue } // octets de bourrage
+            if (first == 0x00 || first == 0xFF) { i++; continue } // padding bytes
             var tag = first
             i++
             if ((first and 0x1F) == 0x1F) {
-                // Tag multi-octets : chaque octet a le bit 8 à 1 tant que le tag continue.
+                // Multi-byte tag: each byte has bit 8 set as long as the tag continues.
                 while (true) {
                     if (i >= to) return
                     val b = data[i].toInt() and 0xFF
@@ -381,7 +381,7 @@ object EmvTlv {
             if (len < 0 || len > to - i) return
             val value = data.copyOfRange(i, i + len)
             if (tag == wanted) out.add(value)
-            // Bit 6 du premier octet = template constructé : on descend dedans.
+            // Bit 6 of the first byte = constructed template: descend into it.
             if ((first and 0x20) != 0 && depth < MAX_DEPTH) {
                 walk(value, 0, value.size, wanted, out, depth + 1)
             }
@@ -391,7 +391,7 @@ object EmvTlv {
 }
 
 /**
- * Données extraites d'une carte EMV.
+ * Data extracted from an EMV card.
  */
 data class EmvCardData(
     var pan: String? = null,
@@ -403,13 +403,13 @@ data class EmvCardData(
 
     fun isComplete(): Boolean = isValid() && !cardType.isNullOrEmpty()
 
-    /** PAN masqué : seuls les 4 derniers chiffres restent visibles. */
+    /** Masked PAN: only the last 4 digits stay visible. */
     fun maskedPan(): String? = pan?.let { p ->
         val digits = p.filter { it.isDigit() }
         if (digits.length <= 4) "****" else "*".repeat(digits.length - 4) + digits.takeLast(4)
     }
 
-    /** Représentation sûre (PAN masqué) : ne doit jamais afficher le numéro complet. */
+    /** Safe representation (masked PAN): must never display the full number. */
     override fun toString(): String {
         val sb = StringBuilder()
         cardType?.let { sb.appendLine("Type: $it") }

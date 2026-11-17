@@ -34,14 +34,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.edit
 
 /**
- * Donnee representant une fonctionnalite de l application a afficher dans l ecran d accueil
+ * Data representing an app feature to show on the home screen
  *
- * @param title Nom de la fonctionnalite
- * @param icon Icone a afficher pour representer la fonctionnalite
- * @param route Nom de la route de navigation pour acceder a l ecran correspondant
- * @param category Groupe thématique (en-tête de section sur l'accueil)
- * @param description Aide affichée sur appui long
- * @param enabled Indique si la fonctionnalite est activee ou non
+ * @param title Feature name
+ * @param icon Icon to display to represent the feature
+ * @param route Navigation route name to reach the matching screen
+ * @param category Thematic group (section header on the home screen)
+ * @param description Help shown on long press
+ * @param enabled Whether the feature is enabled or not
  */
 data class FeatureItem(
     val title: String,
@@ -52,7 +52,7 @@ data class FeatureItem(
     val enabled: Boolean = true
 )
 
-/** Ordre d'affichage des sections sur l'écran d'accueil. */
+/** Display order of the sections on the home screen. */
 private val CATEGORY_ORDER = listOf(
     "NFC & RFID",
     "Bluetooth & BLE",
@@ -64,13 +64,13 @@ private val CATEGORY_ORDER = listOf(
 )
 
 /**
- * Composable affichant l ecran principal de l application FlipperDroid
+ * Composable showing the main screen of the FlipperDroid app
  *
- * Les fonctionnalites sont regroupees par categorie sous forme de grille.
- * Chaque carte represente une fonctionnalite et permet de naviguer vers l ecran associe.
+ * Features are grouped by category in a grid.
+ * Each card represents a feature and navigates to the matching screen.
  *
- * @param navController Controleur de navigation
- * @param nfcViewModel ViewModel NFC injecte mais non utilise ici
+ * @param navController Navigation controller
+ * @param nfcViewModel NFC ViewModel injected but not used here
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -106,7 +106,7 @@ fun HomeScreen(
             dismissButton = {}
         )
     }
-    // Boîte de dialogue d'aide (affichée sur appui long d'une tuile).
+    // Help dialog (shown on long press of a tile).
     var infoFeature by remember { mutableStateOf<FeatureItem?>(null) }
     infoFeature?.let { f ->
         AlertDialog(
@@ -253,7 +253,7 @@ fun HomeScreen(
                 .padding(paddingValues)
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            // Astuce d'utilisation, pleine largeur.
+            // Usage hint, full width.
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Text(
                     "Tap to open · long-press a tile for a description",
@@ -280,7 +280,7 @@ fun HomeScreen(
     }
 }
 
-/** En-tête de section : petit trait de couleur + titre en majuscules espacées + compteur. */
+/** Section header: small colored bar + letter-spaced uppercase title + counter. */
 @Composable
 private fun SectionHeader(title: String, count: Int) {
     Row(
@@ -310,7 +310,7 @@ private fun SectionHeader(title: String, count: Int) {
     }
 }
 
-/** Tuile d'une fonctionnalité : icône dans une pastille teintée + titre. */
+/** Feature tile: icon in a tinted badge + title. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun FeatureCard(

@@ -52,7 +52,7 @@ private val DEFAULT_CREDS = listOf(
     Cred("Arris/Motorola modem", "admin", "motorola"),
 )
 
-/** Base offline de credenciais padrão (referência — teste autorizado apenas). */
+/** Offline database of default credentials (reference — authorized testing only). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DefaultCredsScreen(navController: NavController) {

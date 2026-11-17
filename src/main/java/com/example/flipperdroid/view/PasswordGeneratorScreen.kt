@@ -28,7 +28,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.security.SecureRandom
 
-/** État de génération du QR code du mot de passe. */
+/** Password QR code generation state. */
 private sealed interface QrState {
     object Idle : QrState
     object TooLong : QrState
@@ -39,7 +39,7 @@ private sealed interface QrState {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PasswordGeneratorScreen(navController: NavController) {
-    // Empêche captures d'écran et aperçu des tâches récentes : le mot de passe est affiché
+    // Blocks screenshots and the recents preview: the password is displayed
     SecureWindow()
 
     val context = LocalContext.current
@@ -63,12 +63,12 @@ fun PasswordGeneratorScreen(navController: NavController) {
         if (useDigits) chars += digits
         if (useSymbols) chars += symbols
         if (chars.isEmpty()) return ""
-        // SecureRandom : générateur cryptographiquement sûr (indispensable pour des mots de passe)
+        // SecureRandom: cryptographically secure generator (mandatory for passwords)
         val rng = SecureRandom()
         return (1..length).map { chars[rng.nextInt(chars.length)] }.joinToString("")
     }
 
-    // QR code généré hors thread principal ; relancé à chaque nouveau mot de passe
+    // QR code generated off the main thread; re-run on every new password
     val qrState by produceState<QrState>(QrState.Idle, password) {
         value = QrState.Idle
         if (password.isEmpty()) return@produceState
@@ -151,7 +151,7 @@ fun PasswordGeneratorScreen(navController: NavController) {
                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                     val clip = ClipData.newPlainText("password", password)
                     if (Build.VERSION.SDK_INT >= 33) {
-                        // Marque le contenu comme sensible : masqué dans l'aperçu du presse-papiers
+                        // Marks the content as sensitive: masked in the clipboard preview
                         clip.description.extras = PersistableBundle().apply {
                             putBoolean(ClipDescription.EXTRA_IS_SENSITIVE, true)
                         }
@@ -163,7 +163,7 @@ fun PasswordGeneratorScreen(navController: NavController) {
                     Spacer(Modifier.width(8.dp))
                     Text(if (copied) "Copied!" else "Copy")
                 }
-                // Affichage du QR code du mot de passe
+                // Password QR code display
                 Spacer(Modifier.height(16.dp))
                 when (val state = qrState) {
                     is QrState.Ready -> {
@@ -186,11 +186,11 @@ fun PasswordGeneratorScreen(navController: NavController) {
     }
 }
 
-// Fonction utilitaire pour générer un QR code Bitmap (appelée hors thread principal)
+// Utility function to generate a QR code Bitmap (called off the main thread)
 fun generateQrCodeBitmap(text: String, size: Int = 512): Bitmap? {
     return try {
         val bitMatrix = QRCodeWriter().encode(text, BarcodeFormat.QR_CODE, size, size)
-        // Remplissage d'un tableau de pixels puis une seule écriture dans le Bitmap
+        // Fill a pixel array then write it to the Bitmap in a single call
         val pixels = IntArray(size * size)
         for (y in 0 until size) {
             val row = y * size

@@ -24,8 +24,8 @@ import androidx.navigation.NavController
 import com.example.flipperdroid.viewmodel.SkimmerDetectorViewModel
 
 /**
- * Détecteur de skimmers : scanne Bluetooth Classic + BLE et signale les
- * modules série suspects (HC-05/HC-06, etc.).
+ * Skimmer detector: scans Bluetooth Classic + BLE and flags suspicious
+ * serial modules (HC-05/HC-06, etc.).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

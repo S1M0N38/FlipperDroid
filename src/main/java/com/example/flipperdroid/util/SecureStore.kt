@@ -11,14 +11,14 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
 /**
- * Stockage chiffré de petites valeurs texte (secrets TOTP, captures APDU…).
+ * Encrypted storage for small text values (TOTP secrets, APDU captures…).
  *
- * Les valeurs sont chiffrées en AES-256-GCM avec une clé non exportable de
- * l'Android Keystore, puis rangées dans des SharedPreferences privées. Le fichier
- * est exclu des sauvegardes (voir res/xml/backup_rules.xml et
- * data_extraction_rules.xml) : la clé Keystore ne suit pas une restauration.
+ * Values are encrypted with AES-256-GCM using a non-exportable key from the
+ * Android Keystore, then stored in private SharedPreferences. The file
+ * is excluded from backups (see res/xml/backup_rules.xml and
+ * data_extraction_rules.xml): the Keystore key does not survive a restore.
  *
- * Format stocké : Base64(IV 12 octets || ciphertext+tag).
+ * Stored format: Base64(12-byte IV || ciphertext+tag).
  */
 object SecureStore {
     private const val KEYSTORE = "AndroidKeyStore"
@@ -52,7 +52,7 @@ object SecureStore {
         return Base64.encodeToString(iv + ct, Base64.NO_WRAP)
     }
 
-    /** @return le texte clair, ou null si la donnée est illisible (clé perdue, corruption). */
+    /** @return the plaintext, or null if the data is unreadable (lost key, corruption). */
     fun decrypt(encoded: String): String? = try {
         val all = Base64.decode(encoded, Base64.NO_WRAP)
         if (all.size <= IV_LEN) null else {

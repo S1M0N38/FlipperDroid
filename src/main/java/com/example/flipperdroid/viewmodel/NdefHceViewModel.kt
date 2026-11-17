@@ -8,7 +8,7 @@ import com.example.flipperdroid.nfc.NdefHceStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
-/** Configure la tag NDEF émulée (HCE Type 4) servie par NdefHceService. */
+/** Configures the emulated NDEF tag (HCE Type 4) served by NdefHceService. */
 class NdefHceViewModel(app: Application) : AndroidViewModel(app) {
 
     private val _label = MutableStateFlow(NdefHceStore.label(app))
@@ -31,7 +31,7 @@ class NdefHceViewModel(app: Application) : AndroidViewModel(app) {
         } catch (e: Exception) { _status.value = "Error: ${e.message}" }
     }
 
-    /** Enregistre le message si sa taille tient dans le fichier NDEF émulé (1022 octets max). */
+    /** Stores the message if its size fits in the emulated NDEF file (1022 bytes max). */
     private fun store(msg: NdefMessage, label: String) {
         val bytes = msg.toByteArray()
         if (bytes.size > NdefHceStore.MAX_MESSAGE_BYTES) {

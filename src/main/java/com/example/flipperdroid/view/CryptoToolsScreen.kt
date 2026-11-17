@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.flipperdroid.util.CryptoTools
 
-/** Multitool crypto/encodage (hors ligne) : hachages, Base64/Hex/URL, ROT13, HMAC, JWT. */
+/** Offline crypto/encoding multitool: hashes, Base64/Hex/URL, ROT13, HMAC, JWT. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CryptoToolsScreen(navController: NavController) {

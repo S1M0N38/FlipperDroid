@@ -1,109 +1,109 @@
-# O que dá para fazer com Android — capacidades para pentest / ferramentas estilo Flipper
+# What an Android phone can do — pentest capabilities for Flipper-style tooling
 
-Levantamento do que um smartphone Android consegue fazer no contexto do FlipperDroid,
-organizado por **nível de acesso necessário**. Marcado se o FlipperDroid já faz (✅),
-poderia fazer nativamente (🟢), precisa root (🔴), precisa hardware externo (🔌) ou é inviável (⛔).
+A survey of what an Android smartphone can do in the context of FlipperDroid,
+organized by **required level of access**. Marked if FlipperDroid already does it (✅),
+could do it natively (🟢), needs root (🔴), needs external hardware (🔌) or is infeasible (⛔).
 
-> **Status:** muitos itens 🟢/🔴 abaixo já foram implementados (BLE HID, Evil Portal, 2FA/TOTP,
-> decoders `.nfc`/`.sub`, Wardriving, Skimmer, WiFi Analyzer + MAC spoof, BadUSB gadget, base IR).
-> Veja a lista atual de "✅ Implementado" no [`ROADMAP.md`](ROADMAP.md). U2F/FIDO2 completo continua
-> fora de escopo (exige backend de relying party + APIs FIDO2/Credential Provider e teste em device).
+> **Status:** many of the 🟢/🔴 items below are already implemented (BLE HID, Evil Portal, 2FA/TOTP,
+> `.nfc`/`.sub` decoders, Wardriving, Skimmer, WiFi Analyzer + MAC spoof, BadUSB gadget, IR base).
+> See the current "✅ Implemented" list in [`ROADMAP.md`](ROADMAP.md). Full U2F/FIDO2 remains
+> out of scope (it requires a relying-party backend + FIDO2/Credential Provider APIs and on-device testing).
 
 ---
 
-## A) Nativo — sem root, só APIs do Android
+## A) Native — no root, Android APIs only
 
 ### NFC / RFID 13.56 MHz
-- ✅ **Ler Mifare Classic** (UID, dump com chaves), **ataque por dicionário** de chaves, **NDEF** read.
-- ✅ **Ler cartão EMV** (PAN mascarado, validade) via IsoDep.
-- ✅ **HCE — emular cartão** (`HostApduService`) — já registrado no app.
-- 🟢 **NDEF write / formatação** de tags.
-- 🟢 **Clonar UID** para cartões "magic" (já implementado).
-- ⚠️ **Relay NFC/HCE**: exigiria dois aparelhos (HCE de um lado, leitor do outro) com encaminhamento bidirecional. O antigo módulo "NFC Relay Attack" não retransmitia nada e foi removido na 2.2.0; a captura/replay de diálogo APDU continua em **Card Emulation**.
-- ⛔ Recuperação de chaves Nested/Darkside (o controlador NFC não expõe o rádio).
-- ⛔ RFID 125 kHz (LF) — hardware diferente.
+- ✅ **Read Mifare Classic** (UID, dump with keys), key **dictionary attack**, **NDEF** read.
+- ✅ **Read EMV card** (masked PAN, expiry) via IsoDep.
+- ✅ **HCE — card emulation** (`HostApduService`) — already registered in the app.
+- 🟢 **NDEF write / formatting** of tags.
+- 🟢 **UID cloning** to "magic" cards (already implemented).
+- ⚠️ **NFC/HCE relay**: would require two devices (HCE on one side, reader on the other) with bidirectional forwarding. The former "NFC Relay Attack" module did not forward anything and was removed in 2.2.0; APDU dialogue capture/replay lives on in **Card Emulation**.
+- ⛔ Nested/Darkside key recovery (the NFC controller does not expose the radio).
+- ⛔ 125 kHz (LF) RFID — different hardware.
 
 ### Bluetooth / BLE
 - ✅ **BLE Spam** (Apple, Samsung, Microsoft SwiftPair, Google Fast Pair).
-- ✅ **BLE Scanner + GATT Explorer** (serviços/características, read).
-- ✅ **Skimmer detector** (Classic + BLE por assinatura de módulo série).
+- ✅ **BLE Scanner + GATT Explorer** (services/characteristics, read).
+- ✅ **Skimmer detector** (Classic + BLE by serial-module signature).
 - 🟢 GATT write/notify/subscribe, MTU, bonding.
-- 🟢 **Advertiser/beacon** customizado (iBeacon, Eddystone) e simular periférico BLE.
-- 🟢 Escanear Bluetooth Classic (descoberta, SDP, nomes).
-- 🟢 BLE HID host (celular controla teclado/mouse BLE) e **BLE HID device** (celular como teclado BLE p/ PC — via BluetoothHidDevice API).
-- ⛔ Sniffing do link BLE / captura de outros pares (precisa rádio em modo promíscuo).
+- 🟢 Custom **advertiser/beacon** (iBeacon, Eddystone) and BLE peripheral emulation.
+- 🟢 Scan Bluetooth Classic (discovery, SDP, names).
+- 🟢 BLE HID host (the phone controls a BLE keyboard/mouse) and **BLE HID device** (the phone as a BLE keyboard for a PC — via the BluetoothHidDevice API).
+- ⛔ BLE link sniffing / capture of other pairs (needs a radio in promiscuous mode).
 
 ### Wi-Fi
-- ✅ **Scan de redes** (SSID/BSSID/canal/RSSI/segurança).
-- ✅ **Wardriving** com GPS → CSV Wigle.
-- 🟢 **Analisador de canais** (gráfico de ocupação 2.4/5 GHz).
-- 🟢 **Hotspot local** (`startLocalOnlyHotspot`) → base de um **Evil/Captive Portal** com servidor HTTP (parcial: sem NAT/internet).
-- 🟢 Info da conexão atual, força, IP, gateway, DNS.
-- ⛔ **Deauth / beacon spam / evil twin / handshake capture** — exigem monitor mode + injeção (rádio bloqueia).
+- ✅ **Network scan** (SSID/BSSID/channel/RSSI/security).
+- ✅ **Wardriving** with GPS → Wigle CSV.
+- 🟢 **Channel analyzer** (2.4/5 GHz occupancy graph).
+- 🟢 **Local hotspot** (`startLocalOnlyHotspot`) → basis for an **Evil/Captive Portal** with an HTTP server (partial: no NAT/internet).
+- 🟢 Current connection info, signal strength, IP, gateway, DNS.
+- ⛔ **Deauth / beacon spam / evil twin / handshake capture** — these require monitor mode + injection (the radio blocks it).
 
-### Rede (camada IP) — já é forte no app
-- ✅ **nmap** (via root, empacotado), ping, portscan, DNS, traceroute.
-- 🟢 Sem root: portscan por sockets, mDNS/SSDP/UPnP discovery, banner grabbing, ARP via `/proc/net/arp`, HTTP recon, DNS lookups, WHOIS.
-- 🟢 **Responder/LLMNR-poisoning leve**, servidor HTTP/phishing local, MITM em rede própria (proxy).
-- 🟢 Wake-on-LAN, escaneamento de sub-rede, fingerprinting de dispositivos.
+### Network (IP layer) — already a strong point in the app
+- ✅ **nmap** (via root, bundled), ping, portscan, DNS, traceroute.
+- 🟢 Without root: socket-based portscan, mDNS/SSDP/UPnP discovery, banner grabbing, ARP via `/proc/net/arp`, HTTP recon, DNS lookups, WHOIS.
+- 🟢 **Lightweight Responder/LLMNR poisoning**, local HTTP/phishing server, MITM on your own network (proxy).
+- 🟢 Wake-on-LAN, subnet scanning, device fingerprinting.
 
-### Infravermelho (só aparelhos com blaster)
-- ✅ **TX IR** (NEC) — telecomando universal + teclado numérico.
-- 🟢 Mais protocolos (RC5/RC6/SIRC/Samsung) + **base de códigos** (Flipper-IRDB, formato `.ir`).
-- ⛔ **RX/aprender IR** — quase nenhum celular tem receptor IR.
+### Infrared (only devices with a blaster)
+- ✅ **IR TX** (NEC) — universal remote + numeric keypad.
+- 🟢 More protocols (RC5/RC6/SIRC/Samsung) + a **code database** (Flipper-IRDB, `.ir` format).
+- ⛔ **IR RX/learning** — almost no phone has an IR receiver.
 
-### Sensores / captura / utilidades
-- 🟢 Câmera: ✅ **QR/barcode scan** (feito); OCR (ML Kit), detecção de câmeras ocultas por reflexo IR.
-- 🟢 GPS/IMU/magnetômetro (detector de campo magnético, bússola).
-- 🟢 Microfone: análise de espectro, detecção de ultrassom (beacons ultrassônicos).
-- 🟢 Gerador de senhas (✅), cofre, TOTP/2FA, **U2F/FIDO2** (Credential Manager).
-- 🟢 Leitor/decoder de formatos Flipper (`.nfc`, `.ir`, `.sub`) para interoperar.
-
----
-
-## B) Precisa de ROOT (device rooteado)
-
-- 🔴 **nmap / binários nativos** (já usado assim), tcpdump, aircrack-suite (offline), scapy via Termux.
-- 🔴 **Monitor mode + injeção no chip interno via Nexmon** — só chips Broadcom específicos (Nexus 5/6P, alguns Galaxy antigos). Habilita **deauth/handshake reais** no rádio interno.
-- 🔴 **BadUSB real (USB Gadget)** — configurar HID via `configfs` (`/dev/hidgX`) + DuckyScript. (A implementação atual do app usa USB *Host* e precisa ser reescrita.)
-- 🔴 Firewall/VPN a nível de pacote, sniffing de tráfego local, spoofing de MAC, iptables/NAT (Evil Portal completo com internet).
-- 🔴 Roteamento NFC/HCE arbitrário (relay sem restrição de AID).
+### Sensors / capture / utilities
+- 🟢 Camera: ✅ **QR/barcode scan** (done); OCR (ML Kit), hidden-camera detection by IR reflection.
+- 🟢 GPS/IMU/magnetometer (magnetic field detector, compass).
+- 🟢 Microphone: spectrum analysis, ultrasound detection (ultrasonic beacons).
+- 🟢 Password generator (✅), vault, TOTP/2FA, **U2F/FIDO2** (Credential Manager).
+- 🟢 Flipper format reader/decoder (`.nfc`, `.ir`, `.sub`) for interoperability.
 
 ---
 
-## C) Precisa de HARDWARE EXTERNO (USB-OTG ou BLE) — o celular vira o "cérebro"
+## B) Requires ROOT (rooted device)
 
-Este é o caminho para ter **paridade real com o Flipper Zero**: o celular controla um módulo.
-
-- 🔌 **Adaptador Wi-Fi USB** (AR9271/RT3070/RTL8812AU) → **deauth, evil twin, handshake, injeção** reais (modelo Kali NetHunter).
-- 🔌 **ESP32 / ESP8266** (Marauder, Evil-M5, DSTIKE) via USB-serial ou BLE → deauth, beacon spam, karma, evil portal, wardriving no ESP.
-- 🔌 **Proxmark3** (USB-OTG ou BLE) → **RFID 125 kHz LF + HF completo**, clonagem, sniffing, ataques a chaves.
-- 🔌 **RTL-SDR / HackRF / dongles Sub-GHz (CC1101)** via OTG → **receber (e com HackRF, transmitir) rádio**: Sub-GHz 315/433/868/915 MHz, ADS-B, POCSAG, etc. (apps: SDR Touch, SDR++).
-- 🔌 **Arduino / microcontrolador** via ponte serial (Termux não tem driver serial OTG nativo — usa `usb-serial-for-android` no app ou ponte TCP).
-- 🔌 **iButton/1-Wire, GPIO** → só com adaptador USB dedicado.
-
-Bibliotecas-chave para o app: `usb-serial-for-android` (CDC/FTDI/CP210x/CH34x), `UsbManager` (host), BLE GATT.
+- 🔴 **nmap / native binaries** (already used that way), tcpdump, aircrack-suite (offline), scapy via Termux.
+- 🔴 **Monitor mode + injection on the built-in chip via Nexmon** — only specific Broadcom chips (Nexus 5/6P, some older Galaxy devices). Enables **real deauth/handshake** on the internal radio.
+- 🔴 **Real BadUSB (USB Gadget)** — configure HID via `configfs` (`/dev/hidgX`) + DuckyScript. (The app's current implementation uses USB *Host* and must be rewritten.)
+- 🔴 Packet-level firewall/VPN, local traffic sniffing, MAC spoofing, iptables/NAT (full Evil Portal with internet).
+- 🔴 Arbitrary NFC/HCE routing (relay without AID restriction).
 
 ---
 
-## D) Inviável no smartphone (mesmo com root)
+## C) Requires EXTERNAL HARDWARE (USB-OTG or BLE) — the phone becomes the "brain"
 
-- ⛔ **Sub-GHz nativo** (sem rádio < 1 GHz) — só com SDR/CC1101 externo.
-- ⛔ **RFID 125 kHz nativo** — só com Proxmark/leitor LF externo.
-- ⛔ **iButton/1-Wire, GPIO** nativos — sem pinos.
-- ⛔ **Sniffing de rádio BLE/Wi-Fi de terceiros** sem monitor mode.
-- ⛔ **IMSI catcher / manipulação de banda base** — o modem é fechado; inviável e ilegal na maioria dos casos.
+This is the path to **real parity with the Flipper Zero**: the phone drives a module.
+
+- 🔌 **USB Wi-Fi adapter** (AR9271/RT3070/RTL8812AU) → real **deauth, evil twin, handshake, injection** (Kali NetHunter model).
+- 🔌 **ESP32 / ESP8266** (Marauder, Evil-M5, DSTIKE) over USB-serial or BLE → deauth, beacon spam, karma, evil portal, wardriving on the ESP.
+- 🔌 **Proxmark3** (USB-OTG or BLE) → **full 125 kHz LF + HF RFID**, cloning, sniffing, key attacks.
+- 🔌 **RTL-SDR / HackRF / Sub-GHz dongles (CC1101)** via OTG → **receive (and, with HackRF, transmit) radio**: Sub-GHz 315/433/868/915 MHz, ADS-B, POCSAG, etc. (apps: SDR Touch, SDR++).
+- 🔌 **Arduino / microcontroller** over a serial bridge (Termux has no native OTG serial driver — use `usb-serial-for-android` in the app or a TCP bridge).
+- 🔌 **iButton/1-Wire, GPIO** → only with a dedicated USB adapter.
+
+Key libraries for the app: `usb-serial-for-android` (CDC/FTDI/CP210x/CH34x), `UsbManager` (host), BLE GATT.
 
 ---
 
-## Prioridades sugeridas para o FlipperDroid (do mais barato ao mais poderoso)
+## D) Infeasible on a smartphone (even with root)
 
-1. 🟢 **Wi-Fi analyzer** (gráfico de canais) e **decoders de formato Flipper** (`.nfc`/`.ir`) — nativo, barato.
-2. 🟢 **IR code database** (Flipper-IRDB) + mais protocolos — transforma o IR em telecomando universal de verdade.
-3. 🟢 **BLE advertiser/beacon** (iBeacon/Eddystone) e **BLE HID device** (teclado BLE p/ PC — um "BadKB" sem cabo).
-4. 🔌 **Controlador ESP32/Evil-M5** (serial-OTG ou BLE) — desbloqueia deauth/beacon/evil-portal/wardriving reais.
-5. 🔌 **Controlador Proxmark3** (BLE/OTG) — desbloqueia RFID LF/HF completo.
-6. 🔌 **Ponte RTL-SDR/HackRF** — desbloqueia Sub-GHz (recepção; TX com HackRF).
-7. 🔴 **BadUSB via USB Gadget + DuckyScript** (root) — BadUSB de verdade.
+- ⛔ **Native Sub-GHz** (no sub-1 GHz radio) — only with an external SDR/CC1101.
+- ⛔ **Native 125 kHz RFID** — only with a Proxmark/external LF reader.
+- ⛔ Native **iButton/1-Wire, GPIO** — no pins.
+- ⛔ **Sniffing third-party BLE/Wi-Fi radio** without monitor mode.
+- ⛔ **IMSI catcher / baseband manipulation** — the modem is closed; infeasible and illegal in most cases.
 
-> **Regra de ouro:** tudo que envolve **rádio bruto** (Sub-GHz, LF RFID, injeção Wi-Fi, sniff BLE) exige **hardware externo ou chip/firmware especial**. Tudo que é **protocolo de alto nível** (NFC/HCE, BLE GATT, IP/rede, IR TX, câmera/sensores) o celular faz sozinho.
+---
+
+## Suggested priorities for FlipperDroid (cheapest to most powerful)
+
+1. 🟢 **Wi-Fi analyzer** (channel graph) and **Flipper format decoders** (`.nfc`/`.ir`) — native, cheap.
+2. 🟢 **IR code database** (Flipper-IRDB) + more protocols — turns IR into a genuinely universal remote.
+3. 🟢 **BLE advertiser/beacon** (iBeacon/Eddystone) and **BLE HID device** (BLE keyboard for a PC — a cable-free "BadKB").
+4. 🔌 **ESP32/Evil-M5 controller** (serial-OTG or BLE) — unlocks real deauth/beacon/evil-portal/wardriving.
+5. 🔌 **Proxmark3 controller** (BLE/OTG) — unlocks full LF/HF RFID.
+6. 🔌 **RTL-SDR/HackRF bridge** — unlocks Sub-GHz (reception; TX with HackRF).
+7. 🔴 **BadUSB via USB Gadget + DuckyScript** (root) — BadUSB for real.
+
+> **Rule of thumb:** anything involving **raw radio** (Sub-GHz, LF RFID, Wi-Fi injection, BLE sniffing) requires **external hardware or a special chip/firmware**. Anything that is a **high-level protocol** (NFC/HCE, BLE GATT, IP/network, IR TX, camera/sensors) the phone can do on its own.

@@ -18,14 +18,14 @@ import com.example.flipperdroid.viewmodel.NetworkToolsViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 /**
- * Ecran des outils reseau permettant de tester la connectivite et scanner des ports
+ * Network tools screen to test connectivity and scan ports
  *
- * L utilisateur peut saisir une adresse IP ou un nom d hote
- * Il peut choisir parmi plusieurs outils : ping, scan de ports, recherche DNS, traceroute, nmap
- * Les resultats des commandes s affichent dans une liste avec mise en evidence des erreurs
+ * The user can enter an IP address or a hostname
+ * They can pick among several tools: ping, port scan, DNS lookup, traceroute, nmap
+ * The command results are displayed in a list with error highlighting
  *
- * @param navController Controleur de navigation pour gerer le retour en arriere
- * @param viewModel Vue modele gerant la logique des commandes reseau et l etat des resultats
+ * @param navController Navigation controller to handle going back
+ * @param viewModel View model handling the network command logic and the state of the results
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,30 +34,30 @@ fun NetworkToolsScreen(
     viewModel: NetworkToolsViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    // Initialisation du contexte pour le ViewModel (une seule fois)
+    // Initialize the ViewModel context (only once)
     LaunchedEffect(Unit) {
         viewModel.initialize(context)
     }
 
-    // Etat local pour l outil selectionne
+    // Local state for the selected tool
     var selectedTool by remember { mutableStateOf<String?>(null) }
 
-    // Adresse IP ou nom d hote saisie par l utilisateur
+    // IP address or hostname entered by the user
     var ipAddress by remember { mutableStateOf("") }
 
-    // Options de la cmd nmap
+    // Options for the nmap command
     var parameter by remember { mutableStateOf("") }
 
-    // Port de debut pour le scan de ports
+    // Start port for the port scan
     var startPort by remember { mutableStateOf("1") }
 
-    // Port de fin pour le scan de ports
+    // End port for the port scan
     var endPort by remember { mutableStateOf("1024") }
 
-    // Resultats recupere depuis le viewModel
+    // Results collected from the view model
     val results by viewModel.results.collectAsState()
 
-    // Etat du scan en cours
+    // Current scan state
     val isScanning by viewModel.isScanning.collectAsState()
 
     Log.d("DEBUG", "Context path: ${context.filesDir}")
@@ -66,7 +66,7 @@ fun NetworkToolsScreen(
     Scaffold(
         topBar = {
             /**
-             * Barre superieure avec bouton retour et bouton effacer les resultats
+             * Top bar with a back button and a clear-results button
              */
             TopAppBar(
                 title = { Text("Network Tools") },
@@ -90,7 +90,7 @@ fun NetworkToolsScreen(
                 .padding(16.dp)
         ) {
             /**
-             * Champ de saisie de l adresse IP ou du nom d hote
+             * Input field for the IP address or hostname
              */
             OutlinedTextField(
                 value = ipAddress,
@@ -101,7 +101,7 @@ fun NetworkToolsScreen(
             )
 
             /**
-             * Champs de saisie pour la plage de ports si l outil portscan est selectionne
+             * Port-range input fields shown when the portscan tool is selected
              */
             if (selectedTool == "portscan") {
                 Spacer(modifier = Modifier.height(8.dp))
@@ -141,8 +141,8 @@ fun NetworkToolsScreen(
 
 
             /**
-             * Liste des cartes representant les differents outils reseau
-             * Chaque carte lance la commande correspondante si une adresse est renseignee
+             * List of cards representing the available network tools
+             * Each card runs the matching command when an address has been entered
              */
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -291,9 +291,9 @@ fun NetworkToolsScreen(
                 }
 
                 /**
-                 * Affichage des resultats avec coloration des erreurs
+                 * Display of results with error highlighting
                  */
-                // Bouton CLEAR visible si résultats non vides
+                // CLEAR button visible if results are not empty
                     if (results.isNotEmpty()) {
                         item {
                             Row(
@@ -312,7 +312,7 @@ fun NetworkToolsScreen(
                         }
                     }
 
-                    // Affichage des résultats
+                    // Display of the results
                     items(results) { result ->
                         val cardColor = if (result.isError)
                             MaterialTheme.colorScheme.errorContainer
@@ -350,7 +350,7 @@ fun NetworkToolsScreen(
                 }
 
             /**
-             * Barre de progression lineaire pendant le scan
+             * Linear progress bar shown while the scan runs
              */
             if (isScanning) {
                 LinearProgressIndicator(

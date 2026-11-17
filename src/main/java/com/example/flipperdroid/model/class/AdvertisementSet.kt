@@ -8,7 +8,7 @@ import com.example.flipperdroid.model.enums.AdvertisementTarget
 import com.example.flipperdroid.model.enums.AdvertisementSetType
 import com.example.flipperdroid.model.enums.AdvertisementSetRange
 
-// Enum et classes associées à adapter/ajouter selon besoin
+// Enum and related classes to adapt/add as needed
 // import com.example.flipperdroid.model.AdvertisementSetType
 // import com.example.flipperdroid.model.AdvertisementSetRange
 // import com.example.flipperdroid.model.AdvertisementTarget

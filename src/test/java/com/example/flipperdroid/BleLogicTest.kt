@@ -7,19 +7,19 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Tests JVM de l'estimation de taille de trame BLE et du choix legacy/étendu.
+ * JVM tests for the BLE frame size estimate and the legacy/extended choice.
  *
- * Le point clé : une trame courte (≤ 31 octets) doit rester en LEGACY pour être
- * réellement reçue par les cibles (Windows Swift Pair, iOS Continuity, Android
- * Fast Pair n'écoutent que le legacy par défaut) ; seule une trame qui déborde
- * passe en advertising étendu.
+ * The key point: a short frame (≤ 31 bytes) must stay LEGACY to be
+ * actually received by the targets (Windows Swift Pair, iOS Continuity, Android
+ * Fast Pair only listen to legacy by default); only a frame that overflows
+ * switches to extended advertising.
  */
 class BleLogicTest {
 
     @Test
     fun swiftpair_short_name_fits_in_legacy() {
-        // Swift Pair : connectable, pas de nom système, données fabricant =
-        // header 3 octets + nom ASCII. "Surface Mouse" = 13 octets.
+        // Swift Pair: connectable, no device name, manufacturer data =
+        // 3-byte header + ASCII name. "Surface Mouse" = 13 bytes.
         // flags(3) + [overhead(2) + companyId(2) + (3 + 13)] = 3 + 20 = 23 ≤ 31.
         val bytes = AdvertisementPayload.estimateLegacyBytes(
             connectable = true,
@@ -36,8 +36,8 @@ class BleLogicTest {
 
     @Test
     fun swiftpair_long_name_overflows_legacy() {
-        // "Microsoft Bluetooth Mouse" = 25 octets :
-        // flags(3) + [2 + 2 + (3 + 25)] = 3 + 32 = 35 > 31 → étendu.
+        // "Microsoft Bluetooth Mouse" = 25 bytes:
+        // flags(3) + [2 + 2 + (3 + 25)] = 3 + 32 = 35 > 31 → extended.
         val bytes = AdvertisementPayload.estimateLegacyBytes(
             connectable = true,
             includeDeviceName = false,
@@ -53,8 +53,8 @@ class BleLogicTest {
 
     @Test
     fun continuity_nonconnectable_no_flags() {
-        // Continuity : non connectable → pas de structure Flags.
-        // manufacturer data Apple de 10 octets : 2 + 2 + 10 = 14 ≤ 31.
+        // Continuity: non-connectable → no Flags structure.
+        // 10-byte Apple manufacturer data: 2 + 2 + 10 = 14 ≤ 31.
         val bytes = AdvertisementPayload.estimateLegacyBytes(
             connectable = false,
             includeDeviceName = false,
@@ -70,7 +70,7 @@ class BleLogicTest {
 
     @Test
     fun fastpair_service_data_fits_in_legacy() {
-        // Fast Pair : service data 16 bits (UUID 0xFE2C) de 3 octets + UUID annoncé.
+        // Fast Pair: 16-bit service data (UUID 0xFE2C) of 3 bytes + advertised UUID.
         // flags(3) + uuid16 list[2 + 2] + serviceData[2 + 2 + 3] = 3 + 4 + 7 = 14.
         val bytes = AdvertisementPayload.estimateLegacyBytes(
             connectable = true,
@@ -87,7 +87,7 @@ class BleLogicTest {
 
     @Test
     fun device_name_and_tx_power_count_toward_budget() {
-        // includeDeviceName (nom de 8) + txPower + fabricant 20 :
+        // includeDeviceName (8-char name) + txPower + 20-byte manufacturer data:
         // 0 flags (non connectable) + [2 + 8] + 3 + [2 + 2 + 20] = 10 + 3 + 24 = 37 > 31.
         val bytes = AdvertisementPayload.estimateLegacyBytes(
             connectable = false,

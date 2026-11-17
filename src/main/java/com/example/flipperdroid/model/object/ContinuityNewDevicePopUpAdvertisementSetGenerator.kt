@@ -30,7 +30,7 @@ object ContinuityNewDevicePopUpAdvertisementSetGenerator {
         "1720" to "Beats Studio Pro",
         "1220" to "Beats Fit Pro",
         "1620" to "Beats Studio Buds+",
-        // Ajout d'autres modèles Apple/Beats si présents dans Bluetooth-LE-Spam
+        // Other Apple/Beats models added if present in Bluetooth-LE-Spam
     )
 
     fun getRandomBudsBatteryLevel(): String {

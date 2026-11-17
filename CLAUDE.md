@@ -82,7 +82,7 @@ Root-dependent modules shell out through `su -c` and **report honestly when root
 
 ## Conventions & gotchas
 
-- **Doc/inline comments are largely in French**; identifiers and log tags are English. Match the surrounding language when editing a file.
+- **The codebase is written in English**: code comments, KDoc, markdown docs and user-facing strings are all English, and so are identifiers and log tags. Keep it that way when editing a file.
 - BroadcastReceivers register for **protected system broadcasts** (Wi-Fi scan results, Bluetooth `ACTION_FOUND`), so they don't need the `RECEIVER_EXPORTED` flag even on target 35.
 - Assets under `src/main/assets/` (`nmap/` binaries, `infrared/*.ir`, `legacy/*.txt` legal texts) are loaded by path at runtime — keep paths in sync with the code.
 - `NfcViewModel` keeps the last `Tag` so dictionary-attack / NDEF-write / UID-clone work after a scan; NFC I/O runs on `Dispatchers.IO` (blocking calls would ANR on the main thread).

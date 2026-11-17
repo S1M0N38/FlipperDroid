@@ -14,10 +14,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 /**
- * Contrôle de climatiseur à état complet (multi-marques). Émet toute la
- * configuration (marche, mode, température, ventilation, oscillation) en une trame.
- * Seul Gree a une structure de trame testée unitairement ; aucun encodage n'est validé
- * sur appareil réel.
+ * Full-state air conditioner control (multi-brand). Emits the whole
+ * configuration (power, mode, temperature, fan, swing) in a single frame.
+ * Only Gree has a frame structure unit-tested; no encoding is validated
+ * on a real device.
  */
 class AcControlViewModel(app: Application) : AndroidViewModel(app) {
 

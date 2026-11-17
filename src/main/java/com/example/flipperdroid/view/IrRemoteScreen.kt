@@ -30,8 +30,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * Télécommande universelle basée sur une base de codes .ir (Flipper).
- * Choisir un remote empaqueté ou importer un fichier .ir (ex: Flipper-IRDB).
+ * Universal remote based on an .ir (Flipper) code database.
+ * Pick a bundled remote or import an .ir file (e.g. Flipper-IRDB).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -104,7 +104,7 @@ fun IrRemoteScreen(
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            // Sélecteur de remote
+            // Remote selector
             Row(
                 Modifier.horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -155,7 +155,7 @@ fun IrRemoteScreen(
     }
 }
 
-/** Lit tous les fichiers .ir d'un dossier choisi via le Storage Access Framework. */
+/** Reads every .ir file of a folder picked through the Storage Access Framework. */
 private fun readIrFolder(context: Context, treeUri: Uri): List<Pair<String, String>> {
     val out = mutableListOf<Pair<String, String>>()
     try {
@@ -181,7 +181,7 @@ private fun readIrFolder(context: Context, treeUri: Uri): List<Pair<String, Stri
             }
         }
     } catch (e: Exception) {
-        // dossier illisible : on renvoie ce qu'on a pu lire
+        // unreadable folder: returns what could be read
     }
     return out
 }

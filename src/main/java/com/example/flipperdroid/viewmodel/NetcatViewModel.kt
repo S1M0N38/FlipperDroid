@@ -20,8 +20,8 @@ import java.net.ServerSocket
 import java.net.Socket
 
 /**
- * « Netcat » : client/serveur TCP, envoi UDP, et un petit serveur HTTP de fichiers
- * (livraison de payload / listeners en pentest LAN). Sans root.
+ * "Netcat": TCP client/server, UDP send, and a small HTTP file server
+ * (payload delivery / listeners on a LAN pentest). No root.
  */
 class NetcatViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -89,7 +89,7 @@ class NetcatViewModel(app: Application) : AndroidViewModel(app) {
         try {
             val input = s.getInputStream()
             val buf = ByteArray(2048)
-            // disconnect() ferme le socket -> input.read lève une exception -> on sort.
+            // disconnect() closes the socket -> input.read throws -> we exit.
             while (!s.isClosed) {
                 val n = input.read(buf)
                 if (n < 0) break
@@ -140,8 +140,8 @@ class NetcatViewModel(app: Application) : AndroidViewModel(app) {
     // --- HTTP file server (serves the app's external files dir) ---
     fun startHttp(port: Int) {
         if (httpRunning) { appendLog("[http already running]"); return }
-        // Seul un sous-dossier dédié est servi : la racine contenait les dumps NFC (clés),
-        // les journaux et le wardriving (GPS), exposés sans authentification sur le LAN.
+        // Only a dedicated subfolder is served: the root contained the NFC dumps (keys),
+        // the logs and the wardriving data (GPS), exposed without authentication on the LAN.
         val root = getApplication<Application>().getExternalFilesDir(null)
             ?: getApplication<Application>().filesDir
         val base = File(root, "served").apply { mkdirs() }
@@ -154,7 +154,7 @@ class NetcatViewModel(app: Application) : AndroidViewModel(app) {
                 appendLog("[http server on :$port, serving only ${base.name}/]")
                 while (httpRunning) {
                     val client = try { srv.accept() } catch (e: Exception) { break }
-                    // Un client muet ne doit pas bloquer le serveur indéfiniment.
+                    // A silent client must not block the server indefinitely.
                     try { client.soTimeout = 5000; serveHttp(client, base) }
                     catch (_: Throwable) {}
                     finally { try { client.close() } catch (_: Exception) {} }
@@ -181,8 +181,8 @@ class NetcatViewModel(app: Application) : AndroidViewModel(app) {
         val decoded = java.net.URLDecoder.decode(path, "UTF-8").removePrefix("/")
         val target = File(base, decoded)
         val out = client.getOutputStream()
-        // Empêche la traversée de répertoire hors de base (y compris un dossier frère
-        // dont le nom commence pareil, ex. "served2").
+        // Prevents directory traversal outside base (including a sibling folder
+        // whose name starts the same way, e.g. "served2").
         val basePath = base.canonicalPath
         val targetPath = target.canonicalPath
         if (targetPath != basePath && !targetPath.startsWith(basePath + File.separator)) {
@@ -203,7 +203,7 @@ class NetcatViewModel(app: Application) : AndroidViewModel(app) {
             out.write(("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: ${bytes.size}\r\nConnection: close\r\n\r\n").toByteArray())
             out.write(bytes)
         } else if (target.isFile) {
-            // Flux continu : readBytes() d'un gros fichier provoquait un OutOfMemoryError.
+            // Streaming: readBytes() on a large file caused an OutOfMemoryError.
             val size = target.length()
             out.write(("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: $size\r\nConnection: close\r\n\r\n").toByteArray())
             target.inputStream().use { it.copyTo(out) }

@@ -22,7 +22,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.flipperdroid.viewmodel.BluetoothClassicViewModel
 
-/** Bluetooth classique (BR/EDR) : scan + SDP + terminal SPP/RFCOMM. */
+/** Bluetooth Classic (BR/EDR): scan + SDP + SPP/RFCOMM terminal. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BluetoothClassicScreen(
@@ -90,7 +90,7 @@ fun BluetoothClassicScreen(
             }
             if (isScanning) LinearProgressIndicator(Modifier.fillMaxWidth())
 
-            // Terminal SPP (visible une fois connecté)
+            // SPP terminal (visible once connected)
             if (sppConnected) {
                 SppTerminal(
                     status = sppStatus,

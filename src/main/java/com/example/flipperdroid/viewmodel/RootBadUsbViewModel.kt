@@ -18,13 +18,13 @@ import java.io.InputStreamReader
 import java.io.OutputStream
 
 /**
- * BadUSB "vrai" via le mode USB Gadget (root) : le téléphone est branché sur
- * un PC et agit comme un clavier HID en écrivant des rapports dans /dev/hidg0.
- * Exécute des scripts au format DuckyScript.
+ * "Real" BadUSB via USB Gadget mode (root): the phone is plugged into
+ * a PC and acts as a HID keyboard by writing reports to /dev/hidg0.
+ * Runs DuckyScript-format scripts.
  *
- * Prérequis : root + noyau avec la fonction HID gadget exposée sur /dev/hidgX.
- * Le chemin exact et la config du gadget dépendent de l'appareil/ROM ; on
- * vérifie honnêtement la disponibilité et on le signale.
+ * Prerequisites: root + a kernel exposing the HID gadget on /dev/hidgX.
+ * The exact path and the gadget config depend on the device/ROM; availability
+ * is checked honestly and reported.
  */
 class RootBadUsbViewModel : ViewModel() {
 
@@ -41,7 +41,7 @@ class RootBadUsbViewModel : ViewModel() {
 
     fun updateScript(s: String) { _script.value = s }
 
-    /** Vérifie root + présence d'un périphérique HID gadget. */
+    /** Checks root + presence of a HID gadget device. */
     fun checkEnvironment() {
         viewModelScope.launch(Dispatchers.IO) {
             val root = hasRoot()
@@ -58,7 +58,7 @@ class RootBadUsbViewModel : ViewModel() {
 
     fun runScript() {
         if (_isRunning.value) return
-        // Positionné avant launch : deux appuis rapides ne lancent plus deux exécutions.
+        // Set before launch: two quick taps no longer start two executions.
         _isRunning.value = true
         job = viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -67,7 +67,7 @@ class RootBadUsbViewModel : ViewModel() {
                 if (dev == null) { _status.value = "No /dev/hidgX device (HID gadget not enabled)."; return@launch }
 
                 _status.value = "Opening $dev..."
-                // Shell root persistant dont stdin est redirigé vers le device HID.
+                // Persistent root shell whose stdin is redirected to the HID device.
                 val process = Runtime.getRuntime().exec(arrayOf("su", "-c", "cat > $dev"))
                 val out = process.outputStream
                 try {
@@ -76,11 +76,11 @@ class RootBadUsbViewModel : ViewModel() {
                     executeDucky(_script.value, out)
                     _status.value = "Script finished."
                 } finally {
-                    // Cleanup dans finally : sur annulation (stop()), executeDucky lève une
-                    // CancellationException — sans ce finally, le process root et son flux
-                    // resteraient ouverts. On envoie d'abord un rapport « tout relâché » :
-                    // un arrêt entre appui et relâchement laissait Shift/Ctrl/GUI enfoncé
-                    // sur la machine cible.
+                    // Cleanup in finally: on cancellation (stop()), executeDucky throws a
+                    // CancellationException — without this finally, the root process and its stream
+                    // would stay open. An "all released" report is sent first:
+                    // stopping between a press and its release left Shift/Ctrl/GUI held down
+                    // on the target machine.
                     withContext(NonCancellable) {
                         try { out.write(ByteArray(8)); out.flush() } catch (_: Exception) {}
                     }
@@ -106,14 +106,14 @@ class RootBadUsbViewModel : ViewModel() {
         _status.value = "Stopped."
     }
 
-    // --- Moteur DuckyScript ---
+    // --- DuckyScript engine ---
 
     private suspend fun executeDucky(script: String, out: OutputStream) {
         var defaultDelay = 0L
         val lines = script.split("\n")
         for (raw in lines) {
-            // executeDucky est une suspend fun sans receiver CoroutineScope : on teste
-            // l'annulation via le Job du contexte plutôt que le bare `isActive`.
+            // executeDucky is a suspend fun without a CoroutineScope receiver: cancellation is
+            // checked via the context Job rather than the bare `isActive`.
             if (coroutineContext[Job]?.isActive == false || !_isRunning.value) break
             val line = raw.trim()
             if (line.isEmpty()) continue
@@ -121,7 +121,7 @@ class RootBadUsbViewModel : ViewModel() {
             val cmd = parts[0].uppercase()
             val arg = if (parts.size > 1) parts[1] else ""
             when (cmd) {
-                "REM" -> { /* commentaire */ }
+                "REM" -> { /* comment */ }
                 "DELAY" -> delay(arg.trim().toLongOrNull() ?: 0L)
                 "DEFAULT_DELAY", "DEFAULTDELAY" -> defaultDelay = arg.trim().toLongOrNull() ?: 0L
                 "STRING" -> typeString(arg, out)
@@ -147,7 +147,7 @@ class RootBadUsbViewModel : ViewModel() {
                 }
                 "CTRL-SHIFT" -> sendCombo(out, MOD_CTRL or MOD_SHIFT, arg)
                 else -> {
-                    // Touches de fonction F1..F12
+                    // Function keys F1..F12
                     if (cmd.matches(Regex("F([1-9]|1[0-2])"))) {
                         val n = cmd.substring(1).toInt()
                         sendKey(out, 0, 0x3A + (n - 1))
@@ -161,7 +161,7 @@ class RootBadUsbViewModel : ViewModel() {
     private suspend fun sendCombo(out: OutputStream, modifiers: Int, arg: String) {
         val token = arg.trim()
         if (token.isEmpty()) { sendKey(out, modifiers, 0); return }
-        // Combos multiples (ex: "CTRL SHIFT ESC") : accumule les modificateurs
+        // Multiple combos (e.g. "CTRL SHIFT ESC"): accumulates the modifiers
         val tokens = token.split(" ")
         var mods = modifiers
         var key = 0
@@ -187,16 +187,16 @@ class RootBadUsbViewModel : ViewModel() {
         }
     }
 
-    /** Envoie un rapport HID de 8 octets (appui) puis un rapport nul (relâchement). */
+    /** Sends an 8-byte HID report (press) then a null report (release). */
     private suspend fun sendKey(out: OutputStream, modifiers: Int, keycode: Int) {
         val report = byteArrayOf(modifiers.toByte(), 0, keycode.toByte(), 0, 0, 0, 0, 0)
         out.write(report); out.flush()
         delay(5)
-        out.write(ByteArray(8)); out.flush() // relâchement
+        out.write(ByteArray(8)); out.flush() // release
         delay(5)
     }
 
-    // --- Environnement root ---
+    // --- Root environment ---
 
     private fun hasRoot(): Boolean {
         return try {
@@ -238,7 +238,7 @@ class RootBadUsbViewModel : ViewModel() {
             STRING Hello from FlipperDroid BadUSB!
         """.trimIndent()
 
-        /** Bibliothèque de payloads DuckyScript prêts à l'emploi (Windows, moteur supporté). */
+        /** Library of ready-to-use DuckyScript payloads (Windows, supported engine). */
         val PAYLOADS: Map<String, String> = linkedMapOf(
             "Notepad hello (Win)" to """
                 DELAY 800
@@ -286,7 +286,7 @@ class RootBadUsbViewModel : ViewModel() {
             """.trimIndent(),
         )
 
-        /** Convertit un caractère en (modificateur, keycode) HID US. */
+        /** Converts a character to a US HID (modifier, keycode). */
         fun charToKeycode(c: Char): Pair<Int, Int> = when (c) {
             in 'a'..'z' -> 0 to (c - 'a' + 0x04)
             in 'A'..'Z' -> MOD_SHIFT to (c.lowercaseChar() - 'a' + 0x04)

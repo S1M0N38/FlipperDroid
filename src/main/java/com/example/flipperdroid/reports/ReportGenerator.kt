@@ -4,7 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/** Rapport d'audit. Date en [Date] (java.time n'est pas disponible avant API 26). */
+/** Audit report. Date as [Date] (java.time is not available before API 26). */
 data class PenetrationReport(
     val title: String,
     val date: Date,
@@ -40,10 +40,10 @@ object ReportGenerator {
     private const val ISO_PATTERN = "yyyy-MM-dd'T'HH:mm:ss"
     private const val ID_PREFIX = "FINDING-"
 
-    /** Caractères Markdown à échapper dans le texte utilisateur. */
+    /** Markdown characters to escape in user text. */
     private const val MARKDOWN_SPECIAL = "\\`*_{}[]()#+-.!|<>~"
 
-    /** Formate une date avec des locales fixes (SimpleDateFormat n'est pas thread-safe : instance locale). */
+    /** Formats a date with fixed locales (SimpleDateFormat is not thread-safe: local instance). */
     private fun formatDate(date: Date, pattern: String = DATE_PATTERN): String =
         SimpleDateFormat(pattern, Locale.US).format(date)
 
@@ -75,8 +75,8 @@ object ReportGenerator {
         if (value.isNaN() || value.isInfinite()) 0f else value
 
     /**
-     * Échappe les caractères spéciaux Markdown.
-     * @param singleLine si true, les retours à la ligne deviennent des espaces (titres, champs courts).
+     * Escapes Markdown special characters.
+     * @param singleLine if true, line breaks become spaces (titles, short fields).
      */
     internal fun escapeMarkdown(value: String, singleLine: Boolean = false): String {
         val sb = StringBuilder(value.length + 8)
@@ -91,7 +91,7 @@ object ReportGenerator {
         return sb.toString()
     }
 
-    /** Clôture de bloc de code : plus longue que toute suite de backticks contenue dans [content]. */
+    /** Code block fence: longer than any run of backticks contained in [content]. */
     internal fun markdownFence(content: String): String {
         var longest = 0
         var run = 0
@@ -106,13 +106,13 @@ object ReportGenerator {
         return "`".repeat(maxOf(3, longest + 1))
     }
 
-    /** Numéro d'un identifiant "FINDING-n", ou null. */
+    /** Number of a "FINDING-n" identifier, or null. */
     internal fun findingNumber(id: String): Int? =
         if (id.startsWith(ID_PREFIX)) id.substring(ID_PREFIX.length).toIntOrNull() else null
 
     /**
-     * Prochain numéro de finding : strictement supérieur au maximum déjà utilisé
-     * et au dernier numéro émis, pour ne jamais réutiliser un identifiant supprimé.
+     * Next finding number: strictly greater than the maximum already used
+     * and than the last number issued, so a deleted identifier is never reused.
      */
     internal fun nextFindingNumber(existingIds: Collection<String>, lastIssued: Int): Int =
         maxOf(lastIssued, existingIds.mapNotNull { findingNumber(it) }.maxOrNull() ?: 0) + 1
@@ -152,7 +152,7 @@ object ReportGenerator {
                 sb.append("**CVSS Score:** $cvss\n\n")
             }
             sb.append("**Remediation:**\n${escapeMarkdown(finding.remediation)}\n\n")
-            // Preuve brute : jamais échappée, dans un bloc clôturé par une fence plus longue que son contenu
+            // Raw evidence: never escaped, inside a block closed by a fence longer than its content
             val fence = markdownFence(finding.evidence)
             sb.append("**Evidence:**\n$fence\n${finding.evidence}\n$fence\n\n")
             sb.append("---\n\n")
@@ -167,7 +167,7 @@ object ReportGenerator {
             sb.append("\n")
         }
 
-        // Timeline (entrées stockées sans préfixe "- ")
+        // Timeline (entries stored without the "- " prefix)
         if (report.timeline.isNotEmpty()) {
             sb.append("## Test Timeline\n\n")
             report.timeline.forEach { event ->
@@ -286,7 +286,7 @@ object ReportGenerator {
         return sb.toString()
     }
 
-    /** Écrit un tableau JSON de chaînes indenté de deux espaces (sans virgule finale). */
+    /** Writes a JSON array of strings indented by two spaces (no trailing comma). */
     private fun StringBuilder.appendJsonStringArray(key: String, items: List<String>): StringBuilder {
         append("  \"$key\": [\n")
         items.forEachIndexed { index, item ->

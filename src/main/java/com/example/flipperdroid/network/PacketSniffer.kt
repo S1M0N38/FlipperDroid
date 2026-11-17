@@ -41,8 +41,8 @@ object PacketSniffer {
             if (filter.any { it == '\n' || it == '\r' }) {
                 return@withContext Result.failure(IllegalArgumentException("Invalid BPF filter"))
             }
-            // Chaque argument est quoté : le filtre BPF est passé tel quel à tcpdump
-            // (parenthèses comprises) sans être interprété par le shell root.
+            // Each argument is quoted: the BPF filter is passed as-is to tcpdump
+            // (parentheses included) without being interpreted by the root shell.
             val args = mutableListOf("tcpdump", "-i", iface, "-n", "-l", "-c", maxPackets.coerceIn(1, 100_000).toString())
             if (outputFile != null) args.addAll(listOf("-w", outputFile))
             if (filter.isNotBlank()) args.add(filter.trim())
@@ -134,10 +134,10 @@ object PacketSniffer {
         return if (parts.isEmpty()) "" else parts.joinToString(" and ", prefix = "'", postfix = "'")
     }
 
-    // En-tête tcpdump -n : "12:00:00.123456 IP 10.0.0.5.443 > 10.0.0.9.51234: Flags [P.], ... length 42"
+    // tcpdump -n header line: "12:00:00.123456 IP 10.0.0.5.443 > 10.0.0.9.51234: Flags [P.], ... length 42"
     private val HEADER = Regex("""^(\d{2}:\d{2}:\d{2}\.\d+)\s+(IP6?|ARP)\s+(\S+)\s+>\s+(\S+?):\s*(.*)$""")
 
-    /** Ne retient que les lignes d'en-tête de paquet (pas les lignes de charge utile). */
+    /** Keeps only packet header lines (not payload lines). */
     fun parsePacketLine(line: String): PacketCapture? {
         val m = HEADER.find(line) ?: return null
         val (ts, family, src, dst, rest) = m.destructured

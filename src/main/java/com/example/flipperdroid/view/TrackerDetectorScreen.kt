@@ -22,7 +22,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.flipperdroid.viewmodel.TrackerDetectorViewModel
 
-/** Détecteur de trackers BLE (anti-stalking). */
+/** BLE tracker detector (anti-stalking). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TrackerDetectorScreen(

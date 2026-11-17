@@ -23,8 +23,8 @@ import androidx.navigation.NavController
 import com.example.flipperdroid.viewmodel.WardrivingViewModel
 
 /**
- * Ecran Wardriving : cartographie des réseaux Wi-Fi avec position GPS et
- * export CSV compatible Wigle/WiGLE.
+ * Wardriving screen: mapping of Wi-Fi networks with GPS position and
+ * Wigle/WiGLE-compatible CSV export.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

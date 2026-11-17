@@ -24,8 +24,8 @@ import androidx.navigation.NavController
 import com.example.flipperdroid.viewmodel.BluetoothViewModel
 
 /**
- * Ecran scanner BLE + explorateur GATT. Scanne les appareils, se connecte,
- * découvre les services/caractéristiques et permet de lire les valeurs.
+ * BLE scanner + GATT explorer screen. Scans devices, connects,
+ * discovers services/characteristics and allows reading the values.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -113,7 +113,7 @@ fun BleScannerScreen(
                 Spacer(Modifier.height(8.dp))
             }
 
-            // Panneau de connexion GATT
+            // GATT connection panel
             if (connectedDevice != null) {
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(12.dp)) {
@@ -206,7 +206,7 @@ fun BleScannerScreen(
                 }
             }
 
-            // Journal
+            // Log
             if (log.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
                 Text("Log", style = MaterialTheme.typography.titleSmall)
@@ -220,7 +220,7 @@ fun BleScannerScreen(
     }
 }
 
-/** Raccourcit un UUID 128 bits standard en sa forme 16 bits quand c'est possible. */
+/** Shortens a standard 128-bit UUID to its 16-bit form when possible. */
 private fun shortUuid(uuid: String): String {
     // 0000XXXX-0000-1000-8000-00805f9b34fb -> 0xXXXX
     val lower = uuid.lowercase()

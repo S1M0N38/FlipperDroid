@@ -20,7 +20,7 @@ import androidx.navigation.NavController
 import com.example.flipperdroid.viewmodel.BeaconViewModel
 
 /**
- * Émetteur de balises BLE : iBeacon, Eddystone-URL et manufacturer data custom.
+ * BLE beacon emitter: iBeacon, Eddystone-URL and custom manufacturer data.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

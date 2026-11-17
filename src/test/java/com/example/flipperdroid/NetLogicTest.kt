@@ -12,10 +12,10 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Tests JVM de la logique réseau pure : canaux Wi-Fi, CSV, plages IP, ONVIF. */
+/** JVM tests for the pure network logic: Wi-Fi channels, CSV, IP ranges, ONVIF. */
 class NetLogicTest {
 
-    // --- Canaux Wi-Fi (2.4 / 5 / 6 GHz) ---
+    // --- Wi-Fi channels (2.4 / 5 / 6 GHz) ---
 
     @Test
     fun wifi_channel_2_4ghz() {
@@ -51,7 +51,7 @@ class NetLogicTest {
         assertEquals("Unknown", WifiChannels.band(1000))
     }
 
-    // --- CSV Wigle ---
+    // --- Wigle CSV ---
 
     @Test
     fun csv_field_plain_is_quoted() {
@@ -70,7 +70,7 @@ class NetLogicTest {
         assertEquals("\"AB\"", csvField("A\r\nB"))
     }
 
-    // --- Plages IP (IoT) ---
+    // --- IP ranges (IoT) ---
 
     @Test
     fun ip_range_last_octet_dash() {
@@ -123,7 +123,7 @@ class NetLogicTest {
         assertTrue(IotProtocolScanner.parseIpRange("192.168.1.1-300").isEmpty())
     }
 
-    // --- ONVIF : WS-Discovery et fautes SOAP ---
+    // --- ONVIF: WS-Discovery and SOAP faults ---
 
     @Test
     fun onvif_probe_declares_network_namespace() {
@@ -147,7 +147,7 @@ class NetLogicTest {
         assertNull(OnvifTools.soapFaultReason(response))
     }
 
-    // --- Classification de la sécurité Wi-Fi ---
+    // --- Wi-Fi security classification ---
 
     @Test
     fun wifi_security_open_and_wep() {
@@ -164,7 +164,7 @@ class NetLogicTest {
 
     @Test
     fun wifi_security_wpa3_sae_not_open() {
-        // Un WPA3 pur (SAE, sans littéral "WPA3") était auparavant classé OPEN.
+        // A pure WPA3 network (SAE, without the literal "WPA3") used to be classified OPEN.
         assertEquals(WifiSecurity.WPA3, WifiSecurityClassifier.classify("[RSN-SAE-CCMP][ESS]"))
     }
 

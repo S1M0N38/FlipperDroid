@@ -31,14 +31,14 @@ class ReportGeneratorViewModel : ViewModel() {
     private val _recommendations = MutableStateFlow<List<String>>(emptyList())
     val recommendations: StateFlow<List<String>> = _recommendations
 
-    /** Entrées de chronologie, sans préfixe (le générateur ajoute la puce). */
+    /** Timeline entries, without prefix (the generator adds the bullet). */
     private val _timeline = MutableStateFlow<List<String>>(emptyList())
     val timeline: StateFlow<List<String>> = _timeline
 
     private val _generatedReport = MutableStateFlow<String>("")
     val generatedReport: StateFlow<String> = _generatedReport
 
-    /** Dernier numéro de finding émis : ne redescend jamais, même après suppression. */
+    /** Last finding number emitted: never goes down, even after deletion. */
     private var lastFindingNumber = 0
 
     fun addFinding(
@@ -91,7 +91,7 @@ class ReportGeneratorViewModel : ViewModel() {
         AppLog.log("Report", "Report metadata updated")
     }
 
-    /** Instantané des données courantes, daté de maintenant. */
+    /** Snapshot of the current data, dated now. */
     private fun snapshot() = PenetrationReport(
         title = _reportTitle.value,
         date = Date(),
@@ -125,7 +125,7 @@ class ReportGeneratorViewModel : ViewModel() {
 
     fun getReportStats(): Map<String, Any> {
         val severityCounts = _findings.value.groupingBy { it.severity }.eachCount()
-        // Moyenne CVSS : 0.0 si aucun finding (pas de NaN)
+        // Average CVSS: 0.0 if there is no finding (no NaN)
         val cvssValues = _findings.value.map { it.cvss }.filter { it.isFinite() }
         val avgCvss = if (cvssValues.isEmpty()) 0.0 else cvssValues.average()
         return mapOf(

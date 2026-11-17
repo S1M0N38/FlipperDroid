@@ -8,9 +8,9 @@ object MifareClassicUtils {
     const val DEFAULT_KEY = "FFFFFFFFFFFF"
 
     /**
-     * Dictionnaire de clés Mifare Classic répandues (attaque par dictionnaire).
-     * Une vraie récupération de clés (Nested/Darkside) n'est pas possible via
-     * l'API NFC d'Android : on ne peut que tester des clés connues.
+     * Dictionary of common Mifare Classic keys (dictionary attack).
+     * Real key recovery (Nested/Darkside) is not possible through Android's
+     * NFC API: you can only test known keys.
      */
     val COMMON_KEYS = listOf(
         "FFFFFFFFFFFF", "000000000000", "A0A1A2A3A4A5", "B0B1B2B3B4B5",
@@ -28,9 +28,9 @@ object MifareClassicUtils {
     }
 
     /**
-     * Convertit une chaîne hexadécimale en octets (sans séparateurs).
-     * @return null si la longueur est impaire ou si un caractère n'est pas hexadécimal ;
-     *   une chaîne vide donne un tableau vide. Fonction pure (testable hors Android).
+     * Converts a hex string to bytes (no separators).
+     * @return null if the length is odd or a character is not hexadecimal;
+     *   an empty string yields an empty array. Pure function (testable off Android).
      */
     fun hexToBytes(hex: String): ByteArray? {
         if (hex.length % 2 != 0) return null
@@ -44,7 +44,7 @@ object MifareClassicUtils {
         return out
     }
 
-    /** Valeur d'un chiffre hexadécimal, ou -1 si le caractère n'en est pas un. */
+    /** Value of a hexadecimal digit, or -1 if the character is not one. */
     private fun hexDigit(c: Char): Int = when (c) {
         in '0'..'9' -> c - '0'
         in 'a'..'f' -> c - 'a' + 10
@@ -53,8 +53,8 @@ object MifareClassicUtils {
     }
 
     /**
-     * Écrit un bloc. Les "sector trailers" (dernier bloc du secteur : clés + bits d'accès)
-     * sont refusés sauf si [allowTrailer] est vrai : un mauvais trailer verrouille le secteur.
+     * Writes a block. "Sector trailers" (last block of the sector: keys + access bits)
+     * are refused unless [allowTrailer] is true: a bad trailer locks the sector.
      */
     fun writeBlock(
         tag: Tag,
@@ -83,17 +83,17 @@ object MifareClassicUtils {
     }
 
     fun cloneUid(tag: Tag, newUid: ByteArray): Boolean {
-        // ATTENTION: Cette opération ne fonctionne que sur les cartes "magic" (génériques) !
-        // On tente d'écrire le block 0 (UID) avec la nouvelle valeur
+        // WARNING: This operation only works on "magic" (generic) cards!
+        // We try to write block 0 (UID) with the new value
         val mfc = MifareClassic.get(tag) ?: return false
         try {
             mfc.connect()
-            // Authentification avec le key A par défaut
+            // Authentication with the default key A
             val auth = mfc.authenticateSectorWithKeyA(0, hexToBytes(DEFAULT_KEY) ?: return false)
             if (!auth) return false
             val block0 = mfc.readBlock(0)
-            // Pour un UID 4 octets, le BCC (octet 4) = XOR des 4 octets d'UID : on le recalcule
-            // sinon la carte est mal formée. Le reste (SAK/ATQA/fabricant) est conservé.
+            // For a 4-byte UID, the BCC (byte 4) = XOR of the 4 UID bytes: we recompute it
+            // otherwise the card is malformed. The rest (SAK/ATQA/manufacturer) is kept.
             val newBlock0 = if (newUid.size == 4 && block0.size >= 5) {
                 val bcc = (newUid[0].toInt() xor newUid[1].toInt() xor
                     newUid[2].toInt() xor newUid[3].toInt()).toByte()
@@ -110,7 +110,7 @@ object MifareClassicUtils {
         }
     }
 
-    /** Résultat d'une réécriture de dump complet sur une carte cible. */
+    /** Result of rewriting a full dump onto a target card. */
     data class DumpWriteResult(
         val written: Int,
         val failed: Int,
@@ -119,16 +119,16 @@ object MifareClassicUtils {
     )
 
     /**
-     * Réécrit un dump Mifare Classic complet sur la carte présentée (reproduction/clonage).
+     * Rewrites a full Mifare Classic dump onto the presented card (reproduction/cloning).
      *
-     * @param blocks dump source, un bloc hex (32 caractères) par index global, ou [NO_DATA].
-     * @param writeTrailers réécrire aussi les blocs "sector trailer" (clés + bits d'accès).
-     *   Désactivé par défaut : réécrire un trailer avec de mauvais bits d'accès peut verrouiller
-     *   définitivement le secteur.
-     * @param writeSectorZero tenter d'écrire le bloc 0 (UID) — ne fonctionne que sur cartes "magic".
+     * @param blocks source dump, one hex block (32 characters) per global index, or [NO_DATA].
+     * @param writeTrailers also rewrite the "sector trailer" blocks (keys + access bits).
+     *   Disabled by default: rewriting a trailer with bad access bits can lock the sector
+     *   permanently.
+     * @param writeSectorZero try to write block 0 (UID) — only works on "magic" cards.
      *
-     * NB : ne fonctionne que sur des cartes Mifare Classic inscriptibles (magic/vierges).
-     * Android ne peut PAS émuler du Mifare Classic (HCE = ISO-DEP uniquement).
+     * NB: only works on writable Mifare Classic cards (magic/blank).
+     * Android CANNOT emulate Mifare Classic (HCE = ISO-DEP only).
      */
     fun writeDump(
         tag: Tag,
@@ -137,7 +137,7 @@ object MifareClassicUtils {
         writeSectorZero: Boolean = true
     ): DumpWriteResult {
         val mfc = MifareClassic.get(tag)
-            ?: return DumpWriteResult(0, 0, 0, "Carte cible non Mifare Classic (ou puce non compatible).")
+            ?: return DumpWriteResult(0, 0, 0, "Target card is not Mifare Classic (or incompatible chip).")
         var written = 0
         var failed = 0
         var skipped = 0
@@ -158,7 +158,7 @@ object MifareClassicUtils {
                         try { mfc.close(); mfc.connect() } catch (_: Exception) {}
                     }
                 }
-                if (!authed) { failed += count; notes.append("Secteur $sector : authentification échouée\n"); continue }
+                if (!authed) { failed += count; notes.append("Sector $sector: authentication failed\n"); continue }
 
                 for (i in 0 until count) {
                     val global = firstBlock + i
@@ -174,21 +174,21 @@ object MifareClassicUtils {
                         mfc.writeBlock(global, bytes); written++
                     } catch (e: Exception) {
                         failed++
-                        if (isBlock0) notes.append("Bloc 0 (UID) non inscriptible — carte non magic\n")
+                        if (isBlock0) notes.append("Block 0 (UID) not writable — card is not magic\n")
                     }
                 }
             }
         } catch (e: Exception) {
-            notes.append("Erreur : ${e.message}\n")
+            notes.append("Error: ${e.message}\n")
         } finally {
             try { mfc.close() } catch (_: Exception) {}
         }
-        val msg = "écrits : $written, échecs : $failed, ignorés : $skipped" +
+        val msg = "written: $written, failed: $failed, skipped: $skipped" +
             (if (notes.isNotEmpty()) "\n$notes" else "")
         return DumpWriteResult(written, failed, skipped, msg.trim())
     }
 
-    /** Clés à essayer pour authentifier la cible : défaut, clés du trailer source, dictionnaire. */
+    /** Keys to try when authenticating the target: default, source trailer keys, dictionary. */
     private fun keyCandidates(srcTrailer: String?): List<String> {
         val list = mutableListOf(DEFAULT_KEY)
         if (srcTrailer != null && srcTrailer != NO_DATA) {

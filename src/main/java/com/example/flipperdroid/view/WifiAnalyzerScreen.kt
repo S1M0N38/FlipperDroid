@@ -41,7 +41,7 @@ fun WifiAnalyzerScreen(
         ActivityResultContracts.RequestMultiplePermissions()
     ) {
         viewModel.checkPermissions()
-        // Permission fraîchement accordée : lancer le scan immédiatement.
+        // Permission just granted: start the scan immediately.
         if (viewModel.permissionsGranted.value) viewModel.scan()
     }
 
@@ -98,7 +98,7 @@ fun WifiAnalyzerScreen(
             ChannelChart(usage24, WifiChannels.STANDARD_2_4_GHZ)
             Spacer(Modifier.height(12.dp))
             Text("5 GHz channels", style = MaterialTheme.typography.titleSmall)
-            // Axe : canaux standard + canaux réellement observés (pas tous les entiers).
+            // Axis: standard channels + channels actually observed (not every integer).
             ChannelChart(usage5, (WifiChannels.STANDARD_5_GHZ + usage5.keys).distinct().sorted())
             if (usage6.isNotEmpty()) {
                 Spacer(Modifier.height(12.dp))
@@ -107,7 +107,7 @@ fun WifiAnalyzerScreen(
             }
 
             Spacer(Modifier.height(12.dp))
-            // Outil root : spoof MAC
+            // Root tool: spoof MAC
             Text("MAC spoofing (root)", style = MaterialTheme.typography.titleSmall)
             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 OutlinedTextField(

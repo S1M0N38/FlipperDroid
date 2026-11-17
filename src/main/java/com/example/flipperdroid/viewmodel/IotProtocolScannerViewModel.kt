@@ -32,7 +32,7 @@ class IotProtocolScannerViewModel : ViewModel() {
     private val _targetRange = MutableStateFlow("192.168.1.1-254")
     val targetRange: StateFlow<String> = _targetRange
 
-    /** Job du scan en cours ; annulé par [stopScan]. */
+    /** Job of the current scan; cancelled by [stopScan]. */
     private var scanJob: Job? = null
 
     private fun timestamp(pattern: String): String =
@@ -57,7 +57,7 @@ class IotProtocolScannerViewModel : ViewModel() {
         _discoveredDevices.value = emptyList()
         addLog("Starting $mode scan on $scanRange")
 
-        // LAZY : le Job est enregistré avant de démarrer, pour que le bloc finally le reconnaisse.
+        // LAZY: the Job is registered before starting, so the finally block can recognise it.
         val job = viewModelScope.launch(start = CoroutineStart.LAZY) {
             try {
                 val devices = when (mode) {
@@ -86,7 +86,7 @@ class IotProtocolScannerViewModel : ViewModel() {
             } catch (e: Exception) {
                 addLog("Scan error: ${e.message}")
             } finally {
-                // Ne réinitialise l'état que si ce scan est encore le scan courant.
+                // Only resets state if this scan is still the current one.
                 if (scanJob === coroutineContext[Job]) {
                     scanJob = null
                     _isScanning.value = false

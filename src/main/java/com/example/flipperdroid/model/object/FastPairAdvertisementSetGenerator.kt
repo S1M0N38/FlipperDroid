@@ -10,20 +10,20 @@ import com.example.flipperdroid.model.enums.AdvertiseMode
 import java.util.UUID
 
 /**
- * Génère des trames "Google Fast Pair" qui provoquent la fiche de couplage
- * (half-sheet) sur les appareils Android à proximité.
+ * Generates "Google Fast Pair" frames that trigger the pairing sheet
+ * (half-sheet) on nearby Android devices.
  *
- * Format : Service Data, UUID 16 bits 0xFE2C, payload = Model ID sur 3 octets.
+ * Format: Service Data, 16-bit UUID 0xFE2C, payload = 3-byte Model ID.
  */
 object FastPairAdvertisementSetGenerator {
-    // UUID complet correspondant à l'UUID 16 bits 0xFE2C
+    // Full UUID corresponding to the 16-bit UUID 0xFE2C
     private val FAST_PAIR_UUID: UUID = UUID.fromString("0000FE2C-0000-1000-8000-00805F9B34FB")
 
-    // Model IDs Fast Pair (3 octets) provoquant la fiche de couplage sur Android.
-    // Le nom ci-dessous est une étiquette pour l'opérateur : le téléphone cible
-    // affiche le nom réel enregistré chez Google pour ce Model ID (ou une fiche
-    // générique si l'ID est inconnu de sa base). Chaque clé fait exactement
-    // 6 caractères hexadécimaux (3 octets).
+    // Fast Pair Model IDs (3 bytes) that trigger the pairing sheet on Android.
+    // The name below is a label for the operator: the target phone
+    // displays the real name registered at Google for this Model ID (or a generic
+    // sheet if the ID is unknown to its database). Each key is exactly
+    // 6 hexadecimal characters (3 bytes).
     private val modelIds = mapOf(
         "CD8256" to "Bose QC 35 II",
         "0000F0" to "Fast Pair Device",
@@ -35,7 +35,7 @@ object FastPairAdvertisementSetGenerator {
         "02D815" to "Razer Hammerhead",
         "038CF1" to "JBL Live 300",
         "F00000" to "Fast Pair Test",
-        // Modèles additionnels largement reproduits dans les jeux de données BLE-spam
+        // Additional models widely reproduced in BLE-spam datasets
         "2D7A23" to "Bose NC 700",
         "D446A7" to "Sony WF-1000XM3",
         "0E30C3" to "Sony WH-1000XM4",

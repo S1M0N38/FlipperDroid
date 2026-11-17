@@ -35,7 +35,7 @@ import java.util.Locale
 
 class NfcViewModel(app: Application) : AndroidViewModel(app) {
 
-    // État du tag courant
+    // Current tag state
     private val _currentTagUid = MutableStateFlow<String?>(null)
     val currentTagUid: StateFlow<String?> = _currentTagUid.asStateFlow()
 
@@ -45,7 +45,7 @@ class NfcViewModel(app: Application) : AndroidViewModel(app) {
     private val _currentTagDump = MutableStateFlow<List<String>>(emptyList())
     val currentTagDump: StateFlow<List<String>> = _currentTagDump.asStateFlow()
 
-    // Historique des scans
+    // Scan history
     private val _scanHistory = MutableStateFlow<List<NfcScanResult>>(emptyList())
     val scanHistory: StateFlow<List<NfcScanResult>> = _scanHistory.asStateFlow()
 
@@ -53,47 +53,47 @@ class NfcViewModel(app: Application) : AndroidViewModel(app) {
     private val _logs = MutableStateFlow<List<String>>(emptyList())
     val logs: StateFlow<List<String>> = _logs.asStateFlow()
 
-    // Contenu NDEF lu (texte/URI)
+    // NDEF content read (text/URI)
     private val _ndefContent = MutableStateFlow<String?>(null)
     val ndefContent: StateFlow<String?> = _ndefContent.asStateFlow()
 
-    // Clés trouvées par l'attaque par dictionnaire
+    // Keys found by the dictionary attack
     private val _foundKeys = MutableStateFlow<List<String>>(emptyList())
     val foundKeys: StateFlow<List<String>> = _foundKeys.asStateFlow()
 
     private val _isAttacking = MutableStateFlow(false)
     val isAttacking: StateFlow<Boolean> = _isAttacking.asStateFlow()
 
-    // Clonage complet : quand "armé", la prochaine carte présentée reçoit le dump.
+    // Full clone: when "armed", the next card presented receives the dump.
     private val _cloneArmed = MutableStateFlow(false)
     val cloneArmed: StateFlow<Boolean> = _cloneArmed.asStateFlow()
     @Volatile private var pendingCloneDump: List<String>? = null
     @Volatile private var cloneWriteTrailers = false
     @Volatile private var cloneWriteSectorZero = true
 
-    // Capture d'émulation HCE : quand "armé", la prochaine carte ISO-DEP est capturée.
+    // HCE emulation capture: when "armed", the next ISO-DEP card is captured.
     private val _emuCaptureArmed = MutableStateFlow(false)
     val emuCaptureArmed: StateFlow<Boolean> = _emuCaptureArmed.asStateFlow()
 
-    // Analyse détaillée du dernier tag (UID/ATQA/SAK/ATS/NDEF/amiibo…).
+    // Detailed analysis of the last tag (UID/ATQA/SAK/ATS/NDEF/amiibo…).
     private val _tagInfo = MutableStateFlow<String?>(null)
     val tagInfo: StateFlow<String?> = _tagInfo.asStateFlow()
 
-    // Dernier tag scanné (nécessaire pour l'attaque, le clone, le NDEF)
+    // Last scanned tag (needed for the attack, the clone, NDEF)
     @Volatile private var lastTag: Tag? = null
 
-    // Métadonnées du dernier dump, pour l'export .nfc Flipper.
-    @Volatile private var dumpDeviceType: String? = null  // "Mifare Classic", "NTAG/Ultralight" ou null
+    // Metadata of the last dump, for the Flipper .nfc export.
+    @Volatile private var dumpDeviceType: String? = null  // "Mifare Classic", "NTAG/Ultralight" or null
     @Volatile private var dumpAtqa: String? = null
     @Volatile private var dumpSak: String? = null
 
-    // Actions principales.
-    // La lecture NFC (connect/authenticate/readBlock) est bloquante : on l'exécute
-    // sur un thread d'IO pour ne pas bloquer le thread principal (risque d'ANR).
+    // Main actions.
+    // NFC reads (connect/authenticate/readBlock) are blocking: they run on an IO
+    // thread so the main thread is not blocked (ANR risk).
     fun onTagScanned(tag: Tag) {
         lastTag = tag
-        // Clone armé : la carte présentée est la CIBLE. On désarme AVANT d'écrire (échange atomique)
-        // pour qu'un second événement ne relance pas l'écriture.
+        // Clone armed: the card presented is the TARGET. Disarm BEFORE writing (atomic swap)
+        // so that a second event does not restart the write.
         if (_cloneArmed.compareAndSet(true, false)) {
             val dump = pendingCloneDump
             val trailers = cloneWriteTrailers
@@ -102,26 +102,26 @@ class NfcViewModel(app: Application) : AndroidViewModel(app) {
             performClone(tag, dump, trailers, sectorZero)
             return
         }
-        // Si une capture d'émulation est armée, on enregistre le dialogue APDU de la carte.
+        // If an emulation capture is armed, record the card's APDU dialogue.
         if (_emuCaptureArmed.compareAndSet(true, false)) { performEmulationCapture(tag); return }
         _foundKeys.value = emptyList()
         _ndefContent.value = null
-        // Lecture UID (rapide, ne nécessite pas de connexion)
+        // UID read (fast, does not require a connection)
         val id = tag.id?.let { MifareClassicUtils.bytesToHex(it) } ?: "-"
         _currentTagUid.value = id
         val techs = tag.techList?.map { it.substringAfterLast('.') } ?: emptyList()
         val typeLabel = describeTag(techs)
         _currentTagType.value = typeLabel
         _tagInfo.value = try { NfcInfo.describe(tag) } catch (e: Exception) { null }
-        // ATQA / SAK réels (pour l'export .nfc)
+        // Actual ATQA / SAK (for the .nfc export)
         val nfcA = NfcA.get(tag)
         dumpAtqa = nfcA?.let { MifareClassicUtils.bytesToHex(it.atqa) }
         dumpSak = nfcA?.let { "%02X".format(it.sak.toInt() and 0xFF) }
 
         viewModelScope.launch(Dispatchers.IO) {
-            // NDEF puis MifareClassic, séquentiellement : deux technologies NFC ne
-            // peuvent pas être connectées en même temps au même tag. Les lancer en
-            // parallèle provoquait des échecs de lecture intermittents.
+            // NDEF then MifareClassic, sequentially: two NFC technologies cannot be
+            // connected to the same tag at the same time. Running them in
+            // parallel caused intermittent read failures.
             readNdef(tag)
 
             val mfc = MifareClassic.get(tag)
@@ -130,49 +130,49 @@ class NfcViewModel(app: Application) : AndroidViewModel(app) {
             if (mfc != null) {
                 deviceType = "Mifare Classic"
                 val interrupted = readClassicDefaultKey(mfc, dump)
-                if (interrupted) addLog("ATTENTION : lecture interrompue, dump INCOMPLET.")
+                if (interrupted) addLog("WARNING: read interrupted, INCOMPLETE dump.")
                 val unread = dump.count { it == MifareClassicUtils.NO_DATA }
-                if (unread > 0) addLog("$unread bloc(s) non lu(s) (secteurs protégés ou erreurs).")
+                if (unread > 0) addLog("$unread unread block(s) (protected sectors or errors).")
             } else {
-                // Pas du Mifare Classic : tente Ultralight / NTAG, puis ISO 15693 (NfcV).
+                // Not Mifare Classic: try Ultralight / NTAG, then ISO 15693 (NfcV).
                 val pages = MifareUltralightUtils.readDump(tag)
                 val vblocks = if (pages == null) NfcVUtils.readDump(tag) else null
                 if (pages != null) {
                     dump.addAll(pages)
                     deviceType = "NTAG/Ultralight"
-                    addLog("Ultralight/NTAG lu : ${pages.size} pages")
+                    addLog("Ultralight/NTAG read: ${pages.size} pages")
                 } else if (vblocks != null && vblocks.isNotEmpty()) {
                     dump.addAll(vblocks)
-                    addLog("ISO 15693 (NfcV) lu : ${vblocks.size} blocs")
+                    addLog("ISO 15693 (NfcV) read: ${vblocks.size} blocks")
                 } else if (techs.any { it.equals("MifareClassic", true) }) {
-                    addLog("Mifare Classic détecté, mais non supporté par la puce NFC de cet appareil.")
+                    addLog("Mifare Classic detected, but not supported by this device's NFC chip.")
                 } else {
-                    addLog("Tag lu (UID=$id) — type : $typeLabel. Lecture de mémoire non applicable.")
+                    addLog("Tag read (UID=$id) — type: $typeLabel. Memory read not applicable.")
                 }
             }
             dumpDeviceType = deviceType
 
-            // Historique + dump pour TOUT tag scanné, pas seulement Mifare Classic.
+            // History + dump for ANY scanned tag, not just Mifare Classic.
             _currentTagDump.value = dump.toList()
-            // Amiibo (NTAG215, ~135 pages) : l'ID amiibo (8 octets) est aux pages 21-22.
+            // Amiibo (NTAG215, ~135 pages): the amiibo ID (8 bytes) is at pages 21-22.
             if (dump.size in 130..145) {
                 val amiiboId = ((dump.getOrNull(21) ?: "") + (dump.getOrNull(22) ?: "")).replace(" ", "")
                 if (amiiboId.length == 16 && amiiboId.any { it != '0' } && amiiboId.none { it == '-' }) {
                     _tagInfo.update { (it ?: "") + "\nAmiibo ID: $amiiboId" }
-                    addLog("Amiibo détecté (ID $amiiboId)")
+                    addLog("Amiibo detected (ID $amiiboId)")
                 }
             }
             val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
             _scanHistory.update { it + NfcScanResult(timestamp, id, typeLabel, dump.toList()) }
-            addLog("Tag scanné UID=$id ($typeLabel)" + if (dump.isNotEmpty()) ", ${dump.size} blocks lus" else "")
+            addLog("Scanned tag UID=$id ($typeLabel)" + if (dump.isNotEmpty()) ", ${dump.size} blocks read" else "")
         }
     }
 
     /**
-     * Lit tous les secteurs Mifare Classic avec la clé par défaut. Chaque secteur est lu dans
-     * son propre try : en cas d'erreur il est rempli de [MifareClassicUtils.NO_DATA], ce qui
-     * garde les index alignés. Si le tag disparaît, la lecture s'arrête et le reste est rempli.
-     * @return true si la lecture a été interrompue (tag perdu ou connexion impossible).
+     * Reads all Mifare Classic sectors with the default key. Each sector is read in
+     * its own try: on error it is filled with [MifareClassicUtils.NO_DATA], which
+     * keeps the indices aligned. If the tag disappears, the read stops and the rest is filled.
+     * @return true if the read was interrupted (tag lost or connection impossible).
      */
     private fun readClassicDefaultKey(mfc: MifareClassic, dump: MutableList<String>): Boolean {
         val key = MifareClassicUtils.hexToBytes(MifareClassicUtils.DEFAULT_KEY)
@@ -185,11 +185,11 @@ class NfcViewModel(app: Application) : AndroidViewModel(app) {
                     if (key != null && mfc.authenticateSectorWithKeyA(sector, key)) {
                         readSectorBlocks(mfc, sector, dump)
                     } else {
-                        // Secteur non accessible avec la clé par défaut
+                        // Sector not accessible with the default key
                         repeat(blockCount) { dump.add(MifareClassicUtils.NO_DATA) }
                     }
                 } catch (e: TagLostException) {
-                    addLog("Tag perdu pendant la lecture du secteur $sector.")
+                    addLog("Tag lost while reading sector $sector.")
                     dump.padTo(mfc.blockCount)
                     return true
                 } catch (e: Exception) {
@@ -201,7 +201,7 @@ class NfcViewModel(app: Application) : AndroidViewModel(app) {
             dump.padTo(mfc.blockCount)
             return true
         } catch (e: Exception) {
-            addLog("Erreur lecture tag: ${e.message}")
+            addLog("Tag read error: ${e.message}")
             return true
         } finally {
             try { mfc.close() } catch (_: Exception) {}
@@ -209,8 +209,8 @@ class NfcViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Ajoute les blocs d'un secteur déjà authentifié. Un bloc illisible devient NO_DATA ;
-     * [TagLostException] est relancée pour arrêter la lecture.
+     * Adds the blocks of an already authenticated sector. An unreadable block becomes NO_DATA;
+     * [TagLostException] is rethrown to stop the read.
      */
     private fun readSectorBlocks(mfc: MifareClassic, sector: Int, dump: MutableList<String>) {
         val first = mfc.sectorToBlock(sector)
@@ -220,12 +220,12 @@ class NfcViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** Complète [this] avec NO_DATA jusqu'à [size] entrées. */
+    /** Pads [this] with NO_DATA up to [size] entries. */
     private fun MutableList<String>.padTo(size: Int) {
         while (this.size < size) add(MifareClassicUtils.NO_DATA)
     }
 
-    /** Étiquette lisible du type de tag à partir de sa liste de technologies. */
+    /** Human-readable tag type label from its technology list. */
     private fun describeTag(techs: List<String>): String = when {
         techs.any { it.equals("MifareClassic", true) } -> "Mifare Classic"
         techs.any { it.equals("MifareUltralight", true) } -> "Mifare Ultralight"
@@ -239,9 +239,9 @@ class NfcViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Lit un message NDEF (texte/URI) si le tag le supporte.
-     * Appelée depuis la coroutine IO de [onTagScanned] : bloquante et non relancée,
-     * pour ne pas connecter Ndef et MifareClassic simultanément au même tag.
+     * Reads an NDEF message (text/URI) if the tag supports it.
+     * Called from the IO coroutine of [onTagScanned]: blocking and not launched,
+     * so Ndef and MifareClassic are not connected to the same tag simultaneously.
      */
     private fun readNdef(tag: Tag) {
         val ndef = Ndef.get(tag) ?: return
@@ -259,18 +259,18 @@ class NfcViewModel(app: Application) : AndroidViewModel(app) {
                     }
                 }
                 _ndefContent.value = text
-                addLog("NDEF lu (${message.records.size} enregistrement(s))")
+                addLog("NDEF read (${message.records.size} record(s))")
             }
         } catch (e: Exception) {
-            // Tag non NDEF / lecture refusée : silencieux
+            // Non-NDEF tag / read refused: silent
         } finally {
             try { ndef.close() } catch (_: Exception) {}
         }
     }
 
     /**
-     * Décode la charge utile d'un enregistrement Texte NDEF (RTD "T").
-     * Octet de statut : bit 7 = UTF-16 (sinon UTF-8), bits 5..0 = longueur du code langue.
+     * Decodes the payload of an NDEF Text record (RTD "T").
+     * Status byte: bit 7 = UTF-16 (otherwise UTF-8), bits 5..0 = language code length.
      */
     private fun decodeNdefText(payload: ByteArray): String {
         val status = payload[0].toInt() and 0xFF
@@ -281,12 +281,12 @@ class NfcViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Écrit un message NDEF (texte ou URI auto-détectée) sur le dernier tag scanné.
-     * Formate le tag si nécessaire (NdefFormatable).
+     * Writes an NDEF message (text or auto-detected URI) to the last scanned tag.
+     * Formats the tag if necessary (NdefFormatable).
      */
     fun writeNdef(content: String) {
-        val tag = lastTag ?: return addLog("Aucun tag scanné")
-        if (content.isBlank()) return addLog("Contenu NDEF vide")
+        val tag = lastTag ?: return addLog("No scanned tag")
+        if (content.isBlank()) return addLog("Empty NDEF content")
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val record = if (content.startsWith("http://", true) || content.startsWith("https://", true)) {
@@ -300,12 +300,12 @@ class NfcViewModel(app: Application) : AndroidViewModel(app) {
                     try {
                         ndef.connect()
                         when {
-                            !ndef.isWritable -> addLog("Tag NDEF non inscriptible")
-                            ndef.maxSize < message.toByteArray().size -> addLog("Message trop grand (${message.toByteArray().size} > ${ndef.maxSize})")
+                            !ndef.isWritable -> addLog("NDEF tag not writable")
+                            ndef.maxSize < message.toByteArray().size -> addLog("Message too large (${message.toByteArray().size} > ${ndef.maxSize})")
                             else -> {
                                 ndef.writeNdefMessage(message)
-                                _ndefContent.value = "Écrit: $content"
-                                addLog("NDEF écrit: $content")
+                                _ndefContent.value = "Written: $content"
+                                addLog("NDEF written: $content")
                             }
                         }
                     } finally {
@@ -317,28 +317,28 @@ class NfcViewModel(app: Application) : AndroidViewModel(app) {
                         try {
                             formatable.connect()
                             formatable.format(message)
-                            _ndefContent.value = "Écrit: $content"
-                            addLog("Tag formaté + NDEF écrit: $content")
+                            _ndefContent.value = "Written: $content"
+                            addLog("Tag formatted + NDEF written: $content")
                         } finally {
                             try { formatable.close() } catch (_: Exception) {}
                         }
                     } else {
-                        addLog("Tag non compatible NDEF")
+                        addLog("Tag not NDEF compatible")
                     }
                 }
             } catch (e: Exception) {
-                addLog("Erreur écriture NDEF: ${e.message}")
+                addLog("NDEF write error: ${e.message}")
             }
         }
     }
 
     /**
-     * Attaque par dictionnaire : teste les clés connues (MifareClassicUtils.COMMON_KEYS)
-     * sur chaque secteur et lit ceux dont une clé est trouvée.
+     * Dictionary attack: tests the known keys (MifareClassicUtils.COMMON_KEYS)
+     * on each sector and reads the ones where a key is found.
      */
     fun runDictionaryAttack() {
-        val tag = lastTag ?: return addLog("Aucun tag en mémoire")
-        val mfc = MifareClassic.get(tag) ?: return addLog("Tag non Mifare Classic")
+        val tag = lastTag ?: return addLog("No tag in memory")
+        val mfc = MifareClassic.get(tag) ?: return addLog("Tag is not Mifare Classic")
         _isAttacking.value = true
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -349,7 +349,7 @@ class NfcViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** Corps de l'attaque par dictionnaire (exécuté sur IO). */
+    /** Body of the dictionary attack (run on IO). */
     private fun attackAndRead(mfc: MifareClassic) {
         val found = mutableListOf<String>()
         val dump = mutableListOf<String>()
@@ -370,38 +370,38 @@ class NfcViewModel(app: Application) : AndroidViewModel(app) {
                     }
                 } catch (e: TagLostException) {
                     interrupted = true
-                    found.add("Sector $sector -> tag perdu")
+                    found.add("Sector $sector -> tag lost")
                     dump.padTo(mfc.blockCount)
                     break
                 } catch (e: Exception) {
-                    found.add("Sector $sector -> erreur de lecture")
+                    found.add("Sector $sector -> read error")
                     dump.padTo(start + blockCount)
                 }
             }
         } catch (e: TagLostException) {
             interrupted = true
-            addLog("Tag perdu pendant l'attaque.")
+            addLog("Tag lost during the attack.")
         } catch (e: Exception) {
             interrupted = true
-            addLog("Erreur attaque: ${e.message}")
+            addLog("Attack error: ${e.message}")
         } finally {
             try { mfc.close() } catch (_: Exception) {}
         }
         _foundKeys.value = found
         val cracked = found.count { it.contains("-> Key") }
-        addLog("Attaque dictionnaire terminée : $cracked/${found.size} secteurs cassés")
+        addLog("Dictionary attack finished: $cracked/${found.size} sectors cracked")
         if (interrupted && _currentTagDump.value.isNotEmpty()) {
-            // Un dump incomplet ne doit pas remplacer le précédent : on le conserve et on le signale.
-            addLog("Dump de l'attaque INCOMPLET : dump précédent conservé (clés trouvées affichées).")
+            // An incomplete dump must not replace the previous one: keep it and report it.
+            addLog("INCOMPLETE attack dump: previous dump kept (found keys still shown).")
         } else {
             _currentTagDump.value = dump.toList()
-            if (interrupted) addLog("ATTENTION : dump de l'attaque INCOMPLET (tag perdu ou erreur).")
+            if (interrupted) addLog("WARNING: INCOMPLETE attack dump (tag lost or error).")
         }
     }
 
     /**
-     * Teste le dictionnaire sur un secteur. Renvoie "KeyA:..." / "KeyB:..." ou null.
-     * Relance [TagLostException] pour arrêter l'attaque.
+     * Tests the dictionary on one sector. Returns "KeyA:..." / "KeyB:..." or null.
+     * Rethrows [TagLostException] to stop the attack.
      */
     private fun findSectorKey(mfc: MifareClassic, sector: Int): String? {
         for (k in MifareClassicUtils.COMMON_KEYS) {
@@ -412,7 +412,7 @@ class NfcViewModel(app: Application) : AndroidViewModel(app) {
             } catch (e: TagLostException) {
                 throw e
             } catch (e: Exception) {
-                // Certaines puces coupent la connexion après un échec : on la rétablit.
+                // Some chips drop the connection after a failure: re-establish it.
                 try { mfc.close(); mfc.connect() } catch (ex: TagLostException) { throw ex } catch (_: Exception) {}
             }
         }
@@ -420,83 +420,83 @@ class NfcViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Prépare la reproduction : capture le dump courant, puis attend qu'on présente
-     * la carte CIBLE (magic / vierge Mifare Classic) pour y réécrire tous les blocs.
+     * Prepares the copy: captures the current dump, then waits for the
+     * TARGET card (magic / blank Mifare Classic) to be presented so all blocks can be rewritten.
      */
     fun armClone(writeTrailers: Boolean = false, writeSectorZero: Boolean = true) {
         val dump = _currentTagDump.value
         if (dump.isEmpty() || dump.all { it == MifareClassicUtils.NO_DATA }) {
-            addLog("Aucun dump lisible à cloner (lisez d'abord une carte Mifare Classic).")
+            addLog("No readable dump to clone (read a Mifare Classic card first).")
             return
         }
         pendingCloneDump = dump
         cloneWriteTrailers = writeTrailers
         cloneWriteSectorZero = writeSectorZero
         _cloneArmed.value = true
-        addLog("Clone armé : présentez maintenant la carte cible (magic/vierge).")
+        addLog("Clone armed: present the target card now (magic/blank).")
     }
 
-    /** Annule un clonage armé. */
+    /** Cancels an armed clone. */
     fun cancelClone() {
         pendingCloneDump = null
         _cloneArmed.value = false
-        addLog("Clonage annulé.")
+        addLog("Clone cancelled.")
     }
 
-    /** Écrit le dump en attente sur la carte cible présentée (paramètres figés à l'armement). */
+    /** Writes the pending dump to the presented target card (settings frozen at arming time). */
     private fun performClone(tag: Tag, dump: List<String>?, writeTrailers: Boolean, writeSectorZero: Boolean) {
-        if (dump.isNullOrEmpty()) { addLog("Aucun dump à cloner."); return }
+        if (dump.isNullOrEmpty()) { addLog("No dump to clone."); return }
         viewModelScope.launch(Dispatchers.IO) {
-            addLog("Écriture du dump sur la carte cible…")
+            addLog("Writing the dump to the target card…")
             val res = when {
                 MifareClassic.get(tag) != null ->
                     MifareClassicUtils.writeDump(tag, dump, writeTrailers, writeSectorZero).message
                 MifareUltralight.get(tag) != null ->
                     MifareUltralightUtils.writeDump(tag, dump).message
-                else -> "Carte cible non supportée (ni Mifare Classic ni Ultralight/NTAG)."
+                else -> "Unsupported target card (neither Mifare Classic nor Ultralight/NTAG)."
             }
-            addLog("Reproduction terminée — $res")
+            addLog("Copy finished — $res")
         }
     }
 
     /**
-     * Prépare la capture d'émulation HCE : la prochaine carte ISO-DEP présentée verra
-     * son dialogue APDU enregistré, pour être rejoué ensuite par le téléphone.
+     * Prepares the HCE emulation capture: the next ISO-DEP card presented will have
+     * its APDU dialogue recorded, to be replayed later by the phone.
      */
     fun armEmulationCapture() {
         _emuCaptureArmed.value = true
-        addLog("Capture d'émulation armée : présentez une carte ISO-DEP.")
+        addLog("Emulation capture armed: present an ISO-DEP card.")
     }
 
     fun cancelEmulationCapture() {
         _emuCaptureArmed.value = false
-        addLog("Capture d'émulation annulée.")
+        addLog("Emulation capture cancelled.")
     }
 
-    /** Capture le dialogue APDU d'une carte ISO-DEP et le stocke (chiffré) pour l'émulation. */
+    /** Captures the APDU dialogue of an ISO-DEP card and stores it (encrypted) for emulation. */
     private fun performEmulationCapture(tag: Tag) {
         val iso = IsoDep.get(tag)
         if (iso == null) {
-            addLog("Émulation impossible : carte non ISO-DEP. Le Mifare Classic ne peut pas être " +
-                "émulé par Android — utilisez le clone physique.")
+            addLog("Emulation impossible: card is not ISO-DEP. Mifare Classic cannot be " +
+                "emulated by Android — use the physical clone.")
             return
         }
-        // UID de CETTE carte (et non celle du tag précédemment affiché).
+        // UID of THIS card (not that of the previously displayed tag).
         val uid = tag.id?.let { MifareClassicUtils.bytesToHex(it) } ?: "-"
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val result = ApduCapture.probe(iso)
                 if (result.aids.isEmpty()) {
-                    addLog("Aucun AID exploitable : cette carte ISO-DEP n'expose pas de SELECT AID connu " +
-                        "(émulation par replay non applicable).")
+                    addLog("No usable AID: this ISO-DEP card does not expose a known SELECT AID " +
+                        "(replay emulation not applicable).")
                 } else {
                     val label = "ISO-DEP $uid — ${result.aids.size} AID, ${result.map.size} APDU"
                     EmulationStore.save(getApplication<Application>(), label, result.aids, result.map)
-                    addLog("Carte capturée pour émulation (${result.aids.size} AID, ${result.map.size} réponses). " +
-                        "Ouvrez Card Emulation → Start.")
+                    addLog("Card captured for emulation (${result.aids.size} AID, ${result.map.size} responses). " +
+                        "Open Card Emulation → Start.")
                 }
             } catch (e: Exception) {
-                addLog("Erreur capture émulation : ${e.message}")
+                addLog("Emulation capture error: ${e.message}")
             } finally {
                 try { iso.close() } catch (_: Exception) {}
             }
@@ -504,17 +504,17 @@ class NfcViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Clone l'UID (block 0) sur une carte "magic" (générique). Utilise le
-     * dernier tag scanné, présent tant que la carte est sur le lecteur.
+     * Clones the UID (block 0) onto a "magic" (generic) card. Uses the
+     * last scanned tag, present as long as the card is on the reader.
      */
     fun onCloneUid(newUid: String) {
-        val tag = lastTag ?: return addLog("Aucun tag scanné")
+        val tag = lastTag ?: return addLog("No scanned tag")
         val bytes = MifareClassicUtils.hexToBytes(newUid.replace(" ", ""))
-            ?: return addLog("UID invalide (hexadécimal attendu)")
+            ?: return addLog("Invalid UID (hex expected)")
         viewModelScope.launch(Dispatchers.IO) {
             val ok = MifareClassicUtils.cloneUid(tag, bytes)
             withContext(Dispatchers.Main) {
-                addLog(if (ok) "UID cloné avec succès (carte magic)" else "Echec du clonage (carte non-magic ?)")
+                addLog(if (ok) "UID cloned successfully (magic card)" else "Clone failed (non-magic card?)")
             }
         }
     }
@@ -522,7 +522,7 @@ class NfcViewModel(app: Application) : AndroidViewModel(app) {
     fun onDumpExport() {
         val dump = _currentTagDump.value
         if (dump.isEmpty()) {
-            addLog("Aucun dump à exporter")
+            addLog("No dump to export")
             return
         }
         val uid = _currentTagUid.value ?: "unknown"
@@ -533,20 +533,20 @@ class NfcViewModel(app: Application) : AndroidViewModel(app) {
                 val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
                 val file = File(dir, "dump_${uid}_$timestamp.txt")
                 file.writeText(dump.joinToString("\n"))
-                withContext(Dispatchers.Main) { addLog("Dump exporté : ${file.absolutePath}") }
+                withContext(Dispatchers.Main) { addLog("Dump exported: ${file.absolutePath}") }
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) { addLog("Erreur export dump : ${e.message}") }
+                withContext(Dispatchers.Main) { addLog("Dump export error: ${e.message}") }
             }
         }
     }
 
-    /** Sauvegarde le dump courant au format .nfc du Flipper Zero (type, ATQA et SAK réels). */
+    /** Saves the current dump in Flipper Zero .nfc format (actual type, ATQA and SAK). */
     fun saveAsNfc() {
         val dump = _currentTagDump.value
         val uid = _currentTagUid.value
-        if (dump.isEmpty() || uid == null) { addLog("Rien à sauvegarder en .nfc"); return }
+        if (dump.isEmpty() || uid == null) { addLog("Nothing to save as .nfc"); return }
         val deviceType = dumpDeviceType
-            ?: return addLog("Format .nfc non applicable à ce type de tag (Mifare Classic ou NTAG/Ultralight uniquement).")
+            ?: return addLog(".nfc format not applicable to this tag type (Mifare Classic or NTAG/Ultralight only).")
         val atqa = dumpAtqa
         val sak = dumpSak
         viewModelScope.launch(Dispatchers.IO) {
@@ -560,17 +560,17 @@ class NfcViewModel(app: Application) : AndroidViewModel(app) {
                 val ts = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
                 val file = File(dir, "card_${uid}_$ts.nfc")
                 file.writeText(content)
-                withContext(Dispatchers.Main) { addLog("Fichier .nfc sauvegardé : ${file.absolutePath}") }
+                withContext(Dispatchers.Main) { addLog(".nfc file saved: ${file.absolutePath}") }
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) { addLog("Erreur .nfc : ${e.message}") }
+                withContext(Dispatchers.Main) { addLog(".nfc error: ${e.message}") }
             }
         }
     }
 
-    /** Exporte le dump courant en binaire brut (.bin). Les blocs illisibles sont écrits à zéro. */
+    /** Exports the current dump as raw binary (.bin). Unreadable blocks are written as zeros. */
     fun exportBin() {
         val dump = _currentTagDump.value
-        if (dump.isEmpty()) { addLog("Aucun dump à exporter"); return }
+        if (dump.isEmpty()) { addLog("No dump to export"); return }
         val uid = _currentTagUid.value?.replace(" ", "") ?: "unknown"
         val unreadable = dump.count { it == MifareClassicUtils.NO_DATA }
         viewModelScope.launch(Dispatchers.IO) {
@@ -586,20 +586,20 @@ class NfcViewModel(app: Application) : AndroidViewModel(app) {
                 val file = File(dir, "dump_${uid}_$ts.bin")
                 file.writeBytes(out.toByteArray())
                 withContext(Dispatchers.Main) {
-                    if (unreadable > 0) addLog("ATTENTION : $unreadable bloc(s) illisible(s) exporté(s) à zéro.")
-                    addLog("Export .bin : ${file.absolutePath}")
+                    if (unreadable > 0) addLog("WARNING: $unreadable unreadable block(s) exported as zeros.")
+                    addLog(".bin export: ${file.absolutePath}")
                 }
-            } catch (e: Exception) { withContext(Dispatchers.Main) { addLog("Erreur export .bin : ${e.message}") } }
+            } catch (e: Exception) { withContext(Dispatchers.Main) { addLog(".bin export error: ${e.message}") } }
         }
     }
 
     /**
-     * Exporte le dump au format texte Mifare Classic Tool (+Sector + blocs).
-     * Secteurs 0-31 : 4 blocs ; secteurs 32-39 (4K) : 16 blocs.
+     * Exports the dump in Mifare Classic Tool text format (+Sector + blocks).
+     * Sectors 0-31: 4 blocks; sectors 32-39 (4K): 16 blocks.
      */
     fun exportMct() {
         val dump = _currentTagDump.value
-        if (dump.isEmpty()) { addLog("Aucun dump à exporter"); return }
+        if (dump.isEmpty()) { addLog("No dump to export"); return }
         val uid = _currentTagUid.value?.replace(" ", "") ?: "unknown"
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -620,38 +620,38 @@ class NfcViewModel(app: Application) : AndroidViewModel(app) {
                 val file = File(dir, "dump_${uid}_$ts.mct")
                 file.writeText(sb.toString())
                 withContext(Dispatchers.Main) { addLog("Export MCT : ${file.absolutePath}") }
-            } catch (e: Exception) { withContext(Dispatchers.Main) { addLog("Erreur export MCT : ${e.message}") } }
+            } catch (e: Exception) { withContext(Dispatchers.Main) { addLog("MCT export error: ${e.message}") } }
         }
     }
 
-    /** Importe un dump depuis un texte MCT ; le charge pour un clonage ultérieur. */
+    /** Imports a dump from MCT text; loads it for a later clone. */
     fun importMct(text: String) {
         val blocks = text.lines().map { it.trim() }.filter { line ->
             line.length == 32 && (line == MifareClassicUtils.NO_DATA ||
                 line.all { it.isDigit() || it.lowercaseChar() in 'a'..'f' })
         }
-        if (blocks.isEmpty()) { addLog("Aucun bloc valide (MCT) dans le fichier"); return }
+        if (blocks.isEmpty()) { addLog("No valid block (MCT) in the file"); return }
         _currentTagDump.value = blocks
         _currentTagUid.value = uidFromDump(blocks)
         setImportedMeta(blocks)
-        addLog("Import MCT : ${blocks.size} blocs. Utilisez 'Clone' pour écrire sur une carte.")
+        addLog("MCT import: ${blocks.size} blocks. Use 'Clone' to write to a card.")
     }
 
-    /** Importe un dump binaire brut (.bin) découpé en blocs de 16 octets. */
+    /** Imports a raw binary dump (.bin) split into 16-byte blocks. */
     fun importBin(bytes: ByteArray) {
-        if (bytes.isEmpty()) { addLog("Fichier vide"); return }
+        if (bytes.isEmpty()) { addLog("Empty file"); return }
         if (bytes.size % 16 != 0) {
-            addLog("Fichier .bin rejeté : ${bytes.size} octets, non multiple de 16 (blocs Mifare Classic).")
+            addLog(".bin file rejected: ${bytes.size} bytes, not a multiple of 16 (Mifare Classic blocks).")
             return
         }
         val blocks = (bytes.indices step 16).map { MifareClassicUtils.bytesToHex(bytes.copyOfRange(it, it + 16)) }
         _currentTagDump.value = blocks
         _currentTagUid.value = uidFromDump(blocks)
         setImportedMeta(blocks)
-        addLog("Import .bin : ${blocks.size} blocs. Utilisez 'Clone' pour écrire sur une carte.")
+        addLog(".bin import: ${blocks.size} blocks. Use 'Clone' to write to a card.")
     }
 
-    /** Un dump importé n'a pas d'ATQA/SAK ; son type est déduit de la taille des entrées. */
+    /** An imported dump has no ATQA/SAK; its type is inferred from the entry size. */
     private fun setImportedMeta(blocks: List<String>) {
         dumpAtqa = null
         dumpSak = null
@@ -663,8 +663,8 @@ class NfcViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * UID déduit du bloc 0 (BCC) : 4 octets si l'octet 4 vaut le XOR des octets 0-3.
-     * Sinon UID de 7 octets : octets 0-2 puis 4-7 du bloc 0 (l'octet 3 est un BCC de cascade).
+     * UID inferred from block 0 (BCC): 4 bytes if byte 4 equals the XOR of bytes 0-3.
+     * Otherwise a 7-byte UID: bytes 0-2 then 4-7 of block 0 (byte 3 is a cascade BCC).
      */
     private fun uidFromDump(dump: List<String>): String {
         val b0 = dump.getOrNull(0)?.let { MifareClassicUtils.hexToBytes(it.replace(" ", "")) }
@@ -685,10 +685,10 @@ class NfcViewModel(app: Application) : AndroidViewModel(app) {
     }
 }
 
-/** Nombre de blocs d'un secteur Mifare Classic : 4 jusqu'au secteur 31, 16 au-delà (4K). */
+/** Number of blocks in a Mifare Classic sector: 4 up to sector 31, 16 beyond (4K). */
 private fun blocksInSector(sector: Int): Int = if (sector < 32) 4 else 16
 
-// Modèle pour l'historique
+// Model for the history
 data class NfcScanResult(
     val timestamp: String,
     val uid: String?,

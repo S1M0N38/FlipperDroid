@@ -19,9 +19,9 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /**
- * Outils IR offensifs : TV-B-Gone (balayage de tous les codes d'extinction) et
- * brute-force de commandes (cartographier une télécommande inconnue). Pour tests
- * autorisés uniquement.
+ * Offensive IR tools: TV-B-Gone (sweep of every power-off code) and
+ * command brute-force (mapping an unknown remote). For authorized testing
+ * only.
  */
 class IrToolsViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -42,16 +42,16 @@ class IrToolsViewModel(app: Application) : AndroidViewModel(app) {
     private var job: Job? = null
 
     /**
-     * Émet tous les codes power connus (fichiers .ir empaquetés + liste curée).
+     * Emits every known power code (bundled .ir files + curated list).
      *
-     * Chaque code est envoyé comme une **rafale répétée** (IrProtocols.encodePowerBurst) :
-     * une trame isolée est filtrée comme du bruit par la plupart des TV, et Sony exige
-     * 3 répétitions. Les codes en double (ex. LG présent dans LG_TV.ir ET dans la liste
-     * curée) sont **dédupliqués** : "power" étant une bascule, émettre deux fois le même
-     * code rallumerait la TV qu'on vient d'éteindre.
+     * Each code is sent as a **repeated burst** (IrProtocols.encodePowerBurst):
+     * an isolated frame is filtered out as noise by most TVs, and Sony requires
+     * 3 repetitions. Duplicate codes (e.g. LG present in LG_TV.ir AND in the
+     * curated list) are **deduplicated**: "power" being a toggle, emitting the same
+     * code twice would turn back on the TV we just turned off.
      *
-     * @param rounds nombre de passes. 1 par défaut (une bascule = extinction). Ne PAS
-     *   augmenter sans raison : chaque passe supplémentaire rebascule chaque appareil.
+     * @param rounds number of passes. 1 by default (one toggle = power-off). Do NOT
+     *   increase it without reason: each extra pass toggles every device again.
      */
     fun tvBGone(rounds: Int = 1) {
         if (_running.value) return
@@ -60,11 +60,11 @@ class IrToolsViewModel(app: Application) : AndroidViewModel(app) {
             _progress.value = IrProtocols.NO_EMITTER_MSG
             return
         }
-        _running.value = true   // mis à jour AVANT le lancement : un second tap est refusé immédiatement
+        _running.value = true   // set BEFORE launching: a second tap is refused immediately
         job = viewModelScope.launch(Dispatchers.IO) {
             try {
                 val codes = collectPowerSignals()
-                _progress.value = "TV-B-Gone: ${codes.size} codes uniques chargés"
+                _progress.value = "TV-B-Gone: ${codes.size} unique codes loaded"
                 var sent = 0
                 var lastError: String? = null
                 repeat(rounds) {
@@ -77,13 +77,13 @@ class IrToolsViewModel(app: Application) : AndroidViewModel(app) {
                         } catch (e: Exception) {
                             lastError = e.message ?: e.javaClass.simpleName
                         }
-                        _progress.value = "Envoyé $sent/${codes.size} — $label"
-                        // Laisse le temps au récepteur de traiter la pression avant la suivante.
+                        _progress.value = "Sent $sent/${codes.size} — $label"
+                        // Give the receiver time to process the press before the next one.
                         delay(200)
                     }
                 }
-                val errTail = lastError?.let { " — erreur : $it" } ?: ""
-                _progress.value = "TV-B-Gone terminé : $sent émissions (${codes.size} codes uniques)$errTail"
+                val errTail = lastError?.let { " — error: $it" } ?: ""
+                _progress.value = "TV-B-Gone done: $sent transmissions (${codes.size} unique codes)$errTail"
                 AppLog.log("IRTools", "TV-B-Gone fired $sent bursts (${codes.size} unique codes)")
             } finally {
                 _running.value = false
@@ -92,15 +92,15 @@ class IrToolsViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Rassemble les signaux power à émettre, **dédupliqués** sur le contenu de la trame
-     * de base (pour qu'un même code présent dans un .ir et dans la liste curée ne soit
-     * pas émis deux fois → pas de rebascule). Chaque entrée est déjà une rafale prête.
+     * Collects the power signals to emit, **deduplicated** on the content of the base
+     * frame (so that the same code present in a .ir and in the curated list is not
+     * emitted twice → no re-toggle). Each entry is already a ready burst.
      */
     private fun collectPowerSignals(): List<Pair<String, Pair<Int, IntArray>>> {
         val out = mutableListOf<Pair<String, Pair<Int, IntArray>>>()
         val seen = HashSet<String>()
 
-        // Clé d'unicité : la trame de base (fréquence + motif), indépendante du nb de répétitions.
+        // Uniqueness key: the base frame (frequency + pattern), independent of the repeat count.
         fun addUnique(label: String, base: Pair<Int, IntArray>?, burst: Pair<Int, IntArray>?) {
             if (base == null || burst == null) return
             val key = "${base.first}:${base.second.joinToString(",")}"
@@ -123,8 +123,8 @@ class IrToolsViewModel(app: Application) : AndroidViewModel(app) {
                     }
             }
         } catch (e: Exception) {
-            // Ne pas avaler : le balayage continue avec la liste curée, et le problème est journalisé.
-            AppLog.log("IRTools", "Chargement des .ir impossible : ${e.message}")
+            // Do not swallow it: the sweep continues with the curated list, and the problem is logged.
+            AppLog.log("IRTools", "Loading .ir files failed: ${e.message}")
         }
 
         for (pc in PowerCodes.EXTRA) {
@@ -133,14 +133,14 @@ class IrToolsViewModel(app: Application) : AndroidViewModel(app) {
         return out
     }
 
-    /** Codes power ciblables un par un — mode précis : on vise un appareil, on tire une fois. */
+    /** Power codes that can be targeted one by one — precise mode: aim at one device, fire once. */
     val powerBrands: List<PowerCode> = PowerCodes.EXTRA
 
     /**
-     * Émet UN seul code power, en rafale "maintenue" robuste (presses élevé), pour viser
-     * un appareil précis au lieu de balayer toute la liste. "Power" étant une bascule, un
-     * appui = un basculement : si rien ne se passe, re-viser et re-tirer (ne pas marteler
-     * en boucle, ce qui rallumerait un appareil qu'on vient d'éteindre).
+     * Emits a SINGLE power code, as a robust "held" burst (high press count), to target
+     * one precise device instead of sweeping the whole list. "Power" being a toggle, one
+     * press = one toggle: if nothing happens, re-aim and fire again (do not hammer
+     * in a loop, which would turn back on a device just turned off).
      */
     fun fireBrand(pc: PowerCode) {
         if (_running.value) return
@@ -154,16 +154,16 @@ class IrToolsViewModel(app: Application) : AndroidViewModel(app) {
             try {
                 val burst = pc.toBurst(presses = 6)
                 if (burst == null) {
-                    _progress.value = "Code ${pc.brand} non encodable"
+                    _progress.value = "Code ${pc.brand} cannot be encoded"
                     return@launch
                 }
                 val (freq, pattern) = burst
                 try {
                     manager.transmit(freq, pattern)
-                    _progress.value = "Émis : ${pc.brand} (power). Rien ? Vise mieux et re-tape."
+                    _progress.value = "Sent: ${pc.brand} (power). Nothing? Aim better and tap again."
                     AppLog.log("IRTools", "Fired targeted power code ${pc.brand}")
                 } catch (e: Exception) {
-                    _progress.value = "Échec de l'émission ${pc.brand} : ${e.message}"
+                    _progress.value = "Failed to send ${pc.brand}: ${e.message}"
                 }
             } finally {
                 _running.value = false
@@ -171,7 +171,7 @@ class IrToolsViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** Balaye les commandes [start]..[end] pour (protocole, adresse). */
+    /** Sweeps commands [start]..[end] for (protocol, address). */
     fun bruteForce(protocol: String, address: Int, start: Int, end: Int, delayMs: Long) {
         if (_running.value) return
         if (IrProtocols.encode(protocol, address, start) == null) {
@@ -203,8 +203,8 @@ class IrToolsViewModel(app: Application) : AndroidViewModel(app) {
                     delay(delayMs)
                     cmd++
                 }
-                val errTail = lastError?.let { " — erreur : $it" } ?: ""
-                if (isActive) _progress.value = "Brute-force terminé (jusqu'à 0x${end.toString(16).uppercase()})$errTail"
+                val errTail = lastError?.let { " — error: $it" } ?: ""
+                if (isActive) _progress.value = "Brute-force done (up to 0x${end.toString(16).uppercase()})$errTail"
             } finally {
                 _running.value = false
             }
@@ -214,6 +214,6 @@ class IrToolsViewModel(app: Application) : AndroidViewModel(app) {
     fun stop() {
         job?.cancel()
         _running.value = false
-        if (_progress.value.isNotEmpty()) _progress.value = "${_progress.value} — arrêté"
+        if (_progress.value.isNotEmpty()) _progress.value = "${_progress.value} — stopped"
     }
 }

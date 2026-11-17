@@ -19,8 +19,8 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    // Signature release lue depuis l'environnement (CI : secrets GitHub). Sans ces
-    // variables, le build release n'est pas signé et ne doit pas être publié.
+    // Release signing read from the environment (CI: GitHub secrets). Without these
+    // variables, the release build is unsigned and must not be published.
     signingConfigs {
         create("release") {
             val ksFile = System.getenv("RELEASE_KEYSTORE_FILE")
@@ -46,8 +46,8 @@ android {
         }
     }
     compileOptions {
-        // java.time (LocalDateTime…) n'existe qu'à partir d'API 26 : le desugaring
-        // le rend disponible sur minSdk 24.
+        // java.time (LocalDateTime…) only exists from API 26 on: desugaring
+        // makes it available on minSdk 24.
         isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -60,12 +60,12 @@ android {
         buildConfig = true
     }
     lint {
-        // Le rapport est publié par la CI ; les erreurs historiques ne bloquent pas encore le build.
+        // The report is published by CI; legacy errors do not block the build yet.
         abortOnError = false
     }
     testOptions {
-        // Les tests JVM touchent parfois android.util.Log : on renvoie des valeurs
-        // par défaut au lieu de lever "Method ... not mocked".
+        // JVM tests sometimes touch android.util.Log: default values are returned
+        // instead of throwing "Method ... not mocked".
         unitTests.isReturnDefaultValues = true
     }
 }
@@ -85,7 +85,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
 
-    // Material Icons (versions gérées par le BOM Compose)
+    // Material Icons (versions managed by the Compose BOM)
     implementation(libs.androidx.material.icons.core)
     implementation(libs.androidx.material.icons.extended)
 
@@ -97,6 +97,6 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation(libs.zxing.core)
-    // Scanner QR/code-barres avec caméra (fournit ScanContract + CaptureActivity)
+    // QR/barcode scanner with the camera (provides ScanContract + CaptureActivity)
     implementation(libs.zxing.android.embedded)
 }

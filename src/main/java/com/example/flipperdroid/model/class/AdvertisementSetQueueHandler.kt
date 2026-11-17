@@ -28,15 +28,15 @@ class AdvertisementSetQueueHandler(
     var onSpamError: ((AdvertisementSet?, AdvertisementError) -> Unit)? = null
 
     init {
-        // S'enregistre auprès du service pour recevoir les callbacks succès/échec.
-        // Sans ça, les échecs d'advertising (ex. payload > 31 octets en legacy) étaient
-        // perdus et le spam était journalisé comme "envoyé" même en cas d'échec.
+        // Registers with the service to receive success/failure callbacks.
+        // Without this, advertising failures (e.g. payload > 31 bytes in legacy mode) were
+        // lost and the spam was logged as "sent" even when it failed.
         _advertisementService.addAdvertisementServiceCallback(this)
     }
 
     fun setAdvertisementSets(advertisementSets: List<AdvertisementSet>) { _advertisementSets = advertisementSets; _currentIndex = 0 }
 
-    /** Intervalle entre deux trames de spam (ms). Plus petit = plus agressif. */
+    /** Interval between two spam frames (ms). Smaller = more aggressive. */
     fun setIntervalMillis(ms: Long) { _intervalMillis = ms.coerceIn(5L, 2000L) }
 
     private fun advertiseNext() {
@@ -74,16 +74,16 @@ class AdvertisementSetQueueHandler(
                 val set = advertisementSets[index % advertisementSets.size]
                 try {
                     set.build()
-                    // On met à jour les données de l'annonce en cours (pas de ré-enregistrement
-                    // -> pas d'accumulation d'advertisers -> plus de TOO_MANY_ADVERTISERS).
-                    // Au 1er tour (rien en cours) ou en legacy : start classique.
+                    // Update the data of the current advertisement (no re-registration
+                    // -> no accumulation of advertisers -> no more TOO_MANY_ADVERTISERS).
+                    // On the 1st round (nothing running) or in legacy mode: plain start.
                     if (!_advertisementService.updateAdvertisement(set)) {
                         _advertisementService.stopAdvertisement()
                         _advertisementService.startAdvertisement(set)
                     }
                     onSpamSent?.invoke(set)
                 } catch (e: Exception) {
-                    Log.e(_logTag, "Erreur lors du spam BLE: ${e.message}", e)
+                    Log.e(_logTag, "BLE spam error: ${e.message}", e)
                 }
                 index++
                 spamHandler?.postDelayed(this, _intervalMillis)

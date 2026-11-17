@@ -11,8 +11,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Contrôle l'émulation HCE d'une carte ISO-DEP capturée : enregistre dynamiquement
- * ses AID auprès du service [EmvCardEmulationService] qui rejoue les réponses.
+ * Controls HCE emulation of a captured ISO-DEP card: dynamically registers
+ * its AIDs with the [EmvCardEmulationService], which replays the responses.
  */
 class EmvCardEmulationViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -32,8 +32,8 @@ class EmvCardEmulationViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Services CardEmulation ; renseigne [_status] et renvoie null si indisponible
-     * (pas de NFC, ou appareil sans prise en charge HCE).
+     * CardEmulation services; fills in [_status] and returns null if unavailable
+     * (no NFC, or a device without HCE support).
      */
     private fun cardEmulation(): Pair<CardEmulation, ComponentName>? {
         val ctx = getApplication<Application>()

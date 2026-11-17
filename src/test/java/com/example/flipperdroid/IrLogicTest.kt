@@ -11,10 +11,10 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Tests JVM purs : rafales IR, parseurs .ir, saisie d'adresse, capacités des climatiseurs. */
+/** Pure JVM tests: IR bursts, .ir parsers, address input, air-conditioner capabilities. */
 class IrLogicTest {
 
-    /** Taille attendue d'une rafale de [count] trames identiques de taille [frameSize]. */
+    /** Expected size of a burst of [count] identical frames of size [frameSize]. */
     private fun expectedSameFrameBurstSize(frameSize: Int, count: Int): Int =
         count * frameSize + if (frameSize % 2 == 1) count - 1 else 0
 
@@ -24,19 +24,19 @@ class IrLogicTest {
     fun burst_sirc_gap_merges_into_trailing_space() {
         val (_, base) = IrProtocols.encode("SIRC", 0x01, 0x15)!!
         val (_, burst) = IrProtocols.encodePowerBurst("SIRC", 0x01, 0x15)!!
-        assertEquals(0, base.size % 2)   // SIRC finit sur un space
+        assertEquals(0, base.size % 2)   // SIRC ends on a space
         assertEquals(3 * base.size, burst.size)
         assertEquals(base.last() + 24000, burst[base.size - 1])
-        assertEquals(base[0], burst[base.size])   // la répétition commence par un mark
+        assertEquals(base[0], burst[base.size])   // the repetition starts with a mark
     }
 
     @Test
     fun burst_nec_gap_is_a_separate_space_element() {
         val (_, base) = IrProtocols.encode("NEC", 0x04, 0x08)!!
         val (_, burst) = IrProtocols.encodePowerBurst("NEC", 0x04, 0x08)!!
-        assertEquals(1, base.size % 2)   // NEC finit sur un mark
-        assertEquals(40000, burst[base.size])        // espace inter-trame (indice impair)
-        assertEquals(9000, burst[base.size + 1])     // code de répétition NEC (mark)
+        assertEquals(1, base.size % 2)   // NEC ends on a mark
+        assertEquals(40000, burst[base.size])        // inter-frame space (odd index)
+        assertEquals(9000, burst[base.size + 1])     // NEC repeat code (mark)
     }
 
     @Test
@@ -128,7 +128,7 @@ class IrLogicTest {
         assertEquals(listOf(9000, 4500, 560), buttons[1].rawData!!.toList())
     }
 
-    // --- Fix 6 : saisie de l'adresse ---
+    // --- Fix 6: address input ---
 
     @Test
     fun hex_address_accepts_optional_prefix() {
@@ -145,7 +145,7 @@ class IrLogicTest {
         assertNull(IrProtocols.parseHexAddress("-4"))
     }
 
-    // --- Fix 9 : capacités par marque ---
+    // --- Fix 9: per-brand capabilities ---
 
     @Test
     fun ac_brand_capabilities_match_encoders() {

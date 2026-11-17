@@ -2,11 +2,11 @@ package com.example.flipperdroid.nfc
 
 import android.content.Context
 
-/** Persiste le message NDEF (octets) servi par [NdefHceService] et son libellé. */
+/** Persists the NDEF message (bytes) served by [NdefHceService] and its label. */
 object NdefHceStore {
     /**
-     * Taille maximale d'un message NDEF servi : le fichier NDEF annoncé dans le CC fait 1024 octets
-     * (0x0400), NLEN (2 octets) compris.
+     * Maximum size of a served NDEF message: the NDEF file announced in the CC is 1024 bytes
+     * (0x0400), NLEN (2 bytes) included.
      */
     const val MAX_MESSAGE_BYTES = 1022
 

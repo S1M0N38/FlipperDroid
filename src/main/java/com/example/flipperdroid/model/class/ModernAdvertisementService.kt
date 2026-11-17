@@ -27,8 +27,8 @@ class ModernAdvertisementService(
     private var _advertisementServiceCallbacks: MutableList<IAdvertisementServiceCallback> = mutableListOf()
     private var _currentAdvertisementSet: AdvertisementSet? = null
     private var _txPowerLevel: TxPowerLevel? = null
-    // Le set d'advertising réellement enregistré (renvoyé par onAdvertisingSetStarted) :
-    // permet de mettre à jour les données sans ré-enregistrer.
+    // The advertising set actually registered (returned by onAdvertisingSetStarted):
+    // allows updating the data without re-registering.
     private var _runningSet: AdvertisingSet? = null
 
     init {
@@ -43,13 +43,12 @@ class ModernAdvertisementService(
             advertisementSet.advertiseSettings.txPowerLevel = _txPowerLevel!!
             advertisementSet.advertisingSetParameters.txPowerLevel = _txPowerLevel!!
         }
-        // Legacy vs étendu : le legacy plafonne la trame à 31 octets, d'où les échecs
-        // DATA_TOO_LARGE sur Apple Continuity / SwiftPair. MAIS la plupart des cibles
-        // (Windows Swift Pair, iOS/macOS Continuity, Android Fast Pair) n'écoutent QUE
-        // l'advertising legacy par défaut : une trame courte envoyée en étendu leur est
-        // invisible. On garde donc le LEGACY tant que la charge tient dans 31 octets
-        // (cas de l'immense majorité des payloads de spam) et on ne bascule en ÉTENDU
-        // que lorsqu'elle déborde réellement.
+        // Legacy vs extended: legacy caps the frame at 31 bytes, hence the DATA_TOO_LARGE
+        // failures on Apple Continuity / SwiftPair. BUT most targets (Windows Swift Pair,
+        // iOS/macOS Continuity, Android Fast Pair) only listen to legacy advertising by
+        // default: a short frame sent as extended is invisible to them. So we keep LEGACY
+        // as long as the payload fits in 31 bytes (the case for the vast majority of spam
+        // payloads) and only switch to EXTENDED when it actually overflows.
         val hasScanResponse = advertisementSet.scanResponse != null
         val extendedSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
             _bluetoothAdapter?.isLeExtendedAdvertisingSupported == true
@@ -66,14 +65,14 @@ class ModernAdvertisementService(
         val overflowsLegacy = AdvertisementPayload.overflowsLegacy(estimatedBytes)
         val params = advertisementSet.advertisingSetParameters
         if (extendedSupported && !hasScanResponse && overflowsLegacy) {
-            // Trame > 31 octets : on n'a pas le choix, advertising étendu (certaines cibles
-            // ne la recevront pas, mais le legacy la rejetterait avec DATA_TOO_LARGE).
+            // Frame > 31 bytes: no choice, extended advertising (some targets
+            // will not receive it, but legacy would reject it with DATA_TOO_LARGE).
             Log.d(_logTag, "Payload ~$estimatedBytes B > $LEGACY_MAX — extended advertising (may be invisible to legacy-only scanners)")
             params.legacyMode = false
             params.connectable = advertisementSet.advertiseSettings.connectable
             params.scanable = false
         } else {
-            // Trame ≤ 31 octets : LEGACY, pour qu'elle soit réellement reçue par les cibles.
+            // Frame ≤ 31 bytes: LEGACY, so that it is actually received by the targets.
             params.legacyMode = true
             params.connectable = advertisementSet.advertiseSettings.connectable
             params.scanable = hasScanResponse
@@ -169,7 +168,7 @@ class ModernAdvertisementService(
         return false
     }
 
-    // getName() peut lever SecurityException sur API 31+ sans BLUETOOTH_CONNECT.
+    // getName() may throw SecurityException on API 31+ without BLUETOOTH_CONNECT.
     private fun safeAdapterNameLength(): Int = try {
         _bluetoothAdapter?.name?.length ?: 0
     } catch (e: SecurityException) {
@@ -199,8 +198,8 @@ class ModernAdvertisementService(
                 }
             }
             override fun onAdvertisingDataSet(advertisingSet: AdvertisingSet, status: Int) {
-                // Le contrôleur peut refuser une mise à jour (ex. données > 31 octets sur un
-                // set legacy) : on le remonte au lieu de laisser croire à un envoi réussi.
+                // The controller may reject an update (e.g. data > 31 bytes on a
+                // legacy set): report it instead of pretending the send succeeded.
                 if (status != ADVERTISE_SUCCESS) {
                     val err = if (status == ADVERTISE_FAILED_DATA_TOO_LARGE)
                         AdvertisementError.ADVERTISE_FAILED_DATA_TOO_LARGE

@@ -30,12 +30,12 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.flipperdroid.viewmodel.NfcViewModel
 
-/** Ouvre les réglages NFC du système (ignoré si l'appareil n'en fournit pas). */
+/** Opens the system NFC settings (ignored if the device does not provide them). */
 private fun openNfcSettings(context: Context) {
     try {
         context.startActivity(Intent(Settings.ACTION_NFC_SETTINGS))
     } catch (e: ActivityNotFoundException) {
-        // Aucun écran de réglages NFC sur cet appareil : rien à ouvrir.
+        // No NFC settings screen on this device: nothing to open.
     }
 }
 
@@ -58,7 +58,7 @@ fun NfcScreen(
     val tagInfo by nfcViewModel.tagInfo.collectAsState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    // État de l'adaptateur NFC, relu à chaque retour sur l'écran (après passage dans les réglages).
+    // NFC adapter state, re-read on every return to the screen (after going through the settings).
     val nfcAdapter = remember { NfcAdapter.getDefaultAdapter(context) }
     var nfcEnabled by remember { mutableStateOf(nfcAdapter?.isEnabled == true) }
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -77,7 +77,7 @@ fun NfcScreen(
                     try { context.contentResolver.openInputStream(uri)?.use { it.readBytes() } } catch (e: Exception) { null }
                 }
                 if (bytes != null) {
-                    // Extension d'abord ; l'heuristique de contenu ne sert qu'en repli.
+                    // Extension first; the content heuristic is only used as a fallback.
                     val looksText = when {
                         name.endsWith(".mct") || name.endsWith(".txt") -> true
                         name.endsWith(".bin") || name.endsWith(".mfd") -> false
@@ -120,7 +120,7 @@ fun NfcScreen(
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
-            // Bandeau : NFC absent ou désactivé
+            // Banner: NFC missing or disabled
             if (nfcAdapter == null || !nfcEnabled) {
                 Card(Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
                     Column(Modifier.padding(16.dp)) {
@@ -136,7 +136,7 @@ fun NfcScreen(
                     }
                 }
             }
-            // Section Lecture
+            // Read section
             Card(Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
                 Column(Modifier.padding(16.dp)) {
                     Text("Card Reading", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -165,7 +165,7 @@ fun NfcScreen(
                             OutlinedButton(onClick = { nfcViewModel.exportBin() }) { Text("Export .bin") }
                             OutlinedButton(onClick = { nfcViewModel.exportMct() }) { Text("Export MCT") }
                         }
-                        // Reproduction : réécrit le dump complet sur une carte cible.
+                        // Reproduction: rewrites the full dump onto a target card.
                         Spacer(Modifier.height(8.dp))
                         if (cloneArmed) {
                             Text(
@@ -194,7 +194,7 @@ fun NfcScreen(
                             modifier = Modifier.padding(top = 4.dp)
                         )
                     }
-                    // Attaque par dictionnaire de clés Mifare
+                    // Mifare key dictionary attack
                     Spacer(Modifier.height(8.dp))
                     Button(
                         onClick = { nfcViewModel.runDictionaryAttack() },
@@ -219,7 +219,7 @@ fun NfcScreen(
                     }
                 }
             }
-            // Section Tag Info (analyse détaillée)
+            // Tag Info section (detailed analysis)
             if (tagInfo != null) {
                 Card(Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
                     Column(Modifier.padding(16.dp)) {
@@ -233,7 +233,7 @@ fun NfcScreen(
                     }
                 }
             }
-            // Section Émulation HCE (capture d'une carte ISO-DEP)
+            // HCE emulation section (capture of an ISO-DEP card)
             Card(Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
                 Column(Modifier.padding(16.dp)) {
                     Text("Card Emulation (ISO-DEP)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -264,7 +264,7 @@ fun NfcScreen(
                     )
                 }
             }
-            // Section NDEF (lecture)
+            // NDEF section (read)
             if (ndefContent != null) {
                 Card(Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
                     Column(Modifier.padding(16.dp)) {
@@ -274,7 +274,7 @@ fun NfcScreen(
                     }
                 }
             }
-            // Section NDEF (écriture)
+            // NDEF section (write)
             Card(Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
                 Column(Modifier.padding(16.dp)) {
                     Text("NDEF Write", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -291,7 +291,7 @@ fun NfcScreen(
                     }
                 }
             }
-            // Section Clonage
+            // Cloning section
             Card(Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
                 Column(Modifier.padding(16.dp)) {
                     Text("UID Cloning", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -308,7 +308,7 @@ fun NfcScreen(
                     }
                 }
             }
-            // Section Logs
+            // Logs section
             if (showLogs) {
                 Card(Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
                     Column(Modifier.padding(16.dp)) {
@@ -324,7 +324,7 @@ fun NfcScreen(
                     }
                 }
             }
-            // Section Historique
+            // History section
             if (showHistory) {
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp)) {

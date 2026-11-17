@@ -43,9 +43,9 @@ fun BleSpamScreen(
     val spamLogs by viewModel.spamLogs.collectAsState()
     val speedMs by viewModel.speedMs.collectAsState()
 
-    // Permissions à demander : les permissions BLUETOOTH_* runtime n'existent qu'à
-    // partir d'Android 12 (API 31). En dessous, les demander renvoie toujours "refusé"
-    // et l'écran restait bloqué ; on demande alors la localisation (requise pour le BLE).
+    // Permissions to request: the BLUETOOTH_* runtime permissions only exist from
+    // Android 12 (API 31) on. Below that, requesting them always returns "denied"
+    // and the screen stayed stuck; so location is requested instead (required for BLE).
     val permissions = remember {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             arrayOf(
@@ -65,10 +65,10 @@ fun BleSpamScreen(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { result ->
         permissionsGranted = result.values.all { it }
-        if (!permissionsGranted) showSnackbar = "Permissions Bluetooth requises pour spammer."
+        if (!permissionsGranted) showSnackbar = "Bluetooth permissions required to spam."
     }
 
-    // Vérifie les permissions au lancement
+    // Checks permissions at launch
     LaunchedEffect(Unit) {
         val granted = permissions.all {
             androidx.core.content.ContextCompat.checkSelfPermission(context, it) == android.content.pm.PackageManager.PERMISSION_GRANTED
@@ -79,7 +79,7 @@ fun BleSpamScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Affiche le message d'erreur/permission dans le snackbar quand il change
+    // Shows the error/permission message in the snackbar when it changes
     LaunchedEffect(showSnackbar) {
         showSnackbar?.let {
             snackbarHostState.showSnackbar(it)
@@ -116,7 +116,7 @@ fun BleSpamScreen(
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            // Switch Apple/Samsung/Microsoft/Google/All (défilable si trop large)
+            // Apple/Samsung/Microsoft/Google/All switch (scrollable if too wide)
             Row(
                 Modifier
                     .fillMaxWidth()

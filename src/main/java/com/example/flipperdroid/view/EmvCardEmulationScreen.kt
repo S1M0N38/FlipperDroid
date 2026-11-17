@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.flipperdroid.viewmodel.EmvCardEmulationViewModel
 
-/** Émulation HCE d'une carte ISO-DEP capturée (replay APDU). */
+/** HCE emulation of a captured ISO-DEP card (APDU replay). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EmvCardEmulationScreen(

@@ -18,8 +18,8 @@ import androidx.navigation.NavController
 import com.example.flipperdroid.viewmodel.RootBadUsbViewModel
 
 /**
- * BadUSB via USB Gadget (root) : édite et exécute un script DuckyScript envoyé
- * au PC branché en USB, en écrivant des rapports HID dans /dev/hidgX.
+ * BadUSB via USB Gadget (root): edits and runs a DuckyScript sent
+ * to the USB-connected PC by writing HID reports to /dev/hidgX.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -16,10 +16,10 @@ import kotlinx.coroutines.withContext
 import java.nio.ByteBuffer
 
 /**
- * ViewModel gerant la connexion et l'interaction avec un appareil USB en mode clavier
+ * ViewModel handling the connection and interaction with a USB device in keyboard mode
  *
- * Cette classe detecte si le mode USB Host est disponible et gere la connexion a un appareil USB HID clavier
- * Elle permet de faire passer le téléphone comme un clavier via USB pour exécuter un script
+ * This class detects whether USB Host mode is available and handles the connection to a USB HID keyboard device
+ * It lets the phone act as a keyboard over USB to run a script
  *
  */
 class BadUsbViewModel : ViewModel() {
@@ -28,7 +28,7 @@ class BadUsbViewModel : ViewModel() {
     private val _isUsbHostAvailable = mutableStateOf(false)
 
     /*
-    *  Permet de voir si l'usb est disponible
+    *  Lets you see whether usb is available
      */
     val isUsbHostAvailable: State<Boolean> = _isUsbHostAvailable
 
@@ -52,20 +52,20 @@ class BadUsbViewModel : ViewModel() {
     private val modifierNone = 0x00
     private val modfiferLeftShift = 0x02
     /**
-     * Initialise le viewmodel avec le contexte et prepare le gestionnaire USB
+     * Initializes the viewmodel with the context and prepares the USB manager
      *
-     * @param context contexte de l'application necessaire pour acceder au service USB
+     * @param context application context needed to access the USB service
      */
     fun initialize(context: Context) {
         usbManager = context.getSystemService(Context.USB_SERVICE) as? UsbManager
-        // Le service USB existe aussi sur les appareils sans mode hôte : on teste la feature.
+        // The USB service also exists on devices without host mode: we test the feature.
         hasHostFeature = context.packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_USB_HOST)
         checkUsbHostSupport()
     }
     /**
-     * Verifie si le mode USB Host est disponible sur l'appareil
+     * Checks whether USB Host mode is available on the device
      *
-     * Met a jour l'état isUsbHostAvailable et le status associe
+     * Updates the isUsbHostAvailable state and the associated status
      */
     private fun checkUsbHostSupport() {
         _isUsbHostAvailable.value = usbManager != null && hasHostFeature
@@ -73,13 +73,13 @@ class BadUsbViewModel : ViewModel() {
             else "Experimental USB-host mode: the phone is the USB host here, so it cannot type on a PC. Use BadUSB (root) for real keystroke injection."
     }
     /**
-     * Connecte l'appareil USB fourni et prepare l'interface HID clavier
+     * Connects the provided USB device and prepares the HID keyboard interface
      *
-     * Cherche l'interface HID et le endpoint d'écriture pour envoyer les donnees
-     * Met a jour l'état isConnected et le status en fonction du succes de la connexion
+     * Looks for the HID interface and the write endpoint to send the data
+     * Updates the isConnected state and the status depending on the connection outcome
      *
-     * @param device appareil USB detecte
-     * @param connection connexion USB etablie avec l'appareil
+     * @param device detected USB device
+     * @param connection USB connection established with the device
      */
     fun connectUsb(device: UsbDevice, connection: UsbDeviceConnection) {
         usbDevice = device
@@ -117,9 +117,9 @@ class BadUsbViewModel : ViewModel() {
         }
     }
     /**
-     * Deconnecte l'appareil USB et libere les ressources
+     * Disconnects the USB device and releases the resources
      *
-     * Met a jour l'état de isConnected et le status
+     * Updates the isConnected state and the status
      */
     fun disconnect() {
         usbConnection?.let { connection ->
@@ -135,24 +135,24 @@ class BadUsbViewModel : ViewModel() {
         _status.value = "Disconnected"
     }
     /**
-     * Met a jour le script à éxécuter
+     * Updates the script to execute
      *
-     * @param script chaine de caracteres representant le scrpit
+     * @param script string representing the script
      */
     fun updateScript(script: String) {
         _currentScript.value = script
     }
 
     /**
-     * Execute le script en envoyant les caracteres un par un via USB
+     * Executes the script by sending the characters one by one over USB
      *
-     * Cette methode fonctionne uniquement si l'appareil est connecte en mode clavier USB
-     * Elle envoie chaque caractere avec un delai 50 ms entre chaque frappe
-     * Met a jour le status avec le resultat de l execution
+     * This method only works if the device is connected in USB keyboard mode
+     * It sends each character with a 50 ms delay between keystrokes
+     * Updates the status with the result of the execution
      */
     fun executeScript() {
-        // Les transferts USB sont bloquants : on exécute sur un thread d'IO
-        // et on utilise delay() (non bloquant) au lieu de Thread.sleep().
+        // USB transfers are blocking: run on an IO thread
+        // and use delay() (non-blocking) instead of Thread.sleep().
         viewModelScope.launch(Dispatchers.IO) {
             if (!_isConnected.value) {
                 _status.value = "Not connected as USB keyboard"
@@ -165,7 +165,7 @@ class BadUsbViewModel : ViewModel() {
 
                 script.forEach { char ->
                     sendKey(char)
-                    // Petit délai entre chaque frappe
+                    // Small delay between keystrokes
                     delay(50)
                 }
 
@@ -178,11 +178,11 @@ class BadUsbViewModel : ViewModel() {
     }
 
     /**
-     * Envoie une touche clavier USB correspondant au caractere donne
+     * Sends a USB keyboard key matching the given character
      *
-     * Calcule le modifier et le keycode correspondant selon la table HID
+     * Computes the modifier and the keycode from the HID table
      *
-     * @param char caractere a envoyer
+     * @param char character to send
      */
     private fun sendKey(char: Char) {
         val (modifier, keycode) = when (char) {
@@ -229,7 +229,7 @@ class BadUsbViewModel : ViewModel() {
             buffer.capacity(),
             1000
         ) ?: -1
-        // Résultat vérifié : avant, un échec était annoncé "Script executed successfully".
+        // Verified result: previously a failure was announced as "Script executed successfully".
         if (sent < 0) throw java.io.IOException("USB transfer failed")
 
         // Send key release
@@ -244,9 +244,9 @@ class BadUsbViewModel : ViewModel() {
     }
 
     /**
-     * Convertit un caractere en keycode USB HID
+     * Converts a character into a USB HID keycode
      *
-     * @return code USB HID correspondant au caractere
+     * @return USB HID code matching the character
      */
     private fun Char.toKeycode(): Int {
         return when (this) {

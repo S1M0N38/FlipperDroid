@@ -27,14 +27,14 @@ import com.example.flipperdroid.util.SecureWindow
 import com.example.flipperdroid.viewmodel.TotpViewModel
 import kotlinx.coroutines.delay
 
-/** Coffre 2FA/TOTP : codes qui tournent selon la période de chaque compte. */
+/** 2FA/TOTP vault: codes that rotate according to each account's period. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TotpScreen(
     navController: NavController,
     viewModel: TotpViewModel = viewModel()
 ) {
-    // Empêche captures d'écran et aperçu des tâches récentes pendant l'affichage des codes
+    // Prevents screenshots and recent-tasks preview while the codes are displayed
     SecureWindow()
 
     val accounts by viewModel.accounts.collectAsState()
@@ -44,7 +44,7 @@ fun TotpScreen(
     var secret by remember { mutableStateOf("") }
     var showSecret by remember { mutableStateOf(false) }
 
-    // Horloge qui avance chaque seconde
+    // Clock that advances every second
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
         while (true) { now = System.currentTimeMillis(); delay(1000) }
@@ -159,7 +159,7 @@ fun TotpScreen(
             },
             confirmButton = {
                 Button(onClick = {
-                    // Le dialogue ne se ferme que si l'ajout réussit
+                    // The dialog only closes if the addition succeeds
                     if (viewModel.addAccount(label.trim(), secret.trim())) {
                         label = ""
                         secret = ""

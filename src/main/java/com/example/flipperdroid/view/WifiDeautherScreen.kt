@@ -26,13 +26,13 @@ import androidx.navigation.NavController
 import com.example.flipperdroid.viewmodel.*
 
 /**
- * Affiche l ecran principal de l outil wifi deauther
+ * Shows the main screen of the WiFi deauther tool
  *
- * Cette fonction compose l interface utilisateur permettant de scanner les réseaux wifi a proximite
- * Elle gere les permissions necessaires et affiche la liste des réseaux detectes sous forme de cartes
+ * This composable builds the UI that scans for nearby wifi networks
+ * It handles the required permissions and shows the detected networks as cards
  *
- * @param navController controleur de navigation pour revenir a l ecran precedent
- * @param viewModel viewmodel contenant les donnees des réseaux et l etat du scan
+ * @param navController navigation controller to go back to the previous screen
+ * @param viewModel viewmodel holding the network data and the scan state
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,7 +48,7 @@ fun WifiDeautherScreen(
     val isDeauthing by viewModel.isDeauthing.collectAsState()
     val deauthStatus by viewModel.deauthStatus.collectAsState()
 
-    // Boîte de dialogue de l'attaque sur le réseau sélectionné
+    // Attack dialog for the selected network
     selectedNetwork?.let { target ->
         AlertDialog(
             onDismissRequest = { if (!isDeauthing) viewModel.clearSelection() },
@@ -91,9 +91,9 @@ fun WifiDeautherScreen(
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { _ ->
-        // Réévalue les permissions après la réponse (même partielle) : sur Android < 13
-        // NEARBY_WIFI_DEVICES n'existe pas, donc "tout accordé" ne serait jamais vrai
-        // et le scan resterait bloqué.
+        // Re-evaluates permissions after the response (even a partial one): on Android < 13
+        // NEARBY_WIFI_DEVICES does not exist, so "all granted" would never be true
+        // and the scan would stay blocked.
         viewModel.initialize(context)
     }
 
@@ -145,7 +145,7 @@ fun WifiDeautherScreen(
                             Manifest.permission.ACCESS_NETWORK_STATE
                         )
 
-                        // NEARBY_WIFI_DEVICES uniquement sur Android 13+ (sinon inexistante)
+                        // NEARBY_WIFI_DEVICES only on Android 13+ (does not exist otherwise)
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                             permissions.add(Manifest.permission.NEARBY_WIFI_DEVICES)
                         }
@@ -225,12 +225,12 @@ fun WifiDeautherScreen(
     }
 }
 /**
- * Interface qui permet de demerder les permissions à l utilisateur
+ * Composable that asks the user for permissions
  *
- * Cette interface demander à l'utilisateur les permissions necessaires pour scanner les réseaux wifi
+ * This composable asks the user for the permissions required to scan wifi networks
  *
- * @param onRequestPermissions fonction appelee lors de la demande de permissions
- * @param onOpenSettings fonction appelee pour ouvrir les parametres de l application
+ * @param onRequestPermissions function called on the permission request
+ * @param onOpenSettings function called to open the app settings
  */
 @Composable
 fun PermissionsRequest(
@@ -288,13 +288,13 @@ fun PermissionsRequest(
     }
 }
 /**
- * Affiche une carte contenant les informations d un réseau wifi
+ * Shows a card containing the information of a wifi network
  *
- * Cette carte presente le nom le bssid le niveau de signal le canal la frequence le type de securite et le moment de la derniere detection
- * Les couleurs de l icone wifi varient en fonction de la qualite du signal
+ * This card shows the name, the bssid, the signal level, the channel, the frequency, the security type and the time of the last detection
+ * The wifi icon colors vary with the signal quality
  *
- * @param network objet representant un réseau wifi detecte
- * @param viewModel viewmodel utilise pour evaluer la force du signal et le type de securite
+ * @param network object representing a detected wifi network
+ * @param viewModel viewmodel used to evaluate the signal strength and the security type
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

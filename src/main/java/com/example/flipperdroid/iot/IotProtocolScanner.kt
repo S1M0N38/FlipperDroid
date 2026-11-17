@@ -24,17 +24,17 @@ data class IotDevice(
 
 object IotProtocolScanner {
 
-    /** Nombre maximal d'hôtes retournés pour une plage (évite les scans démesurés). */
+    /** Maximum number of hosts returned for a range (prevents oversized scans). */
     const val MAX_HOSTS = 1024
 
     private const val MQTT_PORT = 1883
     private const val COAP_PORT = 5683
-    /** Code CoAP 2.05 Content (classe 2, détail 5). */
+    /** CoAP 2.05 Content code (class 2, detail 5). */
     private const val COAP_CODE_CONTENT = 0x45
     private const val MAX_TOPICS = 200
     private const val MAX_MQTT_PACKET = 65536
 
-    /** Paquet MQTT CONNECT minimal : protocole 3.1.1, clean session, client id vide. */
+    /** Minimal MQTT CONNECT packet: protocol 3.1.1, clean session, empty client id. */
     private val MQTT_CONNECT = byteArrayOf(
         0x10.toByte(), 0x0c.toByte(),
         0x00.toByte(), 0x04.toByte(),
@@ -49,7 +49,7 @@ object IotProtocolScanner {
 
         ips.forEach { ip ->
             if (isMqttOpen(ip)) {
-                // Version non rapportée : le CONNACK ne l'indique pas.
+                // Version not reported: the CONNACK does not carry it.
                 devices.add(IotDevice(ip, MQTT_PORT, "MQTT", "Broker"))
             }
             delay(100)
@@ -117,12 +117,12 @@ object IotProtocolScanner {
                 socket.connect(InetSocketAddress(ip, MQTT_PORT), 2000)
                 socket.soTimeout = 2000
 
-                // Un broker MQTT reste muet tant que le client n'a pas envoyé CONNECT.
+                // An MQTT broker stays silent until the client has sent CONNECT.
                 val output = socket.getOutputStream()
                 output.write(MQTT_CONNECT)
                 output.flush()
 
-                // Lecture du CONNACK (type 0x20)
+                // Reading the CONNACK (type 0x20)
                 val input = socket.getInputStream()
                 val buffer = ByteArray(4)
                 val read = input.read(buffer)
@@ -135,8 +135,8 @@ object IotProtocolScanner {
     }
 
     /**
-     * Envoie un GET CoAP confirmable vers ip:5683 et retourne le code de réponse
-     * (ex. 0x45 = 2.05 Content), ou -1 si pas de réponse CoAP valide.
+     * Sends a confirmable CoAP GET to ip:5683 and returns the response code
+     * (e.g. 0x45 = 2.05 Content), or -1 if there is no valid CoAP response.
      */
     private fun coapGetCode(ip: String, segments: List<String>): Int {
         return try {
@@ -149,7 +149,7 @@ object IotProtocolScanner {
                 val buffer = ByteArray(256)
                 val reply = DatagramPacket(buffer, buffer.size)
                 socket.receive(reply)
-                // Version CoAP = 1 dans les deux bits de poids fort de l'octet 0.
+                // CoAP version = 1 in the two most significant bits of byte 0.
                 if (reply.length >= 4 && ((buffer[0].toInt() and 0xFF) shr 6) == 1) {
                     buffer[1].toInt() and 0xFF
                 } else {
@@ -161,14 +161,14 @@ object IotProtocolScanner {
         }
     }
 
-    /** Sonde CoAP : seule une réponse 2.05 Content sur /.well-known/core compte comme trouvée. */
+    /** CoAP probe: only a 2.05 Content response on /.well-known/core counts as found. */
     private fun isCoapOpen(ip: String): Boolean =
         coapGetCode(ip, listOf(".well-known", "core")) == COAP_CODE_CONTENT
 
     /**
-     * Écoute les messages PUBLISH du broker pendant 2 s après un SUBSCRIBE "#"
-     * (les messages retenus sont livrés dès l'abonnement). Lève une exception si
-     * la connexion échoue ou si le broker refuse (CONNACK != 0, ex. authentification).
+     * Listens for the broker's PUBLISH messages for 2 s after a SUBSCRIBE "#"
+     * (retained messages are delivered as soon as the subscription is made). Throws if
+     * the connection fails or if the broker refuses (CONNACK != 0, e.g. authentication).
      */
     suspend fun scanMqttTopics(brokerIp: String): List<String> = withContext(Dispatchers.IO) {
         val topics = LinkedHashSet<String>()
@@ -181,14 +181,14 @@ object IotProtocolScanner {
             output.write(MQTT_CONNECT)
             output.flush()
 
-            // CONNACK : type 0x20, longueur 2, [session present, code retour]
+            // CONNACK: type 0x20, length 2, [session present, return code]
             val connack = readMqttPacket(input)
             if ((connack.first and 0xF0) != 0x20 || connack.second.size < 2) {
-                throw IOException("réponse CONNACK invalide")
+                throw IOException("invalid CONNACK response")
             }
             val returnCode = connack.second[1].toInt() and 0xFF
             if (returnCode != 0) {
-                throw IOException("CONNACK refusé (code $returnCode), authentification requise ?")
+                throw IOException("CONNACK refused (code $returnCode), authentication required?")
             }
 
             output.write(buildMqttSubscribe("#"))
@@ -202,9 +202,9 @@ object IotProtocolScanner {
                 val (header, body) = try {
                     readMqttPacket(input)
                 } catch (_: IOException) {
-                    break // délai écoulé, fin de flux ou paquet invalide : on garde ce qui a été vu
+                    break // deadline elapsed, end of stream or invalid packet: we keep what was seen
                 }
-                // PUBLISH = type 3 ; topic préfixé par sa longueur sur 2 octets.
+                // PUBLISH = type 3; topic prefixed by its length on 2 bytes.
                 if ((header shr 4) == 3 && body.size >= 2) {
                     val topicLen = ((body[0].toInt() and 0xFF) shl 8) or (body[1].toInt() and 0xFF)
                     if (topicLen > 0 && 2 + topicLen <= body.size) {
@@ -216,17 +216,17 @@ object IotProtocolScanner {
         topics.toList()
     }
 
-    /** Lit un paquet MQTT complet : (octet d'en-tête, corps). */
+    /** Reads a complete MQTT packet: (header byte, body). */
     private fun readMqttPacket(input: DataInputStream): Pair<Int, ByteArray> {
         val header = input.readUnsignedByte()
         val length = readRemainingLength(input)
-        if (length > MAX_MQTT_PACKET) throw IOException("paquet MQTT trop grand")
+        if (length > MAX_MQTT_PACKET) throw IOException("MQTT packet too large")
         val body = ByteArray(length)
         input.readFully(body)
         return header to body
     }
 
-    /** Longueur restante MQTT (varint, 1 à 4 octets). */
+    /** MQTT remaining length (varint, 1 to 4 bytes). */
     private fun readRemainingLength(input: DataInputStream): Int {
         var multiplier = 1
         var value = 0
@@ -235,7 +235,7 @@ object IotProtocolScanner {
             value += (b and 0x7F) * multiplier
             if ((b and 0x80) == 0) return value
             multiplier *= 128
-            if (multiplier > 128 * 128 * 128) throw IOException("longueur MQTT invalide")
+            if (multiplier > 128 * 128 * 128) throw IOException("invalid MQTT length")
         }
     }
 
@@ -263,8 +263,8 @@ object IotProtocolScanner {
     }
 
     /**
-     * En-tête CoAP (version 1, CON, TKL 0, code GET, message id) suivi d'une option
-     * Uri-Path (numéro 11) par segment de chemin.
+     * CoAP header (version 1, CON, TKL 0, GET code, message id) followed by one
+     * Uri-Path option (number 11) per path segment.
      */
     private fun buildCoapGet(messageId: Int, segments: List<String>): ByteArray {
         val out = ByteArrayOutputStream()
@@ -290,7 +290,7 @@ object IotProtocolScanner {
         out.write(value)
     }
 
-    /** Encode delta ou longueur d'option CoAP : (nibble, octets d'extension). */
+    /** Encodes a CoAP option delta or length: (nibble, extension bytes). */
     private fun coapOptionField(n: Int): Pair<Int, ByteArray> = when {
         n < 13 -> n to ByteArray(0)
         n < 269 -> 13 to byteArrayOf((n - 13).toByte())
@@ -307,13 +307,13 @@ object IotProtocolScanner {
     }
 
     /**
-     * Analyse une cible réseau. Formats acceptés :
-     * - "192.168.1.10" : une adresse ;
-     * - "192.168.1.0/24" : CIDR /16 à /32 (pour /24 et plus large, réseau et
-     *   diffusion sont exclus ; au plus [MAX_HOSTS] adresses) ;
-     * - "192.168.1.1-254" : plage sur le dernier octet ;
-     * - "192.168.1.10-192.168.1.20" : plage entre deux adresses complètes.
-     * Retourne une liste vide si la saisie est invalide.
+     * Parses a network target. Accepted formats:
+     * - "192.168.1.10" : a single address;
+     * - "192.168.1.0/24" : CIDR /16 to /32 (for /24 and wider, network and
+     *   broadcast are excluded; at most [MAX_HOSTS] addresses);
+     * - "192.168.1.1-254" : range on the last octet;
+     * - "192.168.1.10-192.168.1.20" : range between two complete addresses.
+     * Returns an empty list if the input is invalid.
      */
     fun parseIpRange(s: String): List<String> {
         val input = s.trim()
@@ -350,19 +350,19 @@ object IotProtocolScanner {
         } else {
             val octet = right.toIntOrNull() ?: return emptyList()
             if (octet !in 0..255) return emptyList()
-            (start and 0xFFFFFF00L) or octet.toLong() // même préfixe a.b.c, dernier octet = e
+            (start and 0xFFFFFF00L) or octet.toLong() // same a.b.c prefix, last octet = e
         }
         return rangeToList(start, end)
     }
 
-    /** Liste des adresses de first à last inclus, tronquée à [MAX_HOSTS]. */
+    /** List of the addresses from first to last inclusive, truncated to [MAX_HOSTS]. */
     private fun rangeToList(first: Long, last: Long): List<String> {
         if (last < first) return emptyList()
         val end = minOf(last, first + MAX_HOSTS - 1)
         return (first..end).map { longToIp(it) }
     }
 
-    /** IPv4 "a.b.c.d" vers entier non signé ; null si la forme est invalide. */
+    /** IPv4 "a.b.c.d" to unsigned integer; null if the shape is invalid. */
     private fun ipToLong(ip: String): Long? {
         val parts = ip.split('.')
         if (parts.size != 4) return null

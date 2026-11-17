@@ -57,7 +57,7 @@ class BleGattFuzzerViewModel(private val context: Context) : ViewModel() {
         AppLog.log("GATT-Fuzzer", message)
     }
 
-    /** Démarre sur le premier appareil appairé ; rapporte clairement s'il n'y en a pas. */
+    /** Starts on the first bonded device; clearly reports when there is none. */
     fun startFirstBondedDevice() {
         val adapter = bluetoothAdapter
         if (adapter == null) { addLog("Bluetooth not available on this device"); return }

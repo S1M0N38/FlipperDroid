@@ -23,11 +23,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.flipperdroid.viewmodel.EvilPortalViewModel
 
-/** Evil Portal : hotspot local + page de capture d'identifiants (test autorisé). */
+/** Evil Portal: local hotspot + credential-capturing page (authorized testing). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EvilPortalScreen(navController: NavController) {
-    // LocalOnlyHotspot n'existe qu'à partir d'Android 8 (API 26).
+    // LocalOnlyHotspot only exists from Android 8 (API 26) on.
     if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.O) {
         UnsupportedScreen(navController, "Evil Portal", "Requires Android 8 (API 26) or newer.")
         return

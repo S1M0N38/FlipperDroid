@@ -15,7 +15,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.flipperdroid.viewmodel.LanDiscoveryViewModel
 
-/** Découverte de services LAN (mDNS + SSDP) + bannières. */
+/** LAN service discovery (mDNS + SSDP) + banners. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LanDiscoveryScreen(

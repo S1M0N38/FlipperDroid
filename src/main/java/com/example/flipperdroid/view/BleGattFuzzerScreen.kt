@@ -30,7 +30,7 @@ import com.example.flipperdroid.viewmodel.BleGattFuzzerViewModel
 @Composable
 fun BleGattFuzzerScreen(navController: NavController) {
     val context = LocalContext.current
-    // Contexte applicatif : le ViewModel survit à l'activité (rotation), il ne doit pas la retenir.
+    // Application context: the ViewModel outlives the activity (rotation), so it must not hold it.
     val appContext = context.applicationContext
     val viewModel: BleGattFuzzerViewModel = viewModel { BleGattFuzzerViewModel(appContext) }
 

@@ -17,10 +17,10 @@ import com.example.flipperdroid.nfc.EmvCardData
 import com.example.flipperdroid.viewmodel.EmvReaderViewModel
 
 /**
- * Ecran de lecture de carte EMV
+ * EMV card reading screen
  *
- * @param navController controleur de navigation
- * @param viewModel vue modele gere la lecture des donnees de carte
+ * @param navController navigation controller
+ * @param viewModel view model handling the card data read
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,7 +35,7 @@ fun EmvReaderScreen(
     Scaffold(
         topBar = {
             /**
-             * Barre superieure avec titre et bouton retour
+             * Top bar with title and back button
              */
             TopAppBar(
                 title = { Text("EMV Card Reader") },
@@ -59,7 +59,7 @@ fun EmvReaderScreen(
             when {
                 isReading -> {
                     /**
-                     * Affichage pendant la lecture de la carte
+                     * Display while the card is being read
                      */
                     CircularProgressIndicator(
                         modifier = Modifier.size(48.dp)
@@ -71,7 +71,7 @@ fun EmvReaderScreen(
                 }
                 card != null -> {
                     /**
-                     * Affichage des donnees si la lecture a reussi
+                     * Display of the data if the read succeeded
                      */
                     Icon(
                         imageVector = Icons.Default.CreditCard,
@@ -91,7 +91,7 @@ fun EmvReaderScreen(
                 }
                 error != null -> {
                     /**
-                     * Affichage du message derreur si la lecture echoue
+                     * Display of the error message if the read fails
                      */
                     Icon(
                         imageVector = Icons.Default.Error,
@@ -115,7 +115,7 @@ fun EmvReaderScreen(
                 }
                 else -> {
                     /**
-                     * Etat initial en attente de carte
+                     * Initial state waiting for a card
                      */
                     Icon(
                         imageVector = Icons.Default.CreditCard,
@@ -135,9 +135,9 @@ fun EmvReaderScreen(
 }
 
 /**
- * Affiche les informations de la carte EMV
+ * Displays the EMV card information
  *
- * @param cardData donnees de la carte a afficher
+ * @param cardData card data to display
  */
 @Composable
 fun CardDataDisplay(cardData: EmvCardData) {
@@ -153,9 +153,9 @@ fun CardDataDisplay(cardData: EmvCardData) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Avertissement RGPD
+            // GDPR warning
             Text(
-                text = "⚠️ Les données affichées sont sensibles. Ne partagez pas ces informations. (RGPD)",
+                text = "⚠️ The data shown is sensitive. Do not share this information. (GDPR)",
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
@@ -169,7 +169,7 @@ fun CardDataDisplay(cardData: EmvCardData) {
                 )
             }
             cardData.pan?.let {
-                // Masquer le PAN sauf les 4 derniers chiffres
+                // Masks the PAN except the last 4 digits
                 val masked = if (it.length > 4) "**** **** **** " + it.takeLast(4) else it
                 CardDataRow(
                     icon = Icons.Default.Payment,
@@ -196,11 +196,11 @@ fun CardDataDisplay(cardData: EmvCardData) {
 }
 
 /**
- * Affiche une ligne dinformation avec icone etiquette et valeur
+ * Displays an information row with icon, label and value
  *
- * @param icon icone affichee
- * @param label etiquette du champ
- * @param value valeur du champ
+ * @param icon icon shown
+ * @param label field label
+ * @param value field value
  */
 @Composable
 fun CardDataRow(

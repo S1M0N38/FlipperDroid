@@ -23,7 +23,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** Ouvre et analyse un fichier Flipper (.nfc, .sub, .ir) via le sélecteur de documents. */
+/** Opens and parses a Flipper file (.nfc, .sub, .ir) via the document picker. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FlipperFilesScreen(navController: NavController) {
@@ -41,7 +41,7 @@ fun FlipperFilesScreen(navController: NavController) {
                 }
                 val name = uri.lastPathSegment?.substringAfterLast('/') ?: "file"
                 fileName = name
-                // Analyse hors du thread principal (fichiers potentiellement volumineux).
+                // Parse off the main thread (files may be large).
                 summary = if (text == null) "Could not read file."
                 else withContext(Dispatchers.Default) { summarize(name, text) }
             }
@@ -97,7 +97,7 @@ private fun summarize(name: String, text: String): String {
                 append("UID: ${c.uid ?: "?"}\n")
                 append("ATQA: ${c.atqa ?: "?"}  SAK: ${c.sak ?: "?"}\n")
                 if (c.pages.isNotEmpty()) {
-                    // NTAG / Ultralight : lignes "Page i:"
+                    // NTAG / Ultralight: "Page i:" lines
                     append("Pages: ${c.pages.size}\n\n")
                     c.pages.take(16).forEachIndexed { i, p -> append("Page $i: $p\n") }
                     if (c.pages.size > 16) append("...")

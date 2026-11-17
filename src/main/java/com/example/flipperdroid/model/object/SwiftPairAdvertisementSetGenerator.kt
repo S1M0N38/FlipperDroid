@@ -9,17 +9,17 @@ import com.example.flipperdroid.model.enums.TxPowerLevel
 import com.example.flipperdroid.model.enums.AdvertiseMode
 
 /**
- * Génère des trames "Microsoft Swift Pair" qui provoquent une popup de
- * couplage Bluetooth sur Windows 10/11.
+ * Generates "Microsoft Swift Pair" frames that trigger a Bluetooth
+ * pairing popup on Windows 10/11.
  *
- * Format : Manufacturer Specific Data, company ID 0x0006 (Microsoft),
- * payload = [0x03, 0x00, 0x80] + nom d'appareil (ASCII).
+ * Format: Manufacturer Specific Data, company ID 0x0006 (Microsoft),
+ * payload = [0x03, 0x00, 0x80] + device name (ASCII).
  */
 object SwiftPairAdvertisementSetGenerator {
     private const val manufacturerId = 0x0006 // Microsoft
 
-    // Le nom est affiché tel quel dans la popup Swift Pair de Windows : ASCII
-    // arbitraire, donc chaque entrée fonctionne sans base de données côté cible.
+    // The name is displayed verbatim in the Windows Swift Pair popup: arbitrary
+    // ASCII, so every entry works without any database on the target side.
     private val deviceNames = listOf(
         "Surface Keyboard",
         "Surface Mouse",
@@ -69,7 +69,7 @@ object SwiftPairAdvertisementSetGenerator {
 
             val manufacturerSpecificData = ManufacturerSpecificData()
             manufacturerSpecificData.manufacturerId = manufacturerId
-            // 0x03 = Microsoft Beacon ID, 0x00 = sous-scénario, 0x80 = réservé + Swift Pair
+            // 0x03 = Microsoft Beacon ID, 0x00 = sub-scenario, 0x80 = reserved + Swift Pair
             val header = byteArrayOf(0x03, 0x00, 0x80.toByte())
             manufacturerSpecificData.manufacturerSpecificData = header + name.toByteArray(Charsets.US_ASCII)
             advertisementSet.advertiseData.manufacturerData.add(manufacturerSpecificData)

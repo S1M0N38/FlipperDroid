@@ -16,7 +16,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 
-/** Génère un QR code Wi-Fi (WIFI:...) que les téléphones scannent pour rejoindre le réseau. */
+/** Generates a Wi-Fi QR code (WIFI:...) that phones scan to join the network. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WifiQrScreen(navController: NavController) {

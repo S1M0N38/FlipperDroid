@@ -243,7 +243,7 @@ fun AddFindingForm(viewModel: ReportGeneratorViewModel, onDone: () -> Unit) {
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // Noms complets des sévérités (défilement horizontal si l'écran est étroit)
+            // Full severity names (horizontal scroll if the screen is narrow)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

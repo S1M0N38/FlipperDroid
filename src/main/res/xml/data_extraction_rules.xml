@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Android 12+ : rien de sensible ne part en sauvegarde cloud ni en transfert d'appareil. -->
+<!-- Android 12+: nothing sensitive leaves through cloud backup or device transfer. -->
 <data-extraction-rules>
     <cloud-backup>
         <exclude domain="sharedpref" path="secure_store.xml" />

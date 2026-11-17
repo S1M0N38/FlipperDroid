@@ -27,18 +27,18 @@ import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 
 /**
- * Scanner de QR codes / codes-barres via la caméra (bibliothèque ZXing embedded).
- * Affiche le contenu lu, permet de le copier et d'ouvrir les URL (après confirmation).
+ * QR code / barcode scanner through the camera (ZXing embedded library).
+ * Displays the scanned content, allows copying it and opening the URLs (after confirmation).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun QrScannerScreen(navController: NavController) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
-    // Résultat conservé lors des rotations / recréations d'activité
+    // Result kept across rotations / activity recreations
     var scannedContent by rememberSaveable { mutableStateOf<String?>(null) }
     var scannedFormat by rememberSaveable { mutableStateOf<String?>(null) }
-    // URI en attente de confirmation avant ouverture
+    // URI awaiting confirmation before opening
     var pendingUri by rememberSaveable { mutableStateOf<String?>(null) }
 
     val scanLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
@@ -123,7 +123,7 @@ fun QrScannerScreen(navController: NavController) {
         }
     }
 
-    // Confirmation avant d'ouvrir une URL lue depuis un code (URI complète affichée)
+    // Confirmation before opening a URL read from a code (full URI displayed)
     pendingUri?.let { uri ->
         AlertDialog(
             onDismissRequest = { pendingUri = null },

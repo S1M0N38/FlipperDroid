@@ -6,9 +6,9 @@ import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
 /**
- * Résultat du parsing d'une URI otpauth:// (QR code 2FA).
- * Les deux premières propriétés (label, secret) sont conservées : la déstructuration
- * `val (label, secret) = ...` reste valide.
+ * Result of parsing an otpauth:// URI (2FA QR code).
+ * The first two properties (label, secret) are kept first: destructuring
+ * `val (label, secret) = ...` stays valid.
  */
 data class OtpauthData(
     val label: String,
@@ -21,19 +21,19 @@ data class OtpauthData(
 )
 
 /**
- * Générateur de codes TOTP (RFC 6238) et HOTP (RFC 4226).
- * Algorithmes HMAC : SHA1 (défaut), SHA256, SHA512.
- * Décode les secrets en Base32 (RFC 4648).
+ * TOTP (RFC 6238) and HOTP (RFC 4226) code generator.
+ * HMAC algorithms: SHA1 (default), SHA256, SHA512.
+ * Decodes Base32 secrets (RFC 4648).
  */
 object TotpGenerator {
 
     private const val BASE32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
     private const val OTPAUTH_SCHEME = "otpauth://"
 
-    /** Algorithmes acceptés, sous forme normalisée (majuscules, sans tiret). */
+    /** Accepted algorithms, in normalized form (uppercase, no dash). */
     val SUPPORTED_ALGORITHMS: List<String> = listOf("SHA1", "SHA256", "SHA512")
 
-    /** Normalise un nom d'algorithme : "sha-256" -> "SHA256". */
+    /** Normalizes an algorithm name: "sha-256" -> "SHA256". */
     fun normalizeAlgorithm(algorithm: String): String =
         algorithm.trim().uppercase().replace("-", "")
 
@@ -44,10 +44,10 @@ object TotpGenerator {
         "SHA1" -> "HmacSHA1"
         "SHA256" -> "HmacSHA256"
         "SHA512" -> "HmacSHA512"
-        else -> throw IllegalArgumentException("Algorithme non supporté : $algorithm")
+        else -> throw IllegalArgumentException("Unsupported algorithm: $algorithm")
     }
 
-    /** Décode une chaîne Base32 (padding et séparateurs ignorés). */
+    /** Decodes a Base32 string (padding and separators ignored). */
     fun base32Decode(input: String): ByteArray {
         val s = input.trim().replace(" ", "").replace("-", "").uppercase().trimEnd('=')
         var bits = 0
@@ -67,8 +67,8 @@ object TotpGenerator {
     }
 
     /**
-     * Vérifie qu'une chaîne est du Base32 valide (A-Z, 2-7, padding '=' optionnel en fin).
-     * Les espaces sont ignorés et la casse n'a pas d'importance.
+     * Checks that a string is valid Base32 (A-Z, 2-7, optional '=' padding at the end).
+     * Whitespace is ignored and case does not matter.
      */
     fun isValidBase32(s: String): Boolean {
         val compact = s.filterNot { it.isWhitespace() }.uppercase()
@@ -79,12 +79,12 @@ object TotpGenerator {
     }
 
     /**
-     * Génère un code TOTP.
-     * @param secretB32 secret partagé en Base32
-     * @param timeSec temps Unix en secondes
-     * @param digits nombre de chiffres (6 à 8 typiquement)
-     * @param step durée d'une fenêtre en secondes
-     * @param algorithm SHA1, SHA256 ou SHA512
+     * Generates a TOTP code.
+     * @param secretB32 shared secret in Base32
+     * @param timeSec Unix time in seconds
+     * @param digits number of digits (typically 6 to 8)
+     * @param step duration of one window in seconds
+     * @param algorithm SHA1, SHA256 or SHA512
      */
     fun generate(
         secretB32: String,
@@ -93,14 +93,14 @@ object TotpGenerator {
         step: Int = 30,
         algorithm: String = "SHA1"
     ): String {
-        require(step > 0) { "Période invalide : $step" }
+        require(step > 0) { "Invalid period: $step" }
         val key = base32Decode(secretB32)
         if (key.isEmpty()) return "".padStart(digits, '-')
         return hotpFromKey(key, timeSec / step, digits, algorithm)
     }
 
     /**
-     * Génère un code HOTP (RFC 4226) pour un compteur donné.
+     * Generates an HOTP code (RFC 4226) for a given counter.
      */
     fun hotp(secretB32: String, counter: Long, digits: Int = 6, algorithm: String = "SHA1"): String {
         val key = base32Decode(secretB32)
@@ -109,8 +109,8 @@ object TotpGenerator {
     }
 
     private fun hotpFromKey(key: ByteArray, counter: Long, digits: Int, algorithm: String): String {
-        require(digits in 1..9) { "Nombre de chiffres non supporté : $digits" }
-        // Compteur sur 8 octets, big-endian
+        require(digits in 1..9) { "Unsupported digit count: $digits" }
+        // 8-byte big-endian counter
         val msg = ByteArray(8)
         var v = counter
         for (i in 7 downTo 0) { msg[i] = (v and 0xFF).toByte(); v = v shr 8 }
@@ -120,7 +120,7 @@ object TotpGenerator {
         mac.init(SecretKeySpec(key, name))
         val h = mac.doFinal(msg)
 
-        // Troncature dynamique (RFC 4226 §5.3)
+        // Dynamic truncation (RFC 4226 §5.3)
         val off = h[h.size - 1].toInt() and 0x0F
         val bin = ((h[off].toInt() and 0x7f) shl 24) or
                 ((h[off + 1].toInt() and 0xff) shl 16) or
@@ -131,13 +131,13 @@ object TotpGenerator {
         return (bin.toLong() % mod).toString().padStart(digits, '0')
     }
 
-    /** Secondes restantes avant le prochain code (pour la barre de progression). */
+    /** Seconds left before the next code (for the progress bar). */
     fun secondsRemaining(timeSec: Long, step: Int = 30): Int = (step - (timeSec % step)).toInt()
 
     /**
-     * Parse une URI otpauth:// (QR code 2FA).
-     * Lit les paramètres secret, issuer, algorithm, digits, period ; le label est décodé (URL).
-     * @return null si l'URI est mal formée (schéma, type, secret absent, nombres invalides).
+     * Parses an otpauth:// URI (2FA QR code).
+     * Reads the secret, issuer, algorithm, digits and period parameters; the label is URL-decoded.
+     * @return null if the URI is malformed (scheme, type, missing secret, invalid numbers).
      */
     fun parseOtpauthUri(uri: String): OtpauthData? {
         val input = uri.trim()
@@ -152,7 +152,7 @@ object TotpGenerator {
         val secret = params["secret"]?.filterNot { it.isWhitespace() }.orEmpty()
         if (secret.isEmpty()) return null
 
-        // '+' est un caractère littéral dans le label : on le protège avant le décodage URL
+        // '+' is a literal character in the label: protect it before URL decoding
         val label = decodeComponent(rawLabel.replace("+", "%2B"))
         val account = label.substringAfterLast(':').trim().ifBlank { "Account" }
         val issuer = params["issuer"]?.trim()?.takeIf { it.isNotEmpty() }
@@ -170,7 +170,7 @@ object TotpGenerator {
         return raw.trim().toIntOrNull()
     }
 
-    /** Découpe une query string en paires clé/valeur (clés en minuscules, première occurrence gagne). */
+    /** Splits a query string into key/value pairs (keys lowercased, first occurrence wins). */
     private fun parseQuery(query: String): Map<String, String> {
         val out = LinkedHashMap<String, String>()
         for (pair in query.split('&')) {
@@ -182,7 +182,7 @@ object TotpGenerator {
         return out
     }
 
-    /** Décodage URL UTF-8 ; une séquence % invalide renvoie la chaîne telle quelle. */
+    /** UTF-8 URL decoding; an invalid % sequence returns the string unchanged. */
     private fun decodeComponent(s: String): String = try {
         URLDecoder.decode(s, "UTF-8")
     } catch (e: IllegalArgumentException) {

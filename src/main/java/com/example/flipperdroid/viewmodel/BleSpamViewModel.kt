@@ -20,7 +20,7 @@ class BleSpamViewModel(app: Application) : AndroidViewModel(app) {
     enum class BleSpamBrand { APPLE, SAMSUNG, MICROSOFT, GOOGLE, ALL }
     @SuppressLint("StaticFieldLeak")
     private val context = app.applicationContext
-    // Advertising étendu (API 26+) pour dépasser la limite legacy de 31 octets, sinon legacy.
+    // Extended advertising (API 26+) to exceed the 31-byte legacy limit, otherwise legacy.
     private val handler = AdvertisementSetQueueHandler(
         context,
         BluetoothHelpers.getAdvertisementService(
@@ -39,9 +39,9 @@ class BleSpamViewModel(app: Application) : AndroidViewModel(app) {
     val spamLogs: StateFlow<List<String>> = _spamLogs
     private var spamCount = 0
 
-    // Vitesse du spam (intervalle en ms entre deux trames) : plus petit = plus agressif.
-    // 100 ms par défaut : setAdvertisingData est débité par le contrôleur ; trop rapide,
-    // certaines mises à jour sont ignorées (sans fuite d'advertisers).
+    // Spam speed (interval in ms between two frames): smaller = more aggressive.
+    // 100 ms by default: setAdvertisingData is rate-limited by the controller; too fast,
+    // some updates are ignored (without leaking advertisers).
     private val _speedMs = MutableStateFlow(100L)
     val speedMs: StateFlow<Long> = _speedMs
 
@@ -50,7 +50,7 @@ class BleSpamViewModel(app: Application) : AndroidViewModel(app) {
         handler.setIntervalMillis(ms)
     }
 
-    // Payloads réellement sélectionnés pour le spam (par défaut : tous)
+    // Payloads actually selected for spamming (all by default)
     private var _selectedSets: List<AdvertisementSet> = emptyList()
 
     init {
@@ -63,7 +63,7 @@ class BleSpamViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun startSpam() {
-        // Spam uniquement les payloads sélectionnés ; repli sur tous si aucune sélection.
+        // Spam only the selected payloads; fall back to all of them if nothing is selected.
         val sets = _selectedSets.ifEmpty { _advertisementSets.value }
         if (sets.isEmpty()) return
         _isActive.value = true
@@ -72,8 +72,8 @@ class BleSpamViewModel(app: Application) : AndroidViewModel(app) {
             val log = "[${System.currentTimeMillis() % 100000}] ${(if (set.title.isNotBlank()) set.title else set.toString())} (${set.type})"
             _spamLogs.value = (_spamLogs.value + log).takeLast(100)
         }
-        // Report honnête des échecs (ex. DATA_TOO_LARGE : payload > 31 octets rejeté
-        // par l'advertising legacy) au lieu de laisser croire à un envoi réussi.
+        // Honest reporting of failures (e.g. DATA_TOO_LARGE: payload > 31 bytes rejected
+        // by legacy advertising) instead of implying a successful send.
         handler.onSpamError = { set, error ->
             val name = set?.title?.takeIf { it.isNotBlank() } ?: set?.type?.toString() ?: "?"
             val hint = if (error == com.example.flipperdroid.model.enums.AdvertisementError.ADVERTISE_FAILED_TOO_MANY_ADVERTISERS)
@@ -119,8 +119,8 @@ class BleSpamViewModel(app: Application) : AndroidViewModel(app) {
 
     override fun onCleared() {
         super.onCleared()
-        // Le handler tourne sur le main looper : sans arrêt explicite, l'émission
-        // continuait après la destruction de l'activité.
+        // The handler runs on the main looper: without an explicit stop, advertising
+        // kept going after the activity was destroyed.
         stopSpam()
     }
 

@@ -14,12 +14,12 @@ import java.util.Date
 
 class TotpReportTest {
 
-    // Secrets RFC 6238 en Base32 (vérifiés : décodent vers les graines ASCII de la RFC)
+    // RFC 6238 secrets as Base32 (verified: decode to the RFC ASCII seeds)
     private val seedSha1 = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"                       // "12345678901234567890"
-    private val seedSha256 = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZA===="  // 32 octets
-    private val seedSha512 = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNA="  // 64 octets (vérifié en Python)
+    private val seedSha256 = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZA===="  // 32 bytes
+    private val seedSha512 = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQGEZDGNA="  // 64 bytes (verified in Python)
 
-    // --- TOTP par algorithme (RFC 6238, Appendix B) ---
+    // --- TOTP per algorithm (RFC 6238, Appendix B) ---
 
     @Test
     fun totp_sha256_vectors() {
@@ -48,7 +48,7 @@ class TotpReportTest {
         assertEquals("359152", TotpGenerator.hotp(seedSha1, 2))
     }
 
-    // --- Parsing otpauth:// ---
+    // --- otpauth:// parsing ---
 
     @Test
     fun otpauth_parses_algorithm_digits_period_and_decodes_label() {
@@ -105,12 +105,12 @@ class TotpReportTest {
         assertFalse(TotpGenerator.isValidBase32(""))
         assertFalse(TotpGenerator.isValidBase32("   "))
         assertFalse(TotpGenerator.isValidBase32("====="))
-        assertFalse(TotpGenerator.isValidBase32("JBSWY3DPEHPK3PX1")) // '1' hors alphabet
-        assertFalse(TotpGenerator.isValidBase32("JBSW=Y3DP"))        // '=' au milieu
+        assertFalse(TotpGenerator.isValidBase32("JBSWY3DPEHPK3PX1")) // '1' outside the alphabet
+        assertFalse(TotpGenerator.isValidBase32("JBSW=Y3DP"))        // '=' in the middle
         assertFalse(TotpGenerator.isValidBase32("JBSWY3DPEHPK3PXP!"))
     }
 
-    // --- Markdown : échappement et fences ---
+    // --- Markdown: escaping and fences ---
 
     @Test
     fun markdown_escapes_special_characters() {
@@ -180,11 +180,11 @@ class TotpReportTest {
         assertTrue(html.contains("<li>10:00:00 &lt;scan&gt; started</li>"))
     }
 
-    // --- Identifiants de findings ---
+    // --- Finding ids ---
 
     @Test
     fun finding_ids_never_reuse_numbers_after_deletion() {
-        // 1 et 2 émis, puis 2 supprimé : le prochain doit être 3, pas 2
+        // 1 and 2 issued, then 2 removed: the next one must be 3, not 2
         val afterDelete = ReportGenerator.nextFindingNumber(listOf("FINDING-1"), lastIssued = 2)
         assertEquals(3, afterDelete)
     }

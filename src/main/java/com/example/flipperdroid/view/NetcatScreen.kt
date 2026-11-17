@@ -16,7 +16,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.flipperdroid.viewmodel.NetcatViewModel
 
-/** Netcat (TCP/UDP) + serveur HTTP de fichiers. */
+/** Netcat (TCP/UDP) + file HTTP server. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NetcatScreen(

@@ -16,7 +16,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.flipperdroid.viewmodel.NdefHceViewModel
 
-/** Émule une tag NDEF (HCE Type 4) : le téléphone livre une URL/texte quand on le lit. */
+/** Emulates an NDEF tag (HCE Type 4): the phone serves a URL/text when it is read. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NdefEmulatorScreen(

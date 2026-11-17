@@ -13,10 +13,10 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Tests JVM des noyaux purs NFC (pas d'appareil ni de SDK Android requis). */
+/** JVM tests for the pure NFC cores (no device or Android SDK required). */
 class NfcLogicTest {
 
-    /** Construit un tableau d'octets à partir d'entiers 0..255. */
+    /** Builds a byte array from integers 0..255. */
     private fun b(vararg v: Int): ByteArray = ByteArray(v.size) { v[it].toByte() }
 
     private fun hex(bytes: ByteArray): String = bytes.joinToString("") { "%02X".format(it) }
@@ -32,7 +32,7 @@ class NfcLogicTest {
         assertEquals(130..134, MifareUltralightUtils.protectedPages(135))  // NTAG215
         assertEquals(226..230, MifareUltralightUtils.protectedPages(231))  // NTAG216
         assertEquals(2..3, MifareUltralightUtils.protectedPages(16))       // Ultralight
-        assertNull(MifareUltralightUtils.protectedPages(100))              // taille inconnue
+        assertNull(MifareUltralightUtils.protectedPages(100))              // unknown size
     }
 
     @Test
@@ -47,9 +47,9 @@ class NfcLogicTest {
 
     @Test
     fun hexToBytes_edge_cases() {
-        assertArrayEquals(ByteArray(0), MifareClassicUtils.hexToBytes(""))  // vide -> tableau vide
-        assertNull(MifareClassicUtils.hexToBytes("0"))                       // longueur impaire
-        assertNull(MifareClassicUtils.hexToBytes("zz"))                      // non hexadécimal
+        assertArrayEquals(ByteArray(0), MifareClassicUtils.hexToBytes(""))  // empty -> empty array
+        assertNull(MifareClassicUtils.hexToBytes("0"))                       // odd length
+        assertNull(MifareClassicUtils.hexToBytes("zz"))                      // not hexadecimal
         assertArrayEquals(b(0x0A, 0x0B), MifareClassicUtils.hexToBytes("0A0B"))
         assertArrayEquals(b(0x0A, 0x0B), MifareClassicUtils.hexToBytes("0a0b"))
     }
@@ -70,7 +70,7 @@ class NfcLogicTest {
         assertEquals("9000", hex(r.process(selectCc)))
         val cc = r.process(readBinary(0, 0x0F))
         assertEquals(15 + 2, cc.size)
-        // CCLEN 000F, version 20, MLe 003B, MLc 0034, TLV NDEF E104 taille 0400, lecture 00, écriture FF
+        // CCLEN 000F, version 20, MLe 003B, MLc 0034, NDEF TLV E104 length 0400, read 00, write FF
         assertEquals("000F20003B00340406E104040000FF9000", hex(cc))
     }
 
@@ -79,7 +79,7 @@ class NfcLogicTest {
         val r = Type4Responder(b(0xD1, 0x01, 0x02, 0x54, 0x00))
         r.process(selectApp)
         assertEquals("9000", hex(r.process(selectNdef)))
-        // NLEN = 0005, puis le message de 5 octets, puis 9000
+        // NLEN = 0005, then the 5-byte message, then 9000
         assertEquals("0005D1010254009000", hex(r.process(readBinary(0, 7))))
     }
 
@@ -90,11 +90,11 @@ class NfcLogicTest {
         r.process(selectApp)
         r.process(selectNdef)
         val first = r.process(readBinary(0, 0))
-        assertEquals(256 + 2, first.size)            // Le=0 -> 256 octets + SW
+        assertEquals(256 + 2, first.size)            // Le=0 -> 256 bytes + SW
         assertEquals(0x01.toByte(), first[0])        // NLEN = 300 = 0x012C
         assertEquals(0x2C.toByte(), first[1])
         val rest = r.process(readBinary(256, 0))
-        assertEquals(302 - 256 + 2, rest.size)       // il reste 46 octets + SW
+        assertEquals(302 - 256 + 2, rest.size)       // 46 bytes left + SW
     }
 
     @Test
@@ -153,7 +153,7 @@ class NfcLogicTest {
 
     @Test
     fun tlv_nested_constructed_template() {
-        // 70 (template constructé) contenant 5A
+        // 70 (constructed template) containing 5A
         val inner = b(0x5A, 0x04, 0x41, 0x42, 0x43, 0x44)
         val data = b(0x70, inner.size) + inner
         assertArrayEquals(b(0x41, 0x42, 0x43, 0x44), EmvTlv.findFirst(data, 0x5A))
@@ -161,11 +161,11 @@ class NfcLogicTest {
 
     @Test
     fun tlv_truncated_input_does_not_crash() {
-        assertNull(EmvTlv.findFirst(b(0x70, 0x10, 0x5A, 0x08, 0x41, 0x11), 0x5A)) // longueur > données
-        assertNull(EmvTlv.findFirst(b(0x5A), 0x5A))                               // tag sans longueur
-        assertNull(EmvTlv.findFirst(b(0x9F), 0x9F38))                             // tag multi-octets tronqué
-        assertNull(EmvTlv.findFirst(b(0x5A, 0x81), 0x5A))                         // longueur longue tronquée
-        assertNull(EmvTlv.findFirst(b(0x5A, 0x85, 0x01), 0x5A))                   // n > 4 : invalide
+        assertNull(EmvTlv.findFirst(b(0x70, 0x10, 0x5A, 0x08, 0x41, 0x11), 0x5A)) // length > data
+        assertNull(EmvTlv.findFirst(b(0x5A), 0x5A))                               // tag without length
+        assertNull(EmvTlv.findFirst(b(0x9F), 0x9F38))                             // truncated multi-byte tag
+        assertNull(EmvTlv.findFirst(b(0x5A, 0x81), 0x5A))                         // truncated long length
+        assertNull(EmvTlv.findFirst(b(0x5A, 0x85, 0x01), 0x5A))                   // n > 4: invalid
         assertEquals(0x07, EmvTlv.findFirst(b(0x00, 0x00, 0x5A, 0x01, 0x07), 0x5A)!![0].toInt())
     }
 
@@ -214,7 +214,7 @@ class NfcLogicTest {
         val card = FlipperNfc.parse(text)
         assertTrue(card.valid)
         assertEquals("NTAG/Ultralight", card.deviceType)
-        assertEquals(45, card.pages.size)          // "Pages total/read" ne doivent pas être comptés
+        assertEquals(45, card.pages.size)          // "Pages total/read" must not be counted
         assertEquals(spacedHex(pages[4]), card.pages[4])
         assertTrue(card.blocks.isEmpty())
     }

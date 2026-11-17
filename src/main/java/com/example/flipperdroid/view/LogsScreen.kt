@@ -21,7 +21,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/** Journal central des actions de l'application. */
+/** Central log of the application's actions. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LogsScreen(navController: NavController) {

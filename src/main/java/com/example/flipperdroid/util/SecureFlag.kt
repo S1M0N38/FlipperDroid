@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.platform.LocalContext
 
-/** Retrouve l'Activity hôte en déroulant les ContextWrapper (null si absente). */
+/** Finds the host Activity by unwrapping ContextWrapper (null if absent). */
 private fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
     is ContextWrapper -> baseContext.findActivity()
@@ -16,9 +16,9 @@ private fun Context.findActivity(): Activity? = when (this) {
 }
 
 /**
- * Active FLAG_SECURE sur la fenêtre de l'Activity tant que ce composable est présent :
- * captures d'écran, enregistrement et aperçu des tâches récentes sont bloqués.
- * Le flag est retiré quand le composable quitte la composition.
+ * Sets FLAG_SECURE on the Activity window while this composable is present:
+ * screenshots, recording and the recents preview are blocked.
+ * The flag is removed when the composable leaves the composition.
  */
 @Composable
 fun SecureWindow() {

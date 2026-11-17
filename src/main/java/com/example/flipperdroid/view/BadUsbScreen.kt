@@ -16,10 +16,10 @@ import androidx.navigation.NavController
 import com.example.flipperdroid.viewmodel.BadUsbViewModel
 
 /**
- * Ecran BadUSB permettant d envoyer un script clavier depuis le telephone
+ * BadUSB screen for sending a keyboard script from the phone
  *
- * @param navController controleur de navigation
- * @param viewModel vue modele gere l etat de la connexion usb et le script clavier
+ * @param navController navigation controller
+ * @param viewModel view model handles the usb connection state and the keyboard script
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,7 +35,7 @@ fun BadUsbScreen(
     Scaffold(
         topBar = {
             /**
-             * Barre superieure avec bouton retour et titre
+             * Top bar with back button and title
              */
             TopAppBar(
                 title = { Text("Bad USB") },
@@ -61,7 +61,7 @@ fun BadUsbScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             /**
-             * Carte affichant le statut de la connexion USB
+             * Card showing the USB connection status
              */
             Card(
                 modifier = Modifier.fillMaxWidth()
@@ -96,7 +96,7 @@ fun BadUsbScreen(
             }
 
             /**
-             * Champ de saisie du script clavier
+             * Keyboard script input field
              */
             OutlinedTextField(
                 value = currentScript.value,
@@ -112,7 +112,7 @@ fun BadUsbScreen(
             )
 
             /**
-             * Bouton pour executer le script clavier
+             * Button to execute the keyboard script
              */
             Button(
                 onClick = { viewModel.executeScript() },
@@ -129,7 +129,7 @@ fun BadUsbScreen(
             }
 
             /**
-             * Carte d alerte si l appareil n est pas connecte en USB
+             * Alert card if the device is not connected over USB
              */
             if (isUsbHostAvailable && !isConnected) {
                 Card(

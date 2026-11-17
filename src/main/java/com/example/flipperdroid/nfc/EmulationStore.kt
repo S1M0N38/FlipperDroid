@@ -6,19 +6,19 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /**
- * Persistance d'une carte ISO-DEP capturée pour l'émulation HCE (replay APDU).
- * Stocke la table commande->réponse (en hex) et les AID auxquels la carte a répondu.
+ * Persistence of a captured ISO-DEP card for HCE emulation (APDU replay).
+ * Stores the command->response table (hex) and the AIDs the card answered to.
  *
- * Les réponses APDU peuvent contenir des données de porteur (PAN, Track2, nom) : elles sont
- * donc chiffrées via [SecureStore] (Android Keystore), et non plus en clair dans des
- * SharedPreferences. L'ancien stockage en clair ("hce_emulation") est migré puis effacé.
+ * APDU responses can contain cardholder data (PAN, Track2, name): they are
+ * therefore encrypted through [SecureStore] (Android Keystore), and no longer in clear text in
+ * SharedPreferences. The old cleartext storage ("hce_emulation") is migrated then erased.
  */
 object EmulationStore {
-    /** Ancien fichier de préférences en clair : migré puis supprimé. */
+    /** Old cleartext preferences file: migrated then deleted. */
     private const val LEGACY_PREFS = "hce_emulation"
-    /** Clé (chiffrée) qui contient le JSON complet de la capture. */
+    /** (Encrypted) key holding the complete JSON of the capture. */
     private const val KEY_DATA = "hce_emulation_v2"
-    // Noms des champs : identiques à ceux de l'ancien stockage, pour la migration.
+    // Field names: identical to the old storage, for the migration.
     private const val F_LABEL = "label"
     private const val F_AIDS = "aids"
     private const val F_MAP = "apdu_map"
@@ -53,7 +53,7 @@ object EmulationStore {
                 val k = keys.next()
                 out[k] = obj.optString(k, "")
             }
-        } catch (e: Exception) { /* entrée corrompue : on garde ce qui a été lu */ }
+        } catch (e: Exception) { /* corrupt entry: keep whatever was read */ }
         return out
     }
 
@@ -64,14 +64,14 @@ object EmulationStore {
         legacyPrefs(context).edit().clear().apply()
     }
 
-    /** Déchiffre et parse la capture ; null si absente ou illisible. */
+    /** Decrypts and parses the capture; null if absent or unreadable. */
     private fun load(context: Context): JSONObject? {
         migrateLegacy(context)
         val json = SecureStore.getString(context, KEY_DATA) ?: return null
         return try { JSONObject(json) } catch (e: Exception) { null }
     }
 
-    /** Migre l'ancien stockage en clair vers [SecureStore], puis supprime les anciennes préférences. */
+    /** Migrates the old cleartext storage to [SecureStore], then deletes the old preferences. */
     private fun migrateLegacy(context: Context) {
         val legacy = legacyPrefs(context)
         if (legacy.all.isEmpty()) return
@@ -84,7 +84,7 @@ object EmulationStore {
                 SecureStore.putString(context, KEY_DATA, obj.toString())
             }
         } catch (e: Exception) {
-            // Ancien contenu illisible : on le supprime sans le migrer.
+            // Old unreadable content: delete it without migrating.
         }
         legacy.edit().clear().apply()
     }

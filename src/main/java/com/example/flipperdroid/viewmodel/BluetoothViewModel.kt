@@ -23,7 +23,7 @@ import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
-/** Résumé d'un appareil BLE détecté pendant le scan. */
+/** Summary of a BLE device detected during the scan. */
 data class BleDeviceInfo(
     val name: String,
     val address: String,
@@ -31,7 +31,7 @@ data class BleDeviceInfo(
     val connectable: Boolean
 )
 
-/** Caractéristique GATT avec ses propriétés décodées et sa dernière valeur lue. */
+/** GATT characteristic with its decoded properties and its last read value. */
 data class GattCharacteristicInfo(
     val serviceUuid: String,
     val uuid: String,
@@ -39,17 +39,17 @@ data class GattCharacteristicInfo(
     val value: String? = null
 )
 
-/** Service GATT et ses caractéristiques. */
+/** GATT service and its characteristics. */
 data class GattServiceInfo(
     val uuid: String,
     val characteristics: List<GattCharacteristicInfo>
 )
 
 /**
- * ViewModel du scanner BLE + explorateur GATT (façon nRF Connect / LightBlue).
+ * ViewModel for the BLE scanner + GATT explorer (nRF Connect / LightBlue style).
  *
- * Scanne les appareils BLE, se connecte à l'un d'eux, découvre ses services
- * et caractéristiques, et permet de lire les valeurs.
+ * Scans BLE devices, connects to one of them, discovers its services
+ * and characteristics, and allows reading the values.
  */
 class BluetoothViewModel : ViewModel() {
 
@@ -123,7 +123,7 @@ class BluetoothViewModel : ViewModel() {
                 ContextCompat.checkSelfPermission(ctx, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED &&
                 ContextCompat.checkSelfPermission(ctx, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED
             } else {
-                // Avant Android 12, le scan BLE renvoie une liste vide sans la localisation.
+                // Before Android 12, a BLE scan returns an empty list without location.
                 ContextCompat.checkSelfPermission(ctx, Manifest.permission.BLUETOOTH) == PackageManager.PERMISSION_GRANTED &&
                 ContextCompat.checkSelfPermission(ctx, Manifest.permission.BLUETOOTH_ADMIN) == PackageManager.PERMISSION_GRANTED &&
                 ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED

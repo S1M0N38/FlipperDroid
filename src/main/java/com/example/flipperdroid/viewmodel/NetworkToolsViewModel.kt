@@ -27,15 +27,15 @@ data class NetworkResult(
     val isError: Boolean = false
 )
 /**
- * ViewModel gerant des outils reseau
+ * ViewModel managing network tools
  *
- * Cette classe execute les commandes reseau et expose les résultats
- * via des StateFlow
+ * This class executes the network commands and exposes the results
+ * via StateFlows
  */
 class NetworkToolsViewModel : ViewModel() {
 
     companion object {
-        /** Dossier dédié à l'app dans /data/local/tmp (root) pour nmap et ses .so. */
+        /** Directory dedicated to the app in /data/local/tmp (root) for nmap and its .so files. */
         const val NMAP_DIR = "/data/local/tmp/flipperdroid"
         private const val NMAP_TIMEOUT_MS = 120_000L
         private const val MAX_PORTS_PER_SCAN = 2048
@@ -48,21 +48,21 @@ class NetworkToolsViewModel : ViewModel() {
     val isScanning: StateFlow<Boolean> = _isScanning
 
     /**
-     * Contexte Android pour accéder aux assets et au dossier interne
+     * Android context used to access the assets and the internal directory
      */
     @SuppressLint("StaticFieldLeak")
     private var context: Context? = null
 
     /**
-     * Initialise le ViewModel avec le contexte de l'application
+     * Initializes the ViewModel with the application context
      */
     fun initialize(context: Context) {
         this.context = context.applicationContext
     }
 
     /**
-     * Copie le binaire nmap depuis les assets vers le dossier interne si besoin, et le rend exécutable
-     * @return Chemin absolu du binaire nmap prêt à l'emploi
+     * Copies the nmap binary from the assets to the internal directory if needed, and makes it executable
+     * @return Absolute path of the ready-to-use nmap binary
      */
     fun copyAssetToFile(context: Context, assetName: String, destFile: File): Boolean {
         return try {
@@ -73,26 +73,26 @@ class NetworkToolsViewModel : ViewModel() {
             }
             true
         } catch (e: Exception) {
-            Log.e("NMAP_COPY", "Erreur lors de la copie de l'asset $assetName : ${e.message}")
+            Log.e("NMAP_COPY", "Error while copying asset $assetName: ${e.message}")
             false
         }
     }
 
     /**
-     * Copie récursivement tout le contenu du dossier assets/nmap/ vers /data/local/tmp/nmap/
-     * @return Chemin absolu du dossier nmap prêt à l'emploi
+     * Recursively copies the whole contents of the assets/nmap/ directory to /data/local/tmp/nmap/
+     * @return Absolute path of the ready-to-use nmap directory
      */
     fun copyNmapToTmp(context: Context): String {
         val internalNmapDir = File(context.filesDir, "nmap")
         return try {
-            // Déjà installé et exécutable : pas de recopie de ~11 Mo à chaque scan.
+            // Already installed and executable: no ~11 MB copy on every scan.
             val installed = Runtime.getRuntime().exec(arrayOf("su", "-c", "test -x ${ShellArgs.quote("$NMAP_DIR/nmap")}")).waitFor() == 0
             if (!installed) {
                 if (internalNmapDir.exists()) deleteRecursively(internalNmapDir)
                 internalNmapDir.mkdirs()
                 copyAssetsRecursively(context, "nmap", internalNmapDir)
                 if (!File(internalNmapDir, "nmap").exists()) return "ERROR : nmap asset missing from the APK"
-                // Sous-dossier dédié : on ne touche plus aux fichiers des autres apps dans /data/local/tmp.
+                // Dedicated subdirectory: the files of other apps in /data/local/tmp are left untouched.
                 val dir = ShellArgs.quote(NMAP_DIR)
                 val cmd = "mkdir -p $dir && cp -r ${ShellArgs.quote(internalNmapDir.absolutePath)}/. $dir/ && chmod 755 $dir $dir/*"
                 val rc = Runtime.getRuntime().exec(arrayOf("su", "-c", cmd)).waitFor()
@@ -106,7 +106,7 @@ class NetworkToolsViewModel : ViewModel() {
     }
 
     /**
-     * Copie récursivement tout le contenu d'un dossier d'assets vers un dossier de destination
+     * Recursively copies the whole contents of an assets directory to a destination directory
      */
     private fun copyAssetsRecursively(context: Context, assetPath: String, destDir: File) {
         try {
@@ -114,28 +114,28 @@ class NetworkToolsViewModel : ViewModel() {
             //Log.d("NMAP_COPY", "Asset path: $assetPath, assets: ${assets?.joinToString(", ") ?: "null"}")
 
             if (assets == null || assets.isEmpty()) {
-                //Log.d("NMAP_COPY", "Copie du fichier $assetPath vers ${destDir.absolutePath}")
+                //Log.d("NMAP_COPY", "Copying file $assetPath to ${destDir.absolutePath}")
                 val success = copyAssetToFile(context, assetPath, destDir)
-                Log.d("NMAP_COPY", "Résultat de la copie de $assetPath : $success")
+                Log.d("NMAP_COPY", "Copy result for $assetPath: $success")
             } else {
-                //Log.d("NMAP_COPY", "Création du dossier ${destDir.absolutePath}")
+                //Log.d("NMAP_COPY", "Creating directory ${destDir.absolutePath}")
                 destDir.mkdirs()
                 for (item in assets) {
                     val newAssetPath = if (assetPath.isEmpty()) item else "$assetPath/$item"
                     val newDestFile = File(destDir, item)
-                    //Log.d("NMAP_COPY", "Traitement de $newAssetPath vers ${newDestFile.absolutePath}")
+                    //Log.d("NMAP_COPY", "Processing $newAssetPath to ${newDestFile.absolutePath}")
                     copyAssetsRecursively(context, newAssetPath, newDestFile)
                 }
             }
         } catch (e: Exception) {
-            //Log.e("NMAP_COPY", "Erreur lors de la copie de $assetPath : ${e.message}")
+            //Log.e("NMAP_COPY", "Error while copying $assetPath: ${e.message}")
         }
     }
 
 
 
     /**
-     * Crée les fichiers de configuration manquants pour éviter les warnings Termux
+     * Creates the missing configuration files to avoid Termux warnings
      */
     private fun createMissingConfigFiles() {
         try {
@@ -146,7 +146,7 @@ class NetworkToolsViewModel : ViewModel() {
 
             val resolvCmd = "printf '%s\\n' ${ShellArgs.quote(resolvContent)} > ${ShellArgs.quote("$NMAP_DIR/resolv.conf")}"
             Runtime.getRuntime().exec(arrayOf("su", "-c", resolvCmd)).waitFor()
-            //Log.d("NMAP_COPY", "Fichier resolv.conf créé")
+            //Log.d("NMAP_COPY", "resolv.conf file created")
 
             val nsswitchContent = """
                 hosts:      files dns
@@ -158,15 +158,15 @@ class NetworkToolsViewModel : ViewModel() {
 
             val nsswitchCmd = "printf '%s\\n' ${ShellArgs.quote(nsswitchContent)} > ${ShellArgs.quote("$NMAP_DIR/nsswitch.conf")}"
             Runtime.getRuntime().exec(arrayOf("su", "-c", nsswitchCmd)).waitFor()
-            //Log.d("NMAP_COPY", "Fichier nsswitch.conf créé")
+            //Log.d("NMAP_COPY", "nsswitch.conf file created")
 
         } catch (e: Exception) {
-            //Log.w("NMAP_COPY", "Erreur lors de la création des fichiers de config : ${e.message}")
+            //Log.w("NMAP_COPY", "Error while creating the config files: ${e.message}")
         }
     }
 
     /**
-     * Supprime récursivement un dossier et son contenu
+     * Recursively deletes a directory and its contents
      */
     private fun deleteRecursively(file: File) {
         if (file.isDirectory) {
@@ -175,11 +175,11 @@ class NetworkToolsViewModel : ViewModel() {
         file.delete()
     }
     /**
-     * Lance une commande ping vers l'adresse ou nom d'hote fourni
+     * Runs a ping command against the provided address or host name
      *
-     * Recupere la sortie de la commande et met a jour les résultats
+     * Reads the command output and updates the results
      *
-     * @param host adresse IP ou nom d hote a tester
+     * @param host IP address or host name to test
      */
     fun ping(host: String) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -220,13 +220,13 @@ class NetworkToolsViewModel : ViewModel() {
     }
 
     /**
-     * Scan les ports entre startPort et endPort sur l'hote fourni
+     * Scans the ports between startPort and endPort on the provided host
      *
-     * Detecte les ports ouverts et met a jour les résultats
+     * Detects the open ports and updates the results
      *
-     * @param host adresse IP ou nom d hote a scanner
-     * @param startPort port de debut de plage
-     * @param endPort port de fin de plage
+     * @param host IP address or host name to scan
+     * @param startPort first port of the range
+     * @param endPort last port of the range
      */
     fun scanPorts(host: String, startPort: Int, endPort: Int) {
         if (startPort !in 1..65535 || endPort !in 1..65535 || startPort > endPort) {
@@ -242,12 +242,12 @@ class NetworkToolsViewModel : ViewModel() {
             val openPorts = mutableListOf<Int>()
 
             try {
-                // Résolution unique (auparavant refaite pour chaque port).
+                // Single resolution (previously redone for every port).
                 val address = InetAddress.getByName(host)
                 for (port in startPort..endPort) {
                     try {
-                        // Timeout de connexion explicite : sans lui, un port filtré peut
-                        // bloquer le scan très longtemps (timeout TCP par défaut de l'OS).
+                        // Explicit connection timeout: without it, a filtered port can
+                        // block the scan for a very long time (default OS TCP timeout).
                         Socket().use { sock ->
                             sock.connect(InetSocketAddress(address, port), 400)
                             openPorts.add(port)
@@ -279,11 +279,11 @@ class NetworkToolsViewModel : ViewModel() {
         }
     }
     /**
-     * Effectue une recherche DNS pour l'hote fourni
+     * Performs a DNS lookup for the provided host
      *
-     * Recupere les adresses associees et met a jour les résultats
+     * Retrieves the associated addresses and updates the results
      *
-     * @param host nom d'hôte a rechercher
+     * @param host host name to look up
      */
     fun dnsLookup(host: String) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -318,17 +318,17 @@ class NetworkToolsViewModel : ViewModel() {
         }
     }
     /**
-     * Lance une commande traceroute vers l hote fourni
+     * Runs a traceroute command against the provided host
      *
-     * Recupere la sortie et met a jour les résultats
+     * Reads the output and updates the results
      *
-     * @param host adresse IP ou nom d'hôte cible
+     * @param host target IP address or host name
      */
     fun traceroute(host: String) {
         viewModelScope.launch(Dispatchers.IO) {
             _isScanning.value = true
-            // Sans socket ICMP brute (root), Android ne permet pas de faire varier le TTL :
-            // ceci n'est PAS un traceroute, seulement un test d'accessibilité TCP de la cible.
+            // Without a raw ICMP socket (root), Android does not allow varying the TTL:
+            // this is NOT a traceroute, only a TCP reachability test of the target.
             val title = "TCP reachability $host"
             try {
                 val output = StringBuilder()
@@ -347,7 +347,7 @@ class NetworkToolsViewModel : ViewModel() {
                         reachable = true
                         break
                     } catch (e: java.net.ConnectException) {
-                        // RST reçu : l'hôte répond, le port est fermé.
+                        // RST received: the host answers, the port is closed.
                         output.append("port $port: CLOSED — host answered (${System.currentTimeMillis() - start} ms)\n")
                         reachable = true
                         break
@@ -368,12 +368,12 @@ class NetworkToolsViewModel : ViewModel() {
     }
 
     /**
-     * Execute une commande nmap avec les options choisies sur l'hôte fourni
+     * Runs an nmap command with the chosen options against the provided host
      *
-     * Recupere la sortie et met a jour les résultats
+     * Reads the output and updates the results
      *
-     * @param host adresse IP ou nom d'hôte cible
-     * @param parameters les options choisies par l'utilisateur (ex: -sV -T4)
+     * @param host target IP address or host name
+     * @param parameters the options chosen by the user (e.g. -sV -T4)
      */
 
 
@@ -405,13 +405,13 @@ class NetworkToolsViewModel : ViewModel() {
                 }
                 val dir = NMAP_DIR
                 val args = ShellArgs.join(opts.ifEmpty { listOf("-sn") } + target)
-                // exec : le shell su est remplacé par nmap ; chemin absolu pour pouvoir le tuer.
+                // exec: the su shell is replaced by nmap; absolute path so that it can be killed.
                 val fullCommand = "cd ${ShellArgs.quote(dir)} && LD_LIBRARY_PATH=${ShellArgs.quote(dir)} " +
                     "RESOLV_CONF=${ShellArgs.quote("$dir/resolv.conf")} NSSWITCH_CONF=${ShellArgs.quote("$dir/nsswitch.conf")} " +
                     "exec ${ShellArgs.quote("$dir/nmap")} $args"
 
                 val process = Runtime.getRuntime().exec(arrayOf("su", "-c", fullCommand))
-                // StringBuffer (synchronisé) : stdout et stderr sont lus par deux threads.
+                // StringBuffer (synchronized): stdout and stderr are read by two threads.
                 val output = StringBuffer()
                 val outputThread = Thread {
                     try { process.inputStream.bufferedReader().forEachLine { output.append(it).append("\n") } } catch (_: Exception) {}
@@ -420,14 +420,14 @@ class NetworkToolsViewModel : ViewModel() {
                     try { process.errorStream.bufferedReader().forEachLine { output.append("ERR: ").append(it).append("\n") } } catch (_: Exception) {}
                 }.apply { isDaemon = true; start() }
 
-                // Process.waitFor(timeout, unit) n'existe qu'en API 26 : attente active bornée.
+                // Process.waitFor(timeout, unit) only exists on API 26: bounded busy wait.
                 val deadline = System.currentTimeMillis() + NMAP_TIMEOUT_MS
                 var exitCode: Int? = null
                 while (exitCode == null && System.currentTimeMillis() < deadline) {
                     try { exitCode = process.exitValue() } catch (_: IllegalThreadStateException) { Thread.sleep(200) }
                 }
                 if (exitCode == null) {
-                    // Tuer nmap lui-même (le détruire via le client su ne suffit pas toujours).
+                    // Kill nmap itself (destroying it through the su client is not always enough).
                     try { Runtime.getRuntime().exec(arrayOf("su", "-c", "pkill -f ${ShellArgs.quote("$dir/nmap")}")).waitFor() } catch (_: Exception) {}
                     process.destroy()
                     output.append("\n[Timeout after ${NMAP_TIMEOUT_MS / 1000} s — scan killed]\n")
@@ -452,14 +452,14 @@ class NetworkToolsViewModel : ViewModel() {
     } catch (_: Exception) { false }
 
     /**
-     * Wake-on-LAN : envoie un "magic packet" à l'adresse MAC fournie (broadcast UDP 9).
+     * Wake-on-LAN: sends a "magic packet" to the provided MAC address (UDP broadcast port 9).
      */
     fun wakeOnLan(mac: String) {
         viewModelScope.launch(Dispatchers.IO) {
             _isScanning.value = true
             try {
                 val clean = mac.replace("[:\\-\\s]".toRegex(), "")
-                if (clean.length != 12) throw IllegalArgumentException("MAC invalide")
+                if (clean.length != 12) throw IllegalArgumentException("Invalid MAC")
                 val macBytes = ByteArray(6) { clean.substring(it * 2, it * 2 + 2).toInt(16).toByte() }
                 val packet = ByteArray(6 + 16 * 6)
                 for (i in 0 until 6) packet[i] = 0xFF.toByte()
@@ -479,7 +479,7 @@ class NetworkToolsViewModel : ViewModel() {
     }
 
     /**
-     * Lit la table ARP du noyau (/proc/net/arp) : voisins IP/MAC sur le réseau local.
+     * Reads the kernel ARP table (/proc/net/arp): IP/MAC neighbours on the local network.
      */
     fun arpTable() {
         viewModelScope.launch(Dispatchers.IO) {
@@ -503,14 +503,14 @@ class NetworkToolsViewModel : ViewModel() {
     }
 
     /**
-     * Balayage de sous-réseau : ping les hôtes 1..254 du /24 dérivé de l'IP fournie.
+     * Subnet sweep: pings hosts 1..254 of the /24 derived from the provided IP.
      */
     fun pingSweep(baseIp: String) {
         viewModelScope.launch(Dispatchers.IO) {
             _isScanning.value = true
             try {
                 val prefix = baseIp.substringBeforeLast('.', "")
-                if (prefix.isEmpty() || !baseIp.contains('.')) throw IllegalArgumentException("IP invalide")
+                if (prefix.isEmpty() || !baseIp.contains('.')) throw IllegalArgumentException("Invalid IP")
                 val alive = java.util.Collections.synchronizedList(mutableListOf<String>())
                 val threads = (1..254).map { host ->
                     Thread {
@@ -534,7 +534,7 @@ class NetworkToolsViewModel : ViewModel() {
     }
 
     /**
-     * Vide la liste des résultats precedents
+     * Clears the list of previous results
      */
     fun clearResults() {
         _results.value = emptyList()

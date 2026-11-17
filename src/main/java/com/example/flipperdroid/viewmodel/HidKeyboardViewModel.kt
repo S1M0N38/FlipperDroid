@@ -19,9 +19,9 @@ import kotlinx.coroutines.launch
 import java.util.concurrent.Executors
 
 /**
- * Clavier HID Bluetooth : le téléphone se présente comme un clavier sans fil
- * (BadKB sans câble) auprès d'un PC/tablette apparié. Utilise le profil
- * BluetoothHidDevice (pas de root requis).
+ * Bluetooth HID keyboard: the phone presents itself as a wireless keyboard
+ * (BadKB without a cable) to a paired PC/tablet. Uses the BluetoothHidDevice
+ * profile (no root required).
  */
 class HidKeyboardViewModel : ViewModel() {
 
@@ -31,7 +31,7 @@ class HidKeyboardViewModel : ViewModel() {
     private var hidDevice: BluetoothHidDevice? = null
     private var host: BluetoothDevice? = null
     private var registered = false
-    // Un seul exécuteur réutilisé (auparavant un pool neuf, jamais fermé, à chaque enregistrement).
+    // A single reused executor (previously a fresh pool, never shut down, on every registration).
     private val callbackExecutor = Executors.newSingleThreadExecutor()
 
     private val _status = MutableStateFlow("Not registered")
@@ -40,7 +40,7 @@ class HidKeyboardViewModel : ViewModel() {
     private val _connected = MutableStateFlow(false)
     val connected: StateFlow<Boolean> = _connected
 
-    // Descripteur HID d'un clavier "boot" standard (rapport 8 octets, sans report id)
+    // HID descriptor of a standard "boot" keyboard (8-byte report, no report id)
     private val hidDescriptor = byteArrayOf(
         0x05, 0x01, 0x09, 0x06, 0xA1.toByte(), 0x01, 0x05, 0x07,
         0x19, 0xE0.toByte(), 0x29, 0xE7.toByte(), 0x15, 0x00, 0x25, 0x01,
@@ -92,7 +92,7 @@ class HidKeyboardViewModel : ViewModel() {
         adapter = manager?.adapter
         if (adapter == null) { _status.value = "Bluetooth not available on this device"; return }
         try {
-            // Contexte applicatif : le proxy le garde jusqu'à closeProfileProxy().
+            // Application context: the proxy keeps it until closeProfileProxy().
             adapter?.getProfileProxy(context.applicationContext, serviceListener, BluetoothProfile.HID_DEVICE)
         } catch (e: Exception) {
             _status.value = "HID profile unavailable: ${e.message}"

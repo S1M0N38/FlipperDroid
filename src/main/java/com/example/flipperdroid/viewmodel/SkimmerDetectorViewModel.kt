@@ -20,25 +20,25 @@ import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
-/** Un appareil détecté, avec verdict de suspicion "skimmer". */
+/** A detected device, with a "skimmer" suspicion verdict. */
 data class DetectedDevice(
     val name: String,
     val address: String,
     val rssi: Int,
-    val type: String,          // "Classic" ou "BLE"
+    val type: String,          // "Classic" or "BLE"
     val suspicious: Boolean,
     val reason: String
 )
 
 /**
- * Détecteur de skimmers de cartes bancaires.
+ * Payment-card skimmer detector.
  *
- * Les skimmers de terminaux exfiltrent souvent les données via un module
- * Bluetooth série bon marché (HC-05 / HC-06, JDY, linvor…) laissé avec son
- * nom/PIN par défaut. On scanne le Bluetooth Classic ET le BLE, puis on
- * signale les appareils dont le nom ou le préfixe MAC (OUI) correspond à ces
- * modules. C'est une heuristique (comme l'app "Skimmer Scanner"), pas une
- * preuve : à confirmer sur place.
+ * Terminal skimmers often exfiltrate data through a cheap serial
+ * Bluetooth module (HC-05 / HC-06, JDY, linvor…) left with its
+ * default name/PIN. Both Classic Bluetooth AND BLE are scanned, then
+ * devices whose name or MAC prefix (OUI) matches those modules are
+ * reported. This is a heuristic (like the "Skimmer Scanner" app), not
+ * proof: confirm on site.
  */
 class SkimmerDetectorViewModel : ViewModel() {
 
@@ -63,13 +63,13 @@ class SkimmerDetectorViewModel : ViewModel() {
     val status: StateFlow<String> = _status
 
     companion object {
-        // Noms de modules Bluetooth série typiques des skimmers (en minuscule)
+        // Typical skimmer serial Bluetooth module names (lowercase)
         private val SUSPICIOUS_NAMES = listOf(
             "hc-05", "hc-06", "hc05", "hc06", "linvor", "jdy-31", "jdy-30",
             "jdy-33", "bt04", "spp-ca", "bolutek", "h-c-2010", "skimmer",
             "rnbt", "itead", "at-09", "mlt-bt05", "zs-040"
         )
-        // Préfixes MAC (OUI) fréquents des clones HC-05/HC-06 (en minuscule)
+        // Common MAC prefixes (OUI) of HC-05/HC-06 clones (lowercase)
         private val SUSPICIOUS_OUIS = listOf(
             "00:14:03", "98:d3:31", "98:d3:32", "98:d3:33", "98:d3:34",
             "98:d3:35", "98:d3:36", "88:25:83", "00:18:e4", "00:1d:a5",
@@ -131,7 +131,7 @@ class SkimmerDetectorViewModel : ViewModel() {
         _isScanning.value = true
         _status.value = "Scanning (Classic + BLE)..."
 
-        // Bluetooth Classic : découverte (attrape les modules HC-05/HC-06)
+        // Classic Bluetooth: discovery (catches HC-05/HC-06 modules)
         registerClassicReceiver()
         try { bluetoothAdapter?.startDiscovery() } catch (_: Exception) {}
 
@@ -173,7 +173,7 @@ class SkimmerDetectorViewModel : ViewModel() {
                         }
                     }
                     BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
-                        // Relance la découverte tant que le scan est actif
+                        // Restarts discovery for as long as the scan is active
                         if (_isScanning.value) {
                             try { bluetoothAdapter?.startDiscovery() } catch (_: Exception) {}
                         }
@@ -198,12 +198,12 @@ class SkimmerDetectorViewModel : ViewModel() {
             suspicious = suspicious,
             reason = reason
         )
-        // Garde la meilleure info (Classic prioritaire, RSSI le plus fort)
+        // Keeps the best info (Classic takes precedence, strongest RSSI)
         val existing = deviceMap[address]
         if (existing == null || (!existing.suspicious && suspicious) || rssi > existing.rssi) {
             deviceMap[address] = entry
         }
-        // Suspects en tête
+        // Suspects first
         _devices.value = deviceMap.values.sortedWith(
             compareByDescending<DetectedDevice> { it.suspicious }.thenByDescending { it.rssi }
         )

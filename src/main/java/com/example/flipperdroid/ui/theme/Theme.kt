@@ -70,8 +70,8 @@ private val FlipperLightColorScheme = lightColorScheme(
 @Composable
 fun FlipperDroidTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Désactivé par défaut : les couleurs "Material You" tirées du fond d'écran
-    // écrasaient l'identité Flipper (orange/noir). On garde donc la marque.
+    // Disabled by default: the "Material You" colors derived from the wallpaper
+    // overrode the Flipper identity (orange/black). So we keep the brand.
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {

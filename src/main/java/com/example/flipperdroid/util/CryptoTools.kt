@@ -12,14 +12,14 @@ import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
 /**
- * Boîte à outils crypto/encodage (hors ligne) pour CTF / pentest :
- * hachages, Base64/Hex/URL, ROT13, HMAC, décodage JWT, identification de hash.
+ * Crypto/encoding toolkit (offline) for CTF / pentest:
+ * hashes, Base64/Hex/URL, ROT13, HMAC, JWT decoding, hash identification.
  */
 object CryptoTools {
 
     private const val HEX_DIGITS = "0123456789abcdef"
 
-    /** Encodage hexadécimal minuscule, sans String.format (rapide, pas d'allocation par octet). */
+    /** Lowercase hexadecimal encoding, without String.format (fast, no per-byte allocation). */
     private fun ByteArray.toHex(): String {
         val out = CharArray(size * 2)
         for (i in indices) {
@@ -30,13 +30,13 @@ object CryptoTools {
         return String(out)
     }
 
-    /** Vrai pour un chiffre hexadécimal ASCII (0-9, a-f, A-F) uniquement. */
+    /** True for an ASCII hexadecimal digit (0-9, a-f, A-F) only. */
     private fun Char.isAsciiHexDigit(): Boolean =
         this in '0'..'9' || this.lowercaseChar() in 'a'..'f'
 
     /**
-     * Décode des octets en UTF-8 strict. Si ce n'est pas du texte UTF-8 valide,
-     * renvoie une note et un dump hexadécimal au lieu de caractères de remplacement.
+     * Decodes bytes as strict UTF-8. If it is not valid UTF-8 text,
+     * returns a note and a hexadecimal dump instead of replacement characters.
      */
     private fun decodeUtf8OrHex(bytes: ByteArray): String {
         val decoder = Charsets.UTF_8.newDecoder()
@@ -45,15 +45,15 @@ object CryptoTools {
         return try {
             decoder.decode(ByteBuffer.wrap(bytes)).toString()
         } catch (e: CharacterCodingException) {
-            "[données non textuelles (non UTF-8), ${bytes.size} octets]\n${bytes.toHex()}"
+            "[non-textual data (not UTF-8), ${bytes.size} bytes]\n${bytes.toHex()}"
         }
     }
 
-    /** Parse une chaîne hexadécimale stricte (espaces ignorés). @throws IllegalArgumentException si invalide. */
+    /** Parses a strict hexadecimal string (spaces ignored). @throws IllegalArgumentException if invalid. */
     private fun parseHex(input: String): ByteArray {
         val clean = input.filterNot { it.isWhitespace() }
-        require(clean.length % 2 == 0) { "longueur impaire" }
-        require(clean.all { it.isAsciiHexDigit() }) { "caractère non hexadécimal" }
+        require(clean.length % 2 == 0) { "odd length" }
+        require(clean.all { it.isAsciiHexDigit() }) { "non-hexadecimal character" }
         val out = ByteArray(clean.length / 2)
         for (i in out.indices) {
             out[i] = ((Character.digit(clean[i * 2], 16) shl 4) or Character.digit(clean[i * 2 + 1], 16)).toByte()
@@ -107,8 +107,8 @@ object CryptoTools {
     }.joinToString("")
 
     /**
-     * HMAC-SHA256 du texte. La clé est en UTF-8 par défaut ; préfixer par "hex:"
-     * pour donner la clé en hexadécimal (ex. "hex:0a1b2c").
+     * HMAC-SHA256 of the text. The key is UTF-8 by default; prefix it with "hex:"
+     * to provide the key in hexadecimal (e.g. "hex:0a1b2c").
      */
     fun hmacSha256(key: String, input: String): String = try {
         val keyBytes = if (key.startsWith("hex:", ignoreCase = true)) {
@@ -121,7 +121,7 @@ object CryptoTools {
         mac.doFinal(input.toByteArray(Charsets.UTF_8)).toHex()
     } catch (e: Exception) { "⚠ HMAC error: ${e.message}" }
 
-    /** Décode un JWT (header + payload en Base64URL) sans vérifier la signature. */
+    /** Decodes a JWT (header + payload in Base64URL) without verifying the signature. */
     fun jwtDecode(input: String): String {
         val parts = input.trim().split(".")
         if (parts.size < 2) return "⚠ not a JWT (need header.payload.signature)"
@@ -132,7 +132,7 @@ object CryptoTools {
         return "HEADER:\n${dec(parts[0])}\n\nPAYLOAD:\n${dec(parts[1])}\n\nSIGNATURE (b64url):\n$sig"
     }
 
-    /** Devine le type de hash d'après sa longueur/charset (indicatif). */
+    /** Guesses the hash type from its length/charset (indicative). */
     fun identifyHash(input: String): String {
         val s = input.trim()
         val isHex = s.isNotEmpty() && s.all { it.isAsciiHexDigit() }

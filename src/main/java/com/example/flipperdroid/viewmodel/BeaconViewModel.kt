@@ -17,8 +17,8 @@ import java.nio.ByteBuffer
 import java.util.UUID
 
 /**
- * Émetteur de balises BLE : iBeacon (Apple), Eddystone-URL (Google) et
- * manufacturer data personnalisé. Utilise directement BluetoothLeAdvertiser.
+ * BLE beacon emitter: iBeacon (Apple), Eddystone-URL (Google) and
+ * custom manufacturer data. Uses BluetoothLeAdvertiser directly.
  */
 class BeaconViewModel : ViewModel() {
 
@@ -86,7 +86,7 @@ class BeaconViewModel : ViewModel() {
             payload.put(uuidToBytes(uuid))
             payload.put((major shr 8).toByte()); payload.put(major.toByte())
             payload.put((minor shr 8).toByte()); payload.put(minor.toByte())
-            payload.put(0xC5.toByte()) // TX power calibré
+            payload.put(0xC5.toByte()) // calibrated TX power
             val data = AdvertiseData.Builder()
                 .addManufacturerData(0x004C, payload.array()) // Apple
                 .build()
@@ -105,8 +105,8 @@ class BeaconViewModel : ViewModel() {
         try {
             val (scheme, rest) = encodeUrlScheme(url)
             val body = rest.toByteArray(Charsets.US_ASCII)
-            // Trame Eddystone-URL = [0x10][txPower][urlScheme][URL encodée]. Pas d'octet
-            // supplémentaire : un 0x00 en fin serait interprété comme le suffixe ".com/".
+            // Eddystone-URL frame = [0x10][txPower][urlScheme][encoded URL]. No extra
+            // byte: a trailing 0x00 would be interpreted as the ".com/" suffix.
             val frame = ByteArray(3 + body.size)
             frame[0] = 0x10           // Eddystone-URL frame
             frame[1] = 0xC5.toByte()  // TX power
@@ -153,7 +153,7 @@ class BeaconViewModel : ViewModel() {
         return bb.array()
     }
 
-    /** Retourne (code de schéma Eddystone, reste de l'URL). */
+    /** Returns (Eddystone scheme code, rest of the URL). */
     private fun encodeUrlScheme(url: String): Pair<Byte, String> = when {
         url.startsWith("https://www.") -> 0x01.toByte() to url.removePrefix("https://www.")
         url.startsWith("http://www.") -> 0x00.toByte() to url.removePrefix("http://www.")

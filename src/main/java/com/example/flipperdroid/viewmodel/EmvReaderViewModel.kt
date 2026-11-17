@@ -10,10 +10,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 /**
- * ViewModel gerant la lecture des cartes EMV via NFC
+ * ViewModel handling EMV card reading over NFC
  *
- * Cette classe utilise un lecteur EMV pour extraire les donnees de la carte NFC detectee
- * Elle expose les donnees l etat de lecture et les erreurs eventuelles via des StateFlow
+ * This class uses an EMV reader to extract the data from the detected NFC card.
+ * It exposes the data, the read state and any errors via StateFlow
  */
 class EmvReaderViewModel : ViewModel() {
     private val emvCardReader = EmvCardReader()
@@ -28,12 +28,12 @@ class EmvReaderViewModel : ViewModel() {
     val error: StateFlow<String?> = _error
 
     /**
-     * Lance la lecture de la carte NFC a partir du tag recu
+     * Starts reading the NFC card from the received tag
      *
-     * Met a jour l etat de lecture les donnees recuperees et les erreurs eventuelles
-     * Un tag qui n'est pas ISO-DEP est ignore silencieusement (ce n'est pas une carte EMV).
+     * Updates the read state, the retrieved data and any errors
+     * A tag that is not ISO-DEP is silently ignored (it is not an EMV card).
      *
-     * @param tag tag NFC detecte par le systeme
+     * @param tag NFC tag detected by the system
      */
     fun readCard(tag: Tag) {
         if (IsoDep.get(tag) == null) return
@@ -62,9 +62,9 @@ class EmvReaderViewModel : ViewModel() {
     }
 
     /**
-     * Vide les donnees et erreurs en memoire
+     * Clears the data and errors in memory
      *
-     * Remet a null les flux cardData et error
+     * Resets the cardData and error flows to null
      */
     fun clearData() {
         viewModelScope.launch {

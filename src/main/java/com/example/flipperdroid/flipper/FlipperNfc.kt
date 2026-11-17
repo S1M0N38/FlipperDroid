@@ -1,10 +1,10 @@
 package com.example.flipperdroid.flipper
 
 /**
- * Représentation d'un fichier .nfc du Flipper Zero.
- * @property blocks blocs Mifare Classic ("Block i:")
- * @property pages pages Ultralight/NTAG ("Page i:")
- * @property valid false si l'en-tête "Filetype: Flipper NFC ..." est absent
+ * Representation of a Flipper Zero .nfc file.
+ * @property blocks Mifare Classic blocks ("Block i:")
+ * @property pages Ultralight/NTAG pages ("Page i:")
+ * @property valid false if the "Filetype: Flipper NFC ..." header is missing
  */
 data class NfcCard(
     val deviceType: String?,
@@ -17,7 +17,7 @@ data class NfcCard(
 )
 
 /**
- * Lecteur / générateur du format de fichier .nfc du Flipper Zero.
+ * Reader / generator for the Flipper Zero .nfc file format.
  */
 object FlipperNfc {
 
@@ -53,14 +53,14 @@ object FlipperNfc {
     }
 
     /**
-     * Génère un fichier .nfc (format Flipper v4).
+     * Generates an .nfc file (Flipper v4 format).
      *
-     * @param uidHex UID (espaces tolérés, ex. "04A2B3C4")
-     * @param blocks Mifare Classic : blocs de 32 caractères hex. NTAG/Ultralight : pages de 8 caractères.
-     *   Une entrée illisible (tirets) est écrite "?? ?? ..." (convention Flipper pour "inconnu").
-     * @param deviceType "Mifare Classic" (défaut) ou "NTAG/Ultralight"
-     * @param atqa ATQA réel (hex) ; si null, valeur par défaut du type
-     * @param sak SAK réel (hex) ; si null : 4K -> "18", 1K -> "08", Ultralight -> "00"
+     * @param uidHex UID (spaces tolerated, e.g. "04A2B3C4")
+     * @param blocks Mifare Classic: 32-hex-character blocks. NTAG/Ultralight: 8-character pages.
+     *   An unreadable entry (dashes) is written as "?? ?? ..." (Flipper convention for "unknown").
+     * @param deviceType "Mifare Classic" (default) or "NTAG/Ultralight"
+     * @param atqa actual ATQA (hex); if null, the default value for the type
+     * @param sak actual SAK (hex); if null: 4K -> "18", 1K -> "08", Ultralight -> "00"
      */
     fun generate(
         uidHex: String,
@@ -97,7 +97,7 @@ object FlipperNfc {
     private fun isUltralight(deviceType: String): Boolean =
         deviceType.contains("NTAG", ignoreCase = true) || deviceType.contains("Ultralight", ignoreCase = true)
 
-    /** Nom de la puce selon le nombre de pages du dump. */
+    /** Chip name according to the number of pages in the dump. */
     private fun ultralightType(pages: Int): String = when (pages) {
         16 -> "Ultralight"
         48 -> "Ultralight C"
@@ -108,8 +108,8 @@ object FlipperNfc {
     }
 
     /**
-     * Insère un espace tous les 2 caractères hex. Une paire contenant un tiret (octet inconnu)
-     * devient "??".
+     * Inserts a space every 2 hex characters. A pair containing a dash (unknown byte)
+     * becomes "??".
      */
     private fun spaced(hex: String): String =
         hex.replace(" ", "").chunked(2).joinToString(" ") { if (it.contains('-')) "??" else it }

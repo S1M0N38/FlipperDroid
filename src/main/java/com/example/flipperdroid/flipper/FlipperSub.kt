@@ -1,22 +1,21 @@
 package com.example.flipperdroid.flipper
 
-/** Représentation d'un fichier .sub (Sub-GHz) du Flipper Zero. */
+/** Representation of a Flipper Zero .sub (Sub-GHz) file. */
 data class SubFile(
     val frequency: Long?,
     val preset: String?,
     val protocol: String?,
     val rawData: IntArray,
     val keyData: String?,
-    /** false si l'en-tête "Filetype: Flipper ..." est absent (fichier probablement non conforme). */
+    /** false if the "Filetype: Flipper ..." header is missing (file probably non-conforming). */
     val valid: Boolean = true
 )
 
 /**
- * Lecteur du format .sub du Flipper (Sub-GHz).
+ * Reader for the Flipper .sub format (Sub-GHz).
  *
- * NOTE : un smartphone n'a pas de radio Sub-GHz — ce module permet seulement de
- * *lire / analyser* un .sub, pas de le transmettre (il faudrait un CC1101/HackRF
- * externe).
+ * NOTE: a smartphone has no Sub-GHz radio — this module can only *read / analyze*
+ * a .sub, not transmit it (that would require an external CC1101/HackRF).
  */
 object FlipperSub {
 
@@ -47,7 +46,7 @@ object FlipperSub {
         return SubFile(frequency, preset, protocol, raw.toIntArray(), keyData, hasHeader)
     }
 
-    /** Résumé lisible d'un .sub. */
+    /** Human-readable summary of a .sub. */
     fun summarize(sub: SubFile): String {
         val sb = StringBuilder()
         sb.append("Frequency: ${sub.frequency?.let { "%.3f MHz".format(it / 1_000_000.0) } ?: "?"}\n")

@@ -1,15 +1,15 @@
 package com.example.flipperdroid.util
 
 /**
- * Construction sûre de lignes de commande passées à `su -c` (un seul argument shell).
+ * Safe construction of command lines passed to `su -c` (a single shell argument).
  *
- * Toute donnée venant de l'utilisateur ou du réseau doit être soit validée par un
- * des validateurs ci-dessous, soit encadrée par [quote]. Sans ça, une saisie comme
- * `1.1.1.1; reboot` s'exécutait en root. Aucun import Android : testable en JVM.
+ * Any data coming from the user or the network must either be validated by one
+ * of the validators below, or wrapped by [quote]. Without that, input such as
+ * `1.1.1.1; reboot` ran as root. No Android imports: JVM-testable.
  */
 object ShellArgs {
 
-    /** Encadre en quotes simples POSIX ; les quotes internes deviennent '\''. */
+    /** Wraps in POSIX single quotes; internal quotes become '\''. */
     fun quote(arg: String): String = "'" + arg.replace("'", "'\\''") + "'"
 
     fun join(args: List<String>): String = args.joinToString(" ") { quote(it) }
@@ -23,10 +23,10 @@ object ShellArgs {
 
     fun isValidIpv4(s: String) = IPV4.matches(s)
 
-    /** Cible réseau acceptée : IPv4, IPv4/CIDR, IPv6 littérale ou nom d'hôte. */
+    /** Accepted network target: IPv4, IPv4/CIDR, literal IPv6 or hostname. */
     fun isValidTarget(s: String): Boolean =
         IPV4.matches(s) || IPV4_CIDR.matches(s) || (s.contains(':') && IPV6.matches(s)) ||
-            // Un nom d'hôte ne finit pas par un label purement numérique (sinon "256.1.1.1" passerait).
+            // A hostname does not end with a purely numeric label (otherwise "256.1.1.1" would pass).
             (HOSTNAME.matches(s) && !s.trimEnd('.').substringAfterLast('.').all { it.isDigit() })
 
     fun isValidInterface(s: String) = IFACE.matches(s)
@@ -34,17 +34,17 @@ object ShellArgs {
     fun isValidMac(s: String) = MAC.matches(s)
 
     /**
-     * Découpe des options de type nmap en arguments, en refusant les métacaractères
-     * shell (même quotés, ils n'ont rien à faire dans des options) et les options qui
-     * écrivent/lisent des fichiers arbitraires ou exécutent des scripts.
-     * @return la liste d'arguments, ou null si refusée.
+     * Splits nmap-style options into arguments, rejecting shell metacharacters
+     * (even quoted, they have no business in options) and options that
+     * write/read arbitrary files or execute scripts.
+     * @return the argument list, or null if rejected.
      */
     fun splitSafeOptions(options: String): List<String>? {
         val trimmed = options.trim()
         if (trimmed.isEmpty()) return emptyList()
         if (trimmed.any { it in ";&|`$<>\\\"'\n\r(){}" }) return null
         val parts = trimmed.split(Regex("\\s+"))
-        // -o* (fichiers de sortie), -i* (listes d'entrée), scripts NSE et chemins de données.
+        // -o* (output files), -i* (input lists), NSE scripts and data paths.
         val forbiddenPrefixes = listOf("-o", "-i", "--script", "--datadir", "--resume", "--stylesheet", "--servicedb", "--versiondb")
         if (parts.any { p -> forbiddenPrefixes.any { p.startsWith(it) } }) return null
         return parts

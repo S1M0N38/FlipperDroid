@@ -7,9 +7,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 /**
- * Échelle typographique complète (hiérarchie cohérente titres → corps → labels).
- * Le corps utilise la police système ; l'identité "outil hacker" est portée par
- * la marque en monospace dans la barre supérieure (voir HomeScreen).
+ * Complete typographic scale (coherent hierarchy headings → body → labels).
+ * The body uses the system font; the "hacker tool" identity is carried by
+ * the monospace wordmark in the top bar (see HomeScreen).
  */
 val Typography = Typography(
     headlineSmall = TextStyle(
@@ -61,7 +61,7 @@ val Typography = Typography(
         lineHeight = 16.sp,
         letterSpacing = 0.5.sp
     ),
-    // Utilisé pour les en-têtes de catégorie (petites majuscules espacées).
+    // Used for category headers (small spaced capitals).
     labelSmall = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Bold,

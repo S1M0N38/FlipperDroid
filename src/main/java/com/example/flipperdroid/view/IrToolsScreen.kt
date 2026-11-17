@@ -34,7 +34,7 @@ fun IrToolsScreen(
     var addressHex by remember { mutableStateOf("04") }
     var delayMs by remember { mutableStateOf(300f) }
     val protocols = listOf("NEC", "NECext", "Samsung32", "SIRC", "RC5", "Kaseikyo")
-    // Adresse hexadécimale saisie (préfixe 0x accepté) ; null si invalide.
+    // Hexadecimal address entered (0x prefix accepted); null if invalid.
     val addressValue = IrProtocols.parseHexAddress(addressHex)
 
     Scaffold(
@@ -107,7 +107,7 @@ fun IrToolsScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // --- Cible précise (une marque à la fois) ---
+            // --- Specific target (one brand at a time) ---
             ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp)) {
                     Text("Target one brand", style = MaterialTheme.typography.titleMedium)
@@ -206,7 +206,7 @@ fun IrToolsScreen(
                     Spacer(Modifier.height(12.dp))
                     Button(
                         onClick = {
-                            // Adresse invalide : le bouton est désactivé (jamais d'adresse 0 silencieuse).
+                            // Invalid address: the button is disabled (never a silent address 0).
                             addressValue?.let { addr ->
                                 viewModel.bruteForce(protocol, addr, 0, 255, delayMs.toLong())
                             }

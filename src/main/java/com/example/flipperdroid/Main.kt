@@ -37,11 +37,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.collectAsState
 
 /**
- * Extrait un [android.os.Parcelable] d'une Intent de façon compatible toutes
- * versions : l'overload typé getParcelableExtra(name, Class) n'existe qu'à partir
- * d'Android 13 (API 33). Comme minSdk = 24, l'appeler directement provoquerait un
- * NoSuchMethodError sur les appareils plus anciens (crash au scan NFC / à la
- * connexion USB). On retombe sur l'API dépréciée en dessous d'API 33.
+ * Extracts an [android.os.Parcelable] from an Intent in an all-versions
+ * compatible way: the typed getParcelableExtra(name, Class) overload only exists
+ * from Android 13 (API 33) onwards. Since minSdk = 24, calling it directly would throw
+ * a NoSuchMethodError on older devices (crash on NFC scan / on the
+ * USB connection). We fall back to the deprecated API below API 33.
  */
 @Suppress("DEPRECATION")
 private inline fun <reified T : android.os.Parcelable> Intent.parcelableExtraCompat(name: String): T? =
@@ -68,13 +68,13 @@ class MainActivity : ComponentActivity() {
     private lateinit var techListsArray: Array<Array<String>>
 
     /**
-     * Initialise l'activité principale.
+     * Initializes the main activity.
      *
-     * - Configure le ViewModel pour la gestion NFC.
-     * - Initialise le NFC Adapter et le PendingIntent pour la lecture NFC en premier plan.
-     * - Définit le contenu Compose avec la navigation de l'application.
+     * - Configures the ViewModel for NFC handling.
+     * - Initializes the NFC Adapter and the PendingIntent for foreground NFC reading.
+     * - Sets the Compose content with the app navigation.
      *
-     * @param savedInstanceState état sauvegardé de l'activité (peut être null).
+     * @param savedInstanceState saved activity state (may be null).
      */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -100,8 +100,8 @@ class MainActivity : ComponentActivity() {
                 IntentFilter(NfcAdapter.ACTION_TECH_DISCOVERED)
             )
 
-            // Chaque sous-tableau est un ET logique ; la liste externe est un OU.
-            // Une entrée par technologie = « n'importe quelle tag NFC-A/B/F/V ».
+            // Each sub-array is a logical AND; the outer list is an OR.
+            // One entry per technology = "any NFC-A/B/F/V tag."
             techListsArray = arrayOf(
                 arrayOf(NfcA::class.java.name),
                 arrayOf(NfcB::class.java.name),
@@ -122,9 +122,9 @@ class MainActivity : ComponentActivity() {
                 AppNavigation(themeViewModel)
             }
         }
-        // Une recréation (rotation…) relivre la même Intent de lancement : on ne la
-        // traite qu'au premier onCreate, puis on la consomme. Sinon un clone armé
-        // pourrait se déclencher sur une tag « fantôme » sans nouveau passage.
+        // A recreation (rotation…) delivers the same launch Intent again: we only
+        // handle it on the first onCreate, then consume it. Otherwise an armed clone
+        // could trigger on a "ghost" tag without a new tap.
         if (savedInstanceState == null) {
             handleNfcIntent(intent)
             setIntent(Intent())
@@ -132,12 +132,12 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Méthode appelée lorsqu'une nouvelle Intent est reçue par l'activité.
+     * Method called when a new Intent is received by the activity.
      *
-     * Intercepte l'intent NFC, récupère le tag détecté, extrait son identifiant,
-     * puis le transmet au ViewModel pour traitement.
+     * Intercepts the NFC intent, retrieves the detected tag, extracts its identifier,
+     * then passes it to the ViewModel for processing.
      *
-     * @param intent l'Intent reçue par l'activité.
+     * @param intent the Intent received by the activity.
      */
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
@@ -168,12 +168,12 @@ class MainActivity : ComponentActivity() {
         ) {
             val tag: Tag? = intent.parcelableExtraCompat(NfcAdapter.EXTRA_TAG)
             tag?.let {
-                // Un tag Mifare Classic sera lu par nfcViewModel ; une carte EMV (IsoDep)
-                // par emvReaderViewModel. MAIS si une capture d'émulation ou un clone est
-                // armé, NfcViewModel se connecte lui-même au tag : le lecteur EMV ne doit
-                // pas ouvrir une 2e connexion IsoDep concurrente (elles se bloqueraient et
-                // la capture échouerait). On lit l'état "armé" AVANT onTagScanned, qui le
-                // remet à false.
+                // A Mifare Classic tag will be read by nfcViewModel; an EMV (IsoDep) card
+                // by emvReaderViewModel. BUT if an emulation capture or a clone is
+                // armed, NfcViewModel connects to the tag itself: the EMV reader must not
+                // open a second concurrent IsoDep connection (they would block each other and
+                // the capture would fail). We read the "armed" state BEFORE onTagScanned, which
+                // resets it to false.
                 val nfcBusy = nfcViewModel.emuCaptureArmed.value || nfcViewModel.cloneArmed.value
                 nfcViewModel.onTagScanned(it)
                 if (!nfcBusy) emvReaderViewModel.readCard(it)
@@ -182,10 +182,10 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Méthode appelée lorsque l'activité reprend le premier plan.
+     * Method called when the activity resumes to the foreground.
      *
-     * Active la lecture NFC en mode premier plan pour capturer les tags NFC
-     * lorsque l'application est au premier plan.
+     * Enables foreground NFC reading to capture NFC tags
+     * while the app is in the foreground.
      */
     override fun onResume() {
         super.onResume()
@@ -203,7 +203,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /** Applique le réglage « garder l'écran allumé » (SettingsScreen) à toute l'activité. */
+    /** Applies the "keep the screen on" setting (SettingsScreen) to the whole activity. */
     private fun applyKeepScreenOn() {
         val keep = getSharedPreferences("app_settings", MODE_PRIVATE).getBoolean("keepScreenOn", false)
         if (keep) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -211,10 +211,10 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Méthode appelée lorsque l'activité n'est plus au premier plan.
+     * Method called when the activity is no longer in the foreground.
      *
-     * Désactive la lecture NFC en mode premier plan pour éviter les lectures
-     * hors contexte ou conflits avec d'autres applications.
+     * Disables foreground NFC reading to avoid out-of-context
+     * reads or conflicts with other applications.
      */
     override fun onPause() {
         super.onPause()
@@ -223,12 +223,12 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * permet la navigation
+     * enables navigation
      *
-     * Les routes :
-     * - "home" : écran d'accueil
-     * - "nfc" : écran de la fonctionnalité NFC
-     * - "badusb" : écran de la fonctionnalité BadUSB
+     * The routes:
+     * - "home" : home screen
+     * - "nfc" : NFC feature screen
+     * - "badusb" : BadUSB feature screen
      */
     @SuppressLint("ComposableDestinationInComposeScope")
     @Composable

@@ -1,32 +1,32 @@
 package com.example.flipperdroid.util
 
 /**
- * Classification du type de sécurité d'un réseau Wi-Fi à partir de la chaîne
- * `ScanResult.capabilities`, p. ex. `[WPA2-PSK-CCMP][RSN-SAE-CCMP][WPS][ESS]`.
+ * Classification of a Wi-Fi network's security type from the
+ * `ScanResult.capabilities` string, e.g. `[WPA2-PSK-CCMP][RSN-SAE-CCMP][WPS][ESS]`.
  *
- * L'ancienne détection ne reconnaissait WPA3 qu'avec le littéral "WPA3" : un
- * réseau WPA3 pur (`[RSN-SAE-CCMP]`) était classé OPEN, et l'« Enhanced Open »
- * (OWE) passait pour un réseau ouvert non chiffré. Ce classifieur pur
- * (aucune dépendance `android.*`, donc testable sur la JVM) reconnaît SAE,
- * OWE, la transition WPA2/WPA3, l'authentification entreprise (EAP) et WPS.
+ * The previous detection only recognized WPA3 with the literal "WPA3": a
+ * pure WPA3 network (`[RSN-SAE-CCMP]`) was classified OPEN, and "Enhanced Open"
+ * (OWE) was mistaken for an unencrypted open network. This pure classifier
+ * (no `android.*` dependency, hence JVM-testable) recognizes SAE,
+ * OWE, the WPA2/WPA3 transition, enterprise authentication (EAP) and WPS.
  */
 enum class WifiSecurity {
-    OPEN,               // ouvert, non chiffré
-    OWE,                // Enhanced Open (OWE) : ouvert mais chiffré
+    OPEN,               // open, unencrypted
+    OWE,                // Enhanced Open (OWE): open but encrypted
     WEP,
     WPA,
     WPA2,
     WPA3,
-    WPA3_TRANSITION,    // WPA2-PSK + WPA3-SAE sur le même BSS
+    WPA3_TRANSITION,    // WPA2-PSK + WPA3-SAE on the same BSS
 }
 
 object WifiSecurityClassifier {
 
-    /** Déduit le type de sécurité dominant de la chaîne de capacités. */
+    /** Infers the dominant security type from the capabilities string. */
     fun classify(capabilities: String): WifiSecurity {
         val caps = capabilities.uppercase()
         val hasSae = caps.contains("SAE")
-        // "PSK" couvre WPA2-PSK/WPA-PSK ; on repère aussi les étiquettes WPA/WPA2.
+        // "PSK" covers WPA2-PSK/WPA-PSK; the WPA/WPA2 labels are also matched.
         val hasPsk = caps.contains("PSK") || caps.contains("WPA2") || caps.contains("WPA-")
         return when {
             caps.contains("WEP") -> WifiSecurity.WEP
@@ -39,14 +39,14 @@ object WifiSecurityClassifier {
         }
     }
 
-    /** true si WPS est annoncé (surface d'attaque supplémentaire : PIN/PBC). */
+    /** true if WPS is advertised (additional attack surface: PIN/PBC). */
     fun hasWps(capabilities: String): Boolean = capabilities.uppercase().contains("WPS")
 
-    /** true si le réseau utilise une authentification 802.1X / entreprise (EAP). */
+    /** true if the network uses 802.1X / enterprise authentication (EAP). */
     fun isEnterprise(capabilities: String): Boolean =
         capabilities.uppercase().let { it.contains("EAP") || it.contains("IEEE8021X") }
 
-    /** Libellé lisible, enrichi des drapeaux entreprise et WPS, pour l'UI. */
+    /** Human-readable label, enriched with the enterprise and WPS flags, for the UI. */
     fun label(capabilities: String): String {
         val base = when (classify(capabilities)) {
             WifiSecurity.OPEN -> "Open"

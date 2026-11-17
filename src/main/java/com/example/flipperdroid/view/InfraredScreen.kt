@@ -118,7 +118,7 @@ fun InfraredScreen(navController: NavController) {
         val manager = irManager
         if (cmd != null) {
             if (manager == null || !manager.hasIrEmitter()) {
-                // Rien ne peut partir : on ne doit pas afficher "envoyé".
+                // Nothing can go out: "sent" must not be displayed.
                 lastStatus = IrProtocols.NO_EMITTER_MSG
             } else {
                 scope.launch {
@@ -323,16 +323,16 @@ private fun RemoteButton(
         }
         return
     }
-    // Répète la commande tant que le bouton est maintenu (volume, canal, flèches).
+    // Repeats the command while the button is held (volume, channel, arrows).
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
-    // Vrai dès que la boucle "maintenu" a déjà émis pour l'appui en cours.
+    // True as soon as the "held" loop has already emitted for the current press.
     val holdFired = remember { mutableStateOf(false) }
     LaunchedEffect(isPressed) {
         if (isPressed) {
             holdFired.value = true
             onFire()
-            delay(400) // délai avant la répétition auto
+            delay(400) // delay before the auto repeat
             while (true) {
                 onFire()
                 delay(180)
@@ -341,8 +341,8 @@ private fun RemoteButton(
     }
     IconButton(
         onClick = {
-            // Activation sans appui maintenu (TalkBack, clavier) : une seule émission.
-            // Si la boucle "maintenu" a déjà émis, on ne double pas l'envoi.
+            // Activation without a held press (TalkBack, keyboard): a single emission.
+            // If the "held" loop has already emitted, the send is not doubled.
             if (holdFired.value) holdFired.value = false else onFire()
         },
         interactionSource = interactionSource,

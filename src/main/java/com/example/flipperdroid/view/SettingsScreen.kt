@@ -18,12 +18,12 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.compose.ui.platform.LocalContext
 /**
- * Affiche l ecran des parametres avec plusieurs sections configurables
+ * Shows the settings screen with several configurable sections
  *
- * Options : thème sombre, écran toujours allumé (appliqué à toute l'activité, voir
- * MainActivity.applyKeepScreenOn) et accès aux permissions système.
+ * Options: dark theme, keep screen on (applied to the whole activity, see
+ * MainActivity.applyKeepScreenOn) and access to the system permissions.
  *
- * @param navController controleur de navigation permettant de revenir a l ecran precedent
+ * @param navController navigation controller to go back to the previous screen
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,8 +33,8 @@ fun SettingsScreen(navController: NavController, themeViewModel: ThemeViewModel)
     val darkMode by themeViewModel.isDarkMode.collectAsState()
     var keepScreenOn by remember { mutableStateOf(prefs.getBoolean("keepScreenOn", false)) }
 
-    // Le réglage s'applique à la fenêtre de l'activité entière (et au lancement via
-    // MainActivity.onResume), pas seulement tant que cet écran est affiché.
+    // The setting applies to the whole activity window (and at launch through
+    // MainActivity.onResume), not just while this screen is displayed.
     val activity = context as? android.app.Activity
     LaunchedEffect(keepScreenOn) {
         if (keepScreenOn) activity?.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)

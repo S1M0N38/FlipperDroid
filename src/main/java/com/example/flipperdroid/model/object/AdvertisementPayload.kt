@@ -1,40 +1,40 @@
 package com.example.flipperdroid.model.`object`
 
 /**
- * Estimation de la taille (en octets) d'une trame d'advertising BLE *legacy*
- * et choix du mode legacy / étendu.
+ * Estimation of the size (in bytes) of a *legacy* BLE advertising frame
+ * and choice of the legacy / extended mode.
  *
- * Le legacy plafonne la charge utile à 31 octets. Beaucoup de cibles
- * (Windows Swift Pair, iOS/macOS Continuity, Android Fast Pair) n'écoutent
- * QUE l'advertising legacy par défaut : envoyer une trame courte en étendu
- * la rend invisible (Windows exige `AllowExtendedAdvertisements`, false par
- * défaut). On garde donc le legacy tant que la charge tient dans 31 octets et
- * on ne bascule en étendu que lorsqu'elle déborde réellement.
+ * Legacy caps the payload at 31 bytes. Many targets
+ * (Windows Swift Pair, iOS/macOS Continuity, Android Fast Pair) listen
+ * ONLY to legacy advertising by default: sending a short frame as extended
+ * makes it invisible (Windows requires `AllowExtendedAdvertisements`, false by
+ * default). We therefore keep legacy as long as the payload fits in 31 bytes and
+ * only switch to extended when it actually overflows.
  *
- * Objet pur (aucune dépendance `android.*`) pour être testable sur la JVM.
+ * Pure object (no `android.*` dependency) so that it is testable on the JVM.
  */
 object AdvertisementPayload {
-    /** Charge utile maximale d'une trame d'advertising legacy, en octets. */
+    /** Maximum payload of a legacy advertising frame, in bytes. */
     const val LEGACY_MAX_PAYLOAD_BYTES = 31
 
-    // Surcoût d'une structure AD : 1 octet de longueur + 1 octet de type.
+    // Overhead of one AD structure: 1 length byte + 1 type byte.
     private const val AD_STRUCT_OVERHEAD = 2
-    private const val FLAGS_BYTES = 3        // longueur(1) + type(1) + valeur(1)
-    private const val TX_POWER_BYTES = 3     // longueur(1) + type(1) + valeur(1)
-    private const val COMPANY_ID_BYTES = 2   // identifiant fabricant (little-endian)
-    private const val UUID16_BYTES = 2       // UUID de service 16 bits
+    private const val FLAGS_BYTES = 3        // length(1) + type(1) + value(1)
+    private const val TX_POWER_BYTES = 3     // length(1) + type(1) + value(1)
+    private const val COMPANY_ID_BYTES = 2   // manufacturer identifier (little-endian)
+    private const val UUID16_BYTES = 2       // 16-bit service UUID
 
     /**
-     * Estime le nombre d'octets qu'occuperait la trame en advertising legacy.
+     * Estimates the number of bytes the frame would take up in legacy advertising.
      *
-     * @param connectable l'adv est connectable (le stack ajoute alors la structure Flags)
-     * @param includeDeviceName le nom complet de l'appareil est inclus dans la trame
-     * @param deviceNameLength longueur du nom (en octets) s'il est inclus
-     * @param includeTxPower le niveau de puissance d'émission est inclus
-     * @param manufacturerDataLengths longueur des données spécifiques fabricant
-     *        (hors identifiant fabricant), une entrée par structure
-     * @param service16Count nombre d'UUID de service 16 bits annoncés
-     * @param serviceData16Lengths longueur des données de service 16 bits, une entrée par structure
+     * @param connectable the adv is connectable (the stack then adds the Flags structure)
+     * @param includeDeviceName the full device name is included in the frame
+     * @param deviceNameLength name length (in bytes) if it is included
+     * @param includeTxPower the transmit power level is included
+     * @param manufacturerDataLengths manufacturer-specific data lengths
+     *        (excluding the manufacturer identifier), one entry per structure
+     * @param service16Count number of advertised 16-bit service UUIDs
+     * @param serviceData16Lengths 16-bit service data lengths, one entry per structure
      */
     fun estimateLegacyBytes(
         connectable: Boolean,
@@ -55,6 +55,6 @@ object AdvertisementPayload {
         return bytes
     }
 
-    /** true si la trame déborde du legacy et doit passer en advertising étendu. */
+    /** true if the frame overflows legacy and must switch to extended advertising. */
     fun overflowsLegacy(estimatedBytes: Int): Boolean = estimatedBytes > LEGACY_MAX_PAYLOAD_BYTES
 }

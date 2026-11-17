@@ -17,11 +17,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * Faux GPS via mock location. Nécessite d'activer cette app comme « application de
- * localisation fictive » dans Options développeur (pas de root).
+ * Fake GPS via mock location. Requires enabling this app as a "mock location
+ * app" in Developer Options (no root).
  *
- * Seul le fournisseur GPS de la plateforme (LocationManager) est simulé : les apps qui
- * utilisent le Fused Location Provider (Google Play services) peuvent l'ignorer.
+ * Only the platform GPS provider (LocationManager) is simulated: apps using
+ * the Fused Location Provider (Google Play services) may ignore it.
  */
 class GpsSpoofViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -37,7 +37,7 @@ class GpsSpoofViewModel(app: Application) : AndroidViewModel(app) {
     @Volatile private var lat = 0.0
     @Volatile private var lon = 0.0
 
-    /** Retourne un message d'erreur si les coordonnées sont hors bornes (ou NaN), sinon null. */
+    /** Returns an error message if the coordinates are out of range (or NaN), otherwise null. */
     private fun validate(latitude: Double, longitude: Double): String? = when {
         latitude !in -90.0..90.0 -> "Invalid latitude (must be between -90 and 90)"
         longitude !in -180.0..180.0 -> "Invalid longitude (must be between -180 and 180)"
@@ -59,7 +59,7 @@ class GpsSpoofViewModel(app: Application) : AndroidViewModel(app) {
                     provider, false, false, false, false,
                     true, true, true, Criteria.POWER_LOW, Criteria.ACCURACY_FINE
                 )
-            } catch (_: IllegalArgumentException) { /* déjà ajouté */ }
+            } catch (_: IllegalArgumentException) { /* already added */ }
             manager.setTestProviderEnabled(provider, true)
             _active.value = true
             _status.value = "Spoofing GPS to $lat, $lon"
@@ -88,7 +88,7 @@ class GpsSpoofViewModel(app: Application) : AndroidViewModel(app) {
         if (_active.value) _status.value = "Spoofing GPS to $lat, $lon"
     }
 
-    /** Envoie une position au fournisseur simulé. Retourne null si OK, sinon le message d'erreur. */
+    /** Pushes a position to the simulated provider. Returns null if OK, otherwise the error message. */
     private fun pushLocation(manager: LocationManager, provider: String): String? = try {
         val loc = Location(provider).apply {
             latitude = lat

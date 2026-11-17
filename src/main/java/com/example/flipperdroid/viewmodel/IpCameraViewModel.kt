@@ -29,17 +29,17 @@ import java.util.TimeZone
 import java.util.UUID
 
 /**
- * Découverte / reconnaissance / audit / pilotage PTZ de caméras IP (ONVIF + RTSP).
+ * Discovery / reconnaissance / audit / PTZ control of IP cameras (ONVIF + RTSP).
  *
- * - Découverte : WS-Discovery (multicast) + scan de ports « caméra » sur un /24.
- * - Reconnaissance : heuristique par ports, sonde RTSP, GetDeviceInformation.
- * - Audit : dictionnaire d'identifiants par défaut testé via WS-UsernameToken,
- *   sur le même principe que le dictionnaire de clés Mifare.
- * - PTZ : ContinuousMove / Stop ONVIF.
+ * - Discovery: WS-Discovery (multicast) + "camera" port scan on a /24.
+ * - Reconnaissance: port heuristic, RTSP probe, GetDeviceInformation.
+ * - Audit: default-credential dictionary tested via WS-UsernameToken,
+ *   on the same principle as the Mifare key dictionary.
+ * - PTZ: ONVIF ContinuousMove / Stop.
  *
- * Principe du projet : honnêteté sur la capacité. Chaque étape rapporte
- * clairement l'échec (timeout, 401, SOAP Fault) au lieu de faire semblant.
- * Réservé aux tests autorisés sur du matériel dont on a la permission.
+ * Project principle: honesty about capability. Every step clearly reports
+ * failure (timeout, 401, SOAP Fault) instead of pretending.
+ * Reserved for authorized testing on hardware we have permission for.
  */
 class IpCameraViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -52,17 +52,17 @@ class IpCameraViewModel(app: Application) : AndroidViewModel(app) {
     private val _status = MutableStateFlow("")
     val status: StateFlow<String> = _status
 
-    /** Chemin du service ONVIF (réutilisé pour device/media/ptz sur les caméras
-     * qui routent tout via un seul endpoint ; sinon l'échec est rapporté). */
+    /** ONVIF service path (reused for device/media/ptz on the cameras
+     * that route everything through a single endpoint; otherwise the failure is reported). */
     val onvifPath = MutableStateFlow("/onvif/device_service")
 
     private val rng = SecureRandom()
 
     // ------------------------------------------------------------------
-    // Découverte
+    // Discovery
     // ------------------------------------------------------------------
 
-    /** WS-Discovery : émet un Probe multicast et collecte les caméras ONVIF. */
+    /** WS-Discovery: emits a multicast Probe and collects the ONVIF cameras. */
     fun discover() {
         if (_isBusy.value) return
         viewModelScope.launch(Dispatchers.IO) {
@@ -70,8 +70,8 @@ class IpCameraViewModel(app: Application) : AndroidViewModel(app) {
             _status.value = "WS-Discovery (ONVIF)…"
             var lock: WifiManager.MulticastLock? = null
             try {
-                // Verrou multicast : sans lui certains téléphones filtrent les
-                // réponses WS-Discovery. Best-effort — jamais bloquant.
+                // Multicast lock: without it some phones filter the
+                // WS-Discovery replies. Best-effort — never blocking.
                 val wifi = getApplication<Application>()
                     .applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
                 lock = wifi?.createMulticastLock("flipperdroid-onvif")?.apply {
@@ -107,7 +107,7 @@ class IpCameraViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** Ajout manuel d'une cible (IP ou hôte) saisie par l'utilisateur. */
+    /** Manual addition of a target (IP or host) entered by the user. */
     fun addManual(host: String) {
         val h = host.trim()
         if (h.isEmpty()) return
@@ -116,8 +116,8 @@ class IpCameraViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Scan des ports « caméra » (OnvifTools.CAMERA_PORTS) sur tous les hôtes d'un
-     * /24 dérivé de baseIp, puis classification heuristique. Sans root.
+     * Scan of the "camera" ports (OnvifTools.CAMERA_PORTS) on every host of a
+     * /24 derived from baseIp, then heuristic classification. No root.
      */
     fun scanSubnet(baseIp: String) {
         if (_isBusy.value) return
@@ -150,7 +150,7 @@ class IpCameraViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** Rescanne les ports d'un hôte déjà listé et met à jour l'heuristique. */
+    /** Rescans the ports of an already listed host and updates the heuristic. */
     fun scanHost(host: String) {
         viewModelScope.launch(Dispatchers.IO) {
             _status.value = "Scanning ports on $host…"
@@ -163,10 +163,10 @@ class IpCameraViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     // ------------------------------------------------------------------
-    // Reconnaissance : sonde RTSP
+    // Reconnaissance: RTSP probe
     // ------------------------------------------------------------------
 
-    /** Sonde RTSP OPTIONS sur le port fourni : reporte si le flux exige une auth. */
+    /** RTSP OPTIONS probe on the given port: reports whether the stream requires auth. */
     fun probeRtsp(host: String, port: Int = 554) {
         viewModelScope.launch(Dispatchers.IO) {
             _status.value = "RTSP probe $host:$port…"
@@ -194,10 +194,10 @@ class IpCameraViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     // ------------------------------------------------------------------
-    // GetDeviceInformation (reconnaissance / vérification d'identifiants)
+    // GetDeviceInformation (reconnaissance / credential verification)
     // ------------------------------------------------------------------
 
-    /** Interroge GetDeviceInformation (avec ou sans identifiants) et affiche le modèle. */
+    /** Queries GetDeviceInformation (with or without credentials) and shows the model. */
     fun fetchDeviceInfo(host: String, port: Int, user: String, pass: String) {
         viewModelScope.launch(Dispatchers.IO) {
             _status.value = "GetDeviceInformation $host…"
@@ -220,13 +220,13 @@ class IpCameraViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     // ------------------------------------------------------------------
-    // Audit : dictionnaire d'identifiants par défaut
+    // Audit: default-credential dictionary
     // ------------------------------------------------------------------
 
     /**
-     * Teste le dictionnaire d'identifiants par défaut via ONVIF GetDeviceInformation.
-     * S'arrête au premier couple valide. Même principe que l'attaque par
-     * dictionnaire du module NFC — pour vérifier une config faible, pas plus.
+     * Tests the default-credential dictionary via ONVIF GetDeviceInformation.
+     * Stops at the first valid pair. Same principle as the NFC module's
+     * dictionary attack — to check for a weak config, nothing more.
      */
     fun auditDefaultCredentials(host: String, port: Int) {
         if (_isBusy.value) return
@@ -240,7 +240,7 @@ class IpCameraViewModel(app: Application) : AndroidViewModel(app) {
                 val resp = onvifPost(url, OnvifTools.ACTION_DEVICE_INFO,
                     OnvifTools.getDeviceInformationBody(), cred.username, cred.password)
                 if (resp.body == null) {
-                    if (resp.error != null) { faults++; if (faults >= 3) break } // hôte injoignable
+                    if (resp.error != null) { faults++; if (faults >= 3) break } // host unreachable
                     continue
                 }
                 val fault = OnvifTools.soapFaultReason(resp.body)
@@ -262,10 +262,10 @@ class IpCameraViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     // ------------------------------------------------------------------
-    // Profils média (nécessaires au PTZ)
+    // Media profiles (required for PTZ)
     // ------------------------------------------------------------------
 
-    /** Récupère les tokens de profils média : indispensables pour piloter le PTZ. */
+    /** Fetches the media profile tokens: essential to drive PTZ. */
     fun fetchProfiles(host: String, port: Int, user: String, pass: String) {
         viewModelScope.launch(Dispatchers.IO) {
             _status.value = "GetProfiles $host…"
@@ -287,7 +287,7 @@ class IpCameraViewModel(app: Application) : AndroidViewModel(app) {
     // PTZ
     // ------------------------------------------------------------------
 
-    /** ONVIF ContinuousMove : bouge en continu jusqu'à ptzStop(). */
+    /** ONVIF ContinuousMove: moves continuously until ptzStop(). */
     fun ptzMove(host: String, port: Int, user: String, pass: String, token: String,
                 pan: Float, tilt: Float, zoom: Float) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -299,7 +299,7 @@ class IpCameraViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** ONVIF Stop : arrête pan/tilt et zoom. */
+    /** ONVIF Stop: stops pan/tilt and zoom. */
     fun ptzStop(host: String, port: Int, user: String, pass: String, token: String) {
         viewModelScope.launch(Dispatchers.IO) {
             val profile = token.ifBlank { firstProfile(host) }
@@ -325,7 +325,7 @@ class IpCameraViewModel(app: Application) : AndroidViewModel(app) {
 
     private data class OnvifResponse(val httpCode: Int, val body: String?, val error: String? = null)
 
-    /** POST SOAP vers un endpoint ONVIF ; ajoute le jeton WS-Security si user non vide. */
+    /** POSTs SOAP to an ONVIF endpoint; adds the WS-Security token when user is not empty. */
     private fun onvifPost(url: String, action: String, body: String, user: String, pass: String): OnvifResponse {
         val header = if (user.isNotEmpty()) {
             val nonce = ByteArray(16).also { rng.nextBytes(it) }
@@ -354,7 +354,7 @@ class IpCameraViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun serviceUrl(host: String, port: Int): String {
         val existing = _cameras.value.firstOrNull { it.host == host }?.xaddr
-        // XAddr de WS-Discovery si présent (endpoint exact) ; sinon on le construit.
+        // XAddr from WS-Discovery if present (exact endpoint); otherwise we build it.
         if (!existing.isNullOrBlank()) return existing
         val path = onvifPath.value.let { if (it.startsWith("/")) it else "/$it" }
         return "http://$host:$port$path"
@@ -374,7 +374,7 @@ class IpCameraViewModel(app: Application) : AndroidViewModel(app) {
         SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
             .apply { timeZone = TimeZone.getTimeZone("UTC") }.format(java.util.Date())
 
-    /** Insère/mies à jour une caméra par hôte, en conservant l'ordre d'apparition. */
+    /** Inserts/updates a camera by host, preserving the order of appearance. */
     private fun upsert(host: String, transform: (IpCamera) -> IpCamera) {
         val list = _cameras.value.toMutableList()
         val idx = list.indexOfFirst { it.host == host }

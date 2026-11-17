@@ -11,8 +11,8 @@ import android.nfc.tech.NfcF
 import android.nfc.tech.NfcV
 
 /**
- * Analyse « statique » d'un tag NFC : UID, ATQA/SAK, ATS, tailles, type, NDEF…
- * N'ouvre aucune connexion (utilise les infos issues de la découverte).
+ * "Static" analysis of an NFC tag: UID, ATQA/SAK, ATS, sizes, type, NDEF…
+ * Opens no connection (uses the information from discovery).
  */
 object NfcInfo {
 

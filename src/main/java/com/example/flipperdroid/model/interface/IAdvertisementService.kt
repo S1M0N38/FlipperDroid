@@ -8,10 +8,10 @@ interface IAdvertisementService {
     fun stopAdvertisement()
 
     /**
-     * Met à jour les DONNÉES de l'annonce en cours sans ré-enregistrer un advertising
-     * set (évite l'accumulation d'advertisers -> TOO_MANY_ADVERTISERS lors du spam).
-     * @return true si la mise à jour a été appliquée ; false s'il n'y a pas d'annonce
-     *   en cours (l'appelant doit alors faire un start classique).
+     * Updates the DATA of the current advertisement without re-registering an advertising
+     * set (avoids the accumulation of advertisers -> TOO_MANY_ADVERTISERS during spam).
+     * @return true if the update was applied; false if there is no current advertisement
+     *   (the caller must then do a regular start).
      */
     fun updateAdvertisement(advertisementSet: AdvertisementSet): Boolean = false
     fun setTxPowerLevel(txPowerLevel: TxPowerLevel)

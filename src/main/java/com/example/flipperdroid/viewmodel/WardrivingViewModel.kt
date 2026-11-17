@@ -32,7 +32,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/** Un point d'accès observé, associé à une position GPS. */
+/** An observed access point, tied to a GPS position. */
 data class WardriveEntry(
     val mac: String,
     val ssid: String,
@@ -48,11 +48,11 @@ data class WardriveEntry(
 
 
 /**
- * Wardriving natif (inspiré d'Evil-M5Project) : combine le scan Wi-Fi et la
- * position GPS pour cartographier les réseaux, avec export au format Wigle CSV.
+ * Native wardriving (inspired by Evil-M5Project): combines Wi-Fi scanning and
+ * GPS position to map networks, with export in Wigle CSV format.
  *
- * Limite Android : les scans Wi-Fi sont bridés (≈4 scans / 2 min en avant-plan
- * depuis Android 9), donc la cadence est volontairement lente.
+ * Android limitation: Wi-Fi scans are throttled (≈4 scans / 2 min in the foreground
+ * since Android 9), so the cadence is deliberately slow.
  */
 class WardrivingViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -62,8 +62,8 @@ class WardrivingViewModel(app: Application) : AndroidViewModel(app) {
     private var locationManager: LocationManager? = null
 
     /**
-     * Réseaux collectés, clé = BSSID. Écrit sur le thread principal (résultats de scan)
-     * et lu sur IO (export) : tout accès passe par synchronized(entriesMap).
+     * Collected networks, key = BSSID. Written on the main thread (scan results)
+     * and read on IO (export): every access goes through synchronized(entriesMap).
      */
     private val entriesMap = LinkedHashMap<String, WardriveEntry>()
 
@@ -100,8 +100,8 @@ class WardrivingViewModel(app: Application) : AndroidViewModel(app) {
         _isRunning.value = true
         _status.value = "Wardriving started..."
 
-        // Mises à jour GPS : chaque fournisseur dans son propre try, un fournisseur
-        // absent ne doit pas empêcher l'autre.
+        // GPS updates: each provider in its own try, a missing provider
+        // must not prevent the other one from working.
         val lm = locationManager
         if (lm != null) {
             for (provider in listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)) {
@@ -117,14 +117,14 @@ class WardrivingViewModel(app: Application) : AndroidViewModel(app) {
             _status.value = "LocationManager unavailable: no GPS fix possible"
         }
 
-        // Récepteur de résultats de scan
+        // Scan results receiver
         registerScanReceiver()
 
-        // Boucle de scan
+        // Scan loop
         scanJob = viewModelScope.launch(Dispatchers.IO) {
             while (isActive && _isRunning.value) {
                 try { wifiManager?.startScan() } catch (_: Exception) {}
-                delay(30_000) // respecte le bridage de scan Android
+                delay(30_000) // respects the Android scan throttling
             }
         }
     }
@@ -160,7 +160,7 @@ class WardrivingViewModel(app: Application) : AndroidViewModel(app) {
                         mac = bssid,
                         ssid = r.SSID ?: "",
                         auth = r.capabilities ?: "",
-                        // Première observation conservée lors des mises à jour.
+                        // First observation kept across updates.
                         firstSeen = previous?.firstSeen ?: timestamp,
                         channel = WifiChannels.frequencyToChannel(r.frequency),
                         rssi = r.level,
@@ -190,7 +190,7 @@ class WardrivingViewModel(app: Application) : AndroidViewModel(app) {
         _status.value = "Stopped. $count networks collected."
     }
 
-    /** Exporte les réseaux au format Wigle CSV (WigleWifi-1.4). */
+    /** Exports the networks in Wigle CSV format (WigleWifi-1.4). */
     fun exportCsv() {
         val hasEntries = synchronized(entriesMap) { entriesMap.isNotEmpty() }
         if (!hasEntries) { _status.value = "Nothing to export"; return }
@@ -200,7 +200,7 @@ class WardrivingViewModel(app: Application) : AndroidViewModel(app) {
                 val dir = app.getExternalFilesDir("wardriving") ?: app.filesDir
                 val ts = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
                 val file = File(dir, "wardrive_$ts.csv")
-                // Copie sous verrou : l'export ne doit pas itérer la map pendant un scan.
+                // Copy under lock: the export must not iterate the map during a scan.
                 val snapshot = synchronized(entriesMap) { entriesMap.values.toList() }
                 val sb = StringBuilder()
                 sb.append("WigleWifi-1.4,appRelease=FlipperDroid,model=Android,release=Android,device=Android,display=,board=,brand=\n")

@@ -10,11 +10,11 @@ import com.example.flipperdroid.model.enums.AdvertiseMode
 import kotlin.random.Random
 
 /**
- * Génère des trames Apple Continuity « Nearby Action » (type 0x0F) qui déclenchent
- * des pop-ups d'action sur les appareils iOS proches (Setup New iPhone, Transfer
- * Number, actions AppleTV/HomeKit, etc.).
+ * Generates Apple Continuity "Nearby Action" frames (type 0x0F) that trigger
+ * action pop-ups on nearby iOS devices (Setup New iPhone, Transfer
+ * Number, AppleTV/HomeKit actions, etc.).
  *
- * Format manufacturer data : [0x0F, 0x05, flags(0xC0), actionType, auth(3 octets aléatoires)].
+ * Manufacturer data format: [0x0F, 0x05, flags(0xC0), actionType, auth(3 random bytes)].
  */
 object ContinuityNearbyActionAdvertisementSetGenerator {
     private const val manufacturerId = 76 // 0x004C = Apple

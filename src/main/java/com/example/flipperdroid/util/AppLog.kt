@@ -8,8 +8,8 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * Journal applicatif central. Les modules appellent [log] pour tracer leurs
- * actions ; l'écran Logs affiche le flux. En mémoire (max 500 lignes).
+ * Central application log. Modules call [log] to trace their actions; the Logs
+ * screen displays the stream. In memory (max 500 lines).
  */
 object AppLog {
     private const val MAX = 500
@@ -20,8 +20,8 @@ object AppLog {
 
     fun log(tag: String, message: String) {
         val line = synchronized(fmt) { "${fmt.format(Date())} [$tag] $message" }
-        // update {} = lecture-modification-écriture atomique : les modules journalisent
-        // depuis plusieurs coroutines IO, un simple `value = value + line` perdrait des lignes.
+        // update {} = atomic read-modify-write: modules log from several IO coroutines,
+        // a plain `value = value + line` would lose lines.
         _entries.update { (it + line).takeLast(MAX) }
         android.util.Log.d("FlipperDroid/$tag", message)
     }

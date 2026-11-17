@@ -18,11 +18,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.flipperdroid.viewmodel.HidKeyboardViewModel
 
-/** Clavier HID Bluetooth : tape du texte sur un PC/tablette apparié, sans câble. */
+/** Bluetooth HID keyboard: types text on a paired PC/tablet, without a cable. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HidKeyboardScreen(navController: NavController) {
-    // BluetoothHidDevice n'existe qu'à partir d'Android 9 (API 28).
+    // BluetoothHidDevice only exists from Android 9 (API 28).
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
         UnsupportedScreen(navController, "BLE Keyboard", "Requires Android 9 (API 28) or newer.")
         return
@@ -96,7 +96,7 @@ fun HidKeyboardScreen(navController: NavController) {
     }
 }
 
-/** Écran générique affiché quand une fonction n'est pas supportée par l'appareil/OS. */
+/** Generic screen shown when a feature is not supported by the device/OS. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UnsupportedScreen(navController: NavController, title: String, message: String) {

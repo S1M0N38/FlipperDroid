@@ -35,7 +35,7 @@ object EasySetupBudsAdvertisementSetGenerator {
         "42C519" to "Red Buds Live",
         "AE073A" to "Black & White Buds2",
         "011716" to "Sleek Black Buds2",
-        // Ajouter ici tout autre modèle Samsung Buds trouvé dans Bluetooth-LE-Spam
+        // Add any other Samsung Buds model found in Bluetooth-LE-Spam here
     )
 
     fun getAdvertisementSets(): List<AdvertisementSet> {

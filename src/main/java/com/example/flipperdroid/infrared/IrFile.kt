@@ -1,9 +1,9 @@
 package com.example.flipperdroid.infrared
 
-/** Intervalle inter-trame utilisé pour la rafale d'un bouton "raw". */
+/** Inter-frame gap used for the burst of a "raw" button. */
 private const val RAW_GAP_US = 40000
 
-/** Un bouton d'un fichier .ir (soit "parsed" avec protocole, soit "raw"). */
+/** A button of an .ir file (either "parsed" with a protocol, or "raw"). */
 data class IrButton(
     val name: String,
     val type: String,
@@ -13,7 +13,7 @@ data class IrButton(
     val frequency: Int = 38000,
     val rawData: IntArray? = null
 ) {
-    /** @return (fréquence, motif µs) prêt à transmettre, ou null si non encodable. */
+    /** @return (frequency, µs pattern) ready to transmit, or null if not encodable. */
     fun toSignal(): Pair<Int, IntArray>? {
         return when (type.lowercase()) {
             "raw" -> if (rawData != null && rawData.isNotEmpty()) frequency to rawData else null
@@ -23,9 +23,9 @@ data class IrButton(
     }
 
     /**
-     * Rafale répétée (une pression fiable) pour le TV-B-Gone. Pour un bouton "parsed",
-     * délègue à IrProtocols.encodePowerBurst ; pour un bouton "raw", répète simplement
-     * la capture [presses] fois (une trame brute isolée est souvent ignorée).
+     * Repeated burst (one reliable press) for TV-B-Gone. For a "parsed" button,
+     * delegates to IrProtocols.encodePowerBurst; for a "raw" button, simply repeats
+     * the capture [presses] times (an isolated raw frame is often ignored).
      */
     fun toBurst(presses: Int = 0): Pair<Int, IntArray>? {
         return when (type.lowercase()) {
@@ -44,9 +44,9 @@ data class IrButton(
 }
 
 /**
- * Parseur du format de fichier .ir du Flipper Zero.
+ * Parser for the Flipper Zero .ir file format.
  *
- * Exemple d'entrée :
+ * Example input:
  * ```
  * name: Power
  * type: parsed
@@ -54,7 +54,7 @@ data class IrButton(
  * address: 04 00 00 00
  * command: 08 00 00 00
  * ```
- * ou brute :
+ * or raw:
  * ```
  * name: Power
  * type: raw
@@ -62,8 +62,8 @@ data class IrButton(
  * data: 9000 4500 560 560 ...
  * ```
  *
- * Un bouton dont un octet hexadécimal ou une valeur de donnée brute est invalide est
- * **ignoré** (et non transformé en 0) : mieux vaut un bouton absent qu'un code faux.
+ * A button with an invalid hexadecimal byte or an invalid raw data value is
+ * **ignored** (and not turned into 0): a missing button is better than a wrong code.
  */
 object IrFile {
 
@@ -77,10 +77,10 @@ object IrFile {
         fun flush() {
             val name = cur["name"] ?: return
             val type = cur["type"] ?: return
-            val address = parseHexBytesLE(cur["address"]) ?: return   // octet invalide : bouton ignoré
+            val address = parseHexBytesLE(cur["address"]) ?: return   // invalid byte: button ignored
             val command = parseHexBytesLE(cur["command"]) ?: return
             val rawData = cur["data"]?.let { parseRaw(it) }
-            // Donnée brute présente mais corrompue : bouton ignoré.
+            // Raw data present but corrupted: button ignored.
             if (cur.containsKey("data") && rawData == null) return
             buttons.add(
                 IrButton(
@@ -95,7 +95,7 @@ object IrFile {
             )
         }
 
-        // lines() gère "\n" et "\r\n" ; le BOM éventuel en tête de fichier est retiré.
+        // lines() handles "\n" and "\r\n"; a possible BOM at the start of the file is stripped.
         for (raw in text.removePrefix("﻿").lines()) {
             val line = raw.trim()
             if (line.isEmpty() || line.startsWith("#") || line.startsWith("Filetype") || line.startsWith("Version")) {
@@ -105,7 +105,7 @@ object IrFile {
             if (idx <= 0) continue
             val key = line.substring(0, idx).trim().lowercase()
             val value = line.substring(idx + 1).trim()
-            // Une nouvelle clé "name" démarre un nouveau bouton
+            // A new "name" key starts a new button
             if (key == "name" && cur.isNotEmpty()) {
                 flush()
                 cur = mutableMapOf()
@@ -117,8 +117,8 @@ object IrFile {
     }
 
     /**
-     * Convertit "04 00 00 00" (little-endian) en entier.
-     * @return 0 si la valeur est absente, null si un octet n'est pas hexadécimal valide.
+     * Converts "04 00 00 00" (little-endian) to an integer.
+     * @return 0 if the value is absent, null if a byte is not valid hexadecimal.
      */
     private fun parseHexBytesLE(s: String?): Int? {
         if (s.isNullOrBlank()) return 0
@@ -132,8 +132,8 @@ object IrFile {
     }
 
     /**
-     * Convertit "9000 4500 560 ..." en tableau d'entiers.
-     * @return null si un jeton n'est pas un entier strictement positif, ou si la liste est vide.
+     * Converts "9000 4500 560 ..." to an integer array.
+     * @return null if a token is not a strictly positive integer, or if the list is empty.
      */
     private fun parseRaw(s: String): IntArray? {
         val tokens = s.trim().split(WHITESPACE)

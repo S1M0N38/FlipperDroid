@@ -18,9 +18,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 
 /**
- * Ecran de presentation de l application avec les informations legales et les fonctionnalites
+ * About screen presenting the app with the legal information and the features
  *
- * @param navController controleur de navigation pour gerer le retour arriere
+ * @param navController navigation controller to handle going back
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,7 +48,7 @@ fun AboutScreen(navController: NavController) {
         ) {
             item {
                 /**
-                 * Affiche le logo circulaire de l application
+                 * Displays the app's circular logo
                  */
                 Surface(
                     modifier = Modifier
@@ -109,7 +109,7 @@ fun AboutScreen(navController: NavController) {
 
             item {
                 /**
-                 * Affiche les membres de l equipe et un lien vers le GitHub
+                 * Displays the team members and a link to GitHub
                  */
                 Card(
                     modifier = Modifier
@@ -160,7 +160,7 @@ fun AboutScreen(navController: NavController) {
 
             item {
                 /**
-                 * Affiche les fonctionnalites principales de l application
+                 * Displays the app's main features
                  */
                 Card(
                     modifier = Modifier
@@ -216,7 +216,7 @@ fun AboutScreen(navController: NavController) {
 
             item {
                 /**
-                 * Affiche les mentions legales de l application
+                 * Displays the app's legal notices
                  */
                 Card(
                     modifier = Modifier

@@ -17,9 +17,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * Télécommande universelle pilotée par une base de codes au format .ir (Flipper).
- * Charge les remotes empaquetés (assets/infrared/) ou importés par l'utilisateur,
- * et transmet chaque bouton via l'émetteur IR.
+ * Universal remote driven by an .ir (Flipper) code database.
+ * Loads the bundled remotes (assets/infrared/) or user-imported ones,
+ * and transmits each button through the IR emitter.
  */
 class IrRemoteViewModel(app: Application) : AndroidViewModel(app) {
 
@@ -40,7 +40,7 @@ class IrRemoteViewModel(app: Application) : AndroidViewModel(app) {
 
     val hasEmitter: Boolean get() = irManager?.hasIrEmitter() == true
 
-    // Remotes importés en mémoire (nom -> contenu .ir), fusionnés aux assets.
+    // Remotes imported in memory (name -> .ir content), merged with the assets.
     private val importedTexts = mutableMapOf<String, String>()
 
     fun loadAssetList() {
@@ -77,9 +77,9 @@ class IrRemoteViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Import en masse : ajoute tous les .ir d'un dossier à la liste des remotes.
-     * Le parsing se fait sur Dispatchers.Default : un gros dossier Flipper-IRDB ne doit pas
-     * figer l'UI. Les écritures d'état restent sur le thread principal.
+     * Bulk import: adds every .ir of a folder to the remote list.
+     * Parsing runs on Dispatchers.Default: a large Flipper-IRDB folder must not
+     * freeze the UI. State writes stay on the main thread.
      */
     fun importFolder(files: List<Pair<String, String>>) {
         viewModelScope.launch {
@@ -95,8 +95,8 @@ class IrRemoteViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Charge un remote importé par l'utilisateur (contenu déjà lu depuis un Uri).
-     * Le parsing se fait sur Dispatchers.Default (voir [importFolder]).
+     * Loads a user-imported remote (content already read from a Uri).
+     * Parsing runs on Dispatchers.Default (see [importFolder]).
      */
     fun loadFromText(name: String, text: String) {
         viewModelScope.launch {
@@ -131,9 +131,9 @@ class IrRemoteViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * "TV-B-Gone" simplifié : envoie les boutons power **bascule** de tous les remotes.
-     * Les paires on/off explicites sont exclues et les codes identiques (protocole, adresse,
-     * commande) ne sont envoyés qu'une fois. Les boutons parsed partent en rafale répétée.
+     * Simplified "TV-B-Gone": sends the **toggle** power buttons of every remote.
+     * Explicit on/off pairs are excluded and identical codes (protocol, address,
+     * command) are sent only once. Parsed buttons go out as a repeated burst.
      */
     fun powerSweep() {
         viewModelScope.launch(Dispatchers.IO) {
@@ -154,7 +154,7 @@ class IrRemoteViewModel(app: Application) : AndroidViewModel(app) {
                 var sent = 0
                 var lastError: String? = null
                 for (p in powers) {
-                    // Parsed : rafale répétée (une trame isolée est ignorée). Raw : capture telle quelle.
+                    // Parsed: repeated burst (an isolated frame is ignored). Raw: capture as-is.
                     val signal = (if (p.type.equals("parsed", ignoreCase = true)) p.toBurst() else p.toSignal()) ?: continue
                     try {
                         manager.transmit(signal.first, signal.second)
