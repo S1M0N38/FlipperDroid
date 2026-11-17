@@ -69,8 +69,21 @@ silently changes which Android version every test runs on.
 
 Rules that are easy to get wrong:
 
+- **Prefer agent-device for everything it can do.** It has 75 commands: UI
+  actions, snapshots, screenshots, screen recording, permission grants and OS
+  settings, app install/uninstall, session logs, HTTP traffic, perf, replayable
+  test suites, telephony, orientation, clipboard, `takeover` to hand the device
+  back to a human.
+- **Fall back to adb only for what agent-device cannot do**: Gradle
+  builds/installs, `logcat`, `adb shell` one-offs, port forwards, pulling files.
 - **UI actions and screenshots go through the launcher**, not `adb`. The lease is
   bound to that agent-device session.
+- **The launcher is the only handle on the lease, and it has no stable name.** It
+  lives under `~/.local/share/t3/userdata/device/targets/t3-<hash>/agent-device`,
+  and it supplies `--config <host>.json` + `--session t3-<thread>` for you. A
+  plain `agent-device` from `mise` answers `DEVICE_NOT_FOUND` against the lease,
+  because those two values are per-thread and change every session. That is also
+  why a static project script cannot launch the app by itself.
 - **`install` must run from the install directory** (the thread workspace root).
 - **The lease is wiped when it ends** and starts with no apps installed, so the
   install step is not optional.
