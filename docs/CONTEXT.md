@@ -15,7 +15,16 @@ launch and README restates the disclaimer; keep that framing in code and docs.
 - `java.time` works on 24 via core-library desugaring; `Process.waitFor(timeout,
   unit)` does not (API 26).
 - Release APKs are built and signed **only in CI** from repository secrets on a
-  `v*` tag; never publish a debug APK.
+  `v*` tag; never publish a debug APK. Signing is env-driven
+  (`RELEASE_KEYSTORE_FILE`), and `isMinifyEnabled = false`, so R8 shrinking is not
+  in play when debugging a release-only bug.
+- `gradle.properties` turns on the build cache and the configuration cache; if
+  storing the cache ever fails a build, delete that line instead of fighting it.
+- `res/xml/` holds the pieces that are easy to forget: `backup_rules.xml` +
+  `data_extraction_rules.xml` (backups off), `network_security_config.xml`
+  (cleartext allowed for LAN devices), and the two HCE descriptions plus the NFC
+  tech filter (`emv_card_service.xml`, `ndef_hce_service.xml`,
+  `nfc_tech_filter.xml`).
 - `AndroidManifest.xml` registers two HCE services
   (`nfc.NdefHceService`, `nfc.EmvCardEmulationService`), which is why NFC
   emulation needs no hardware. Permissions cover NFC, BLE scan/advertise/connect,
