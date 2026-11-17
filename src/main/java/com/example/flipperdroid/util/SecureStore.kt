@@ -4,6 +4,7 @@ import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
+import androidx.core.content.edit
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -68,9 +69,9 @@ object SecureStore {
         ctx.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
     fun putString(ctx: Context, name: String, value: String?) {
-        prefs(ctx).edit().apply {
+        prefs(ctx).edit {
             if (value == null) remove(name) else putString(name, encrypt(value))
-        }.apply()
+        }
     }
 
     fun getString(ctx: Context, name: String): String? =

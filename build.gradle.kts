@@ -66,13 +66,20 @@ android {
     }
     lint {
         // Errors fail the build locally and in CI. Warnings stay report-only (the CI
-        // workflow uploads build/reports/), so dependency-update nags and unused
-        // resources never block a fix.
+        // workflow uploads build/reports/), so they never block a fix.
         abortOnError = true
         warningsAsErrors = false
         // Lint the release variant too, so an issue that only exists there cannot
         // reach a tag build.
         checkReleaseBuilds = true
+        // Deliberately frozen toolchain (see docs/dev-environment.md): the emulator
+        // and the target device class are API 34, and compileSdk/targetSdk stay at
+        // 35. Every newer AndroidX release needs minCompileSdk 37 and AGP 9 needs
+        // Gradle 9.6 + SDK 37, so these two checks can only be silenced by retiring
+        // that policy, never by a version bump. Disabled so the report keeps
+        // pointing at real problems (and so the version nags cannot be mistaken for
+        // work in progress). Delete these two lines when the bump is actually done.
+        disable += setOf("GradleDependency", "AndroidGradlePluginVersion")
     }
     testOptions {
         // JVM tests sometimes touch android.util.Log: default values are returned
@@ -85,7 +92,7 @@ android {
 }
 
 dependencies {
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

@@ -27,9 +27,9 @@ fun AcControlScreen(
     var brand by remember { mutableStateOf(AcProtocols.Brand.GREE) }
     var brandMenu by remember { mutableStateOf(false) }
     var power by remember { mutableStateOf(true) }
-    var mode by remember { mutableStateOf(AcProtocols.MODE_COOL) }
-    var temp by remember { mutableStateOf(22f) }
-    var fan by remember { mutableStateOf(AcProtocols.FAN_AUTO) }
+    var mode by remember { mutableIntStateOf(AcProtocols.MODE_COOL) }
+    var temp by remember { mutableFloatStateOf(22f) }
+    var fan by remember { mutableIntStateOf(AcProtocols.FAN_AUTO) }
     var swing by remember { mutableStateOf(false) }
 
     val modes = listOf(

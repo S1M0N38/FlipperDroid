@@ -45,7 +45,7 @@ fun TotpScreen(
     var showSecret by remember { mutableStateOf(false) }
 
     // Clock that advances every second
-    var now by remember { mutableStateOf(System.currentTimeMillis()) }
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
         while (true) { now = System.currentTimeMillis(); delay(1000) }
     }

@@ -2,6 +2,7 @@ package com.example.flipperdroid.viewmodel
 
 import android.app.Application
 import android.content.Context
+import androidx.core.content.edit
 import androidx.lifecycle.AndroidViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,6 +14,6 @@ class ThemeViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setDarkMode(enabled: Boolean) {
         _isDarkMode.value = enabled
-        prefs.edit().putBoolean("dark_mode", enabled).apply()
+        prefs.edit { putBoolean("dark_mode", enabled) }
     }
 } 

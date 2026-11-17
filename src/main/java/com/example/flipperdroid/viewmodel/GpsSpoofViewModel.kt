@@ -44,7 +44,11 @@ class GpsSpoofViewModel(app: Application) : AndroidViewModel(app) {
         else -> null
     }
 
-    @Suppress("DEPRECATION")
+    // "InlinedApi": addTestProvider's last two ints are @IntDef'd on ProviderProperties
+    // (API 31), so Criteria.POWER_LOW / ACCURACY_FINE would be a WrongConstant error.
+    // The two constants are static final ints (1), i.e. inlined by the compiler: the
+    // call site never references the API-31 class at runtime, so this is safe on API 24.
+    @Suppress("DEPRECATION", "InlinedApi")
     fun start(latitude: Double, longitude: Double) {
         validate(latitude, longitude)?.let { error ->
             _status.value = error
@@ -57,8 +61,6 @@ class GpsSpoofViewModel(app: Application) : AndroidViewModel(app) {
             try {
                 manager.addTestProvider(
                     provider, false, false, false, false,
-                    // ProviderProperties, not Criteria: addTestProvider is annotated with
-                    // the former. The values are identical (1), the annotation is not.
                     true, true, true,
                     ProviderProperties.POWER_USAGE_LOW, ProviderProperties.ACCURACY_FINE
                 )

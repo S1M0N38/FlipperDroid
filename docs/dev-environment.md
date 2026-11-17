@@ -17,6 +17,31 @@ CLI-only: no Android Studio.
 `compileSdk`/`targetSdk` stay at 35 (that is the `platforms/android-35` package);
 the emulator runs Android 14 because that is the device class the app targets.
 
+### Why the toolchain is frozen (and two lint checks are disabled)
+
+The SDK levels and the toolchain move together, so freezing one freezes the
+other. Concretely, as of AGP 8.9 / `compileSdk 35`:
+
+| Want | Needs |
+|---|---|
+| `core-ktx` 1.19, Compose 1.12, navigation 2.10 | `minCompileSdk=37` (`activity` 1.13 wants 36) |
+| AGP 9.5 | Gradle 9.6, JDK 17+, Build Tools 36, max API 37 |
+| AGP 9 built-in Kotlin | drop `org.jetbrains.kotlin.android`, port `kotlinOptions{}` |
+
+So the "newer version available" nags cannot be cleared without raising
+`compileSdk` past 35 — and raising it while keeping `targetSdk 35` just moves
+the nag to `OldTargetApi` ("Not targeting the latest versions of Android").
+That is why `build.gradle.kts` disables `GradleDependency` and
+`AndroidGradlePluginVersion`: the report is supposed to show real findings, not
+33 lines of version noise nobody is going to act on. When the bump does happen,
+delete those two `disable` entries together with this section.
+
+Raising `compileSdk` would not drop old devices by itself (`minSdk` is the
+install floor and it stays 24; the manifest merger fails the build if a library
+ever raises its own floor above that). It is the *`targetSdk`* half — and the
+`OldTargetApi` nag that comes with it — that this project is deliberately not
+doing yet.
+
 ### Why only one system image
 
 T3 Code lists one device per emulator model, always at the **newest installed**

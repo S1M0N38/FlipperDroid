@@ -2,4 +2,9 @@
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
     <background android:drawable="@color/ic_launcher_background"/>
     <foreground android:drawable="@drawable/ic_launcher_foreground"/>
+    <!-- Themed icons (Android 13+): the system tints this layer with the user's
+         wallpaper colours. It reuses the foreground, which is already a single
+         colour (black) on transparency, as the docs suggest. API 26-32 launchers
+         ignore the extra tag (AdaptiveIconDrawable skips unknown children). -->
+    <monochrome android:drawable="@drawable/ic_launcher_foreground"/>
 </adaptive-icon>
