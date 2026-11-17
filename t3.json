@@ -1,0 +1,21 @@
+{
+  "$schema": "https://t3.codes/schema/t3.json",
+  "scripts": [
+    {
+      "name": "Build + install",
+      "command": "eval \"$(scripts/adb-env.sh)\" && ./gradlew installDebug",
+      "icon": "build"
+    },
+    {
+      "name": "Unit tests",
+      "command": "./gradlew testDebugUnitTest",
+      "icon": "test",
+      "runOnSettle": true
+    },
+    {
+      "name": "Lint",
+      "command": "./gradlew lint",
+      "icon": "lint"
+    }
+  ]
+}
