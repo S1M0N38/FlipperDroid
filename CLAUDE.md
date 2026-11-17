@@ -45,7 +45,7 @@ Run a single unit test class/method:
 - `java.time` is available on `minSdk` 24 through core-library desugaring (`desugar_jdk_libs`). `Process.waitFor(timeout, unit)` is NOT (API 26): poll `exitValue()` instead.
 - SDK: `compileSdk`/`targetSdk` 35, `minSdk` 24, JVM target 11. `applicationId`/`namespace` = `com.example.flipperdroid` (still the default — change before shipping); the `debug` build type adds `.debug` so two worktrees can be installed side by side on one emulator.
 - The Android SDK is found through `ANDROID_HOME` (exported by mise: `android-sdk = "23.0"`), so **no `local.properties` is needed** — deliberately, because git-ignored files are not copied into new worktrees. If you add one, every worktree has to add it again.
-- Every dependency version lives in the version catalog (`gradle/libs.versions.toml`). Only `com.android.tools:desugar_jdk_libs` is declared inline in `build.gradle.kts`.
+- Every dependency version lives in the version catalog (`gradle/libs.versions.toml`), including the core-library desugaring one (`libs.desugar.jdk.libs`).
 
 ## Architecture
 
