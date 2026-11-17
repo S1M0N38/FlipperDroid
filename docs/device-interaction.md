@@ -39,6 +39,7 @@ tools) boots an emulator and prints a launcher bound to it, under
 AD=<path device_open printed>
 
 $AD open com.example.flipperdroid.debug --foreground   # session + initial snapshot
+$AD open com.example.flipperdroid.debug --relaunch     # restart the app instead
 $AD press @e7 --settle                                 # act; the diff is the evidence
 $AD scroll down --until 'text="Password Generator"' --settle
 $AD press @e19~s438969 --settle                        # refs carry their ~sN pin
@@ -51,7 +52,9 @@ $AD screenshot /tmp/shot.png                           # only to show a human
 Rules that fall out of it:
 
 - **`--settle` returns a UI diff**, which is the proof a step worked:
-  `[unchecked]` → `[checked]` needs no screenshot. `--settle` is only for
+  `[unchecked]` → `[checked]` needs no screenshot. Diffs are **truncated**
+  (`… changed lines truncated`) on big screens — when the next target is missing
+  from the diff, read the whole tree instead of guessing. `--settle` is only for
   `press|click|fill|longpress|hover|scroll|back`; `find`, `open` and `snapshot`
   reject it.
 - **A diff can be a no-op read.** `back --settle` answering `+0 -0` does not
@@ -60,17 +63,37 @@ Rules that fall out of it:
 - `scroll <dir> --until <selector>` reaches an off-screen target in one command.
   `scroll bottom|top` take no `--until`; `--until` wants a plain selector
   (`text="Settings"`), and inside `batch` it is a **string**, not an object.
-- **Refs die with the frame.** Copy them exactly, `~sN` included: `@e19` alone
-  fails with "needs a complete snapshot". Refs from a *different* snapshot (or a
-  stale `-i` tree) fail the same way, in `batch` steps too.
-- **`find`/`is`/`wait` see what the user could touch.** Static text (dialog
-  bodies, settings labels) is missing from `-i`; get it from
-  `snapshot --raw` / `--json`. Text selectors are **exact** — `text=/regex/`
-  does not match, `find` is the contains-match.
-- A word that appears twice (tile group + its label) is
-  `AMBIGUOUS_MATCH`; pass the ref or `--first`.
+- **Refs die with the frame.** Copy them exactly as printed. `open` and
+  `snapshot` emit bare refs (`@e7`) — use those bare; a `--settle` diff emits
+  pinned refs (`@e21~s472609`) — those must keep their pin, because a bare
+  `@e19` then fails with "needs a complete snapshot". Refs from a *different*
+  snapshot fail the same way, `batch` steps included.
+- **`find`/`is`/`wait` see what the user could touch.** `snapshot -i` lists the
+  interactive nodes — some static text is in it (`[text] "Generated password"`)
+  and some is not (screen titles, dialog bodies, settings labels). So the rule is
+  one-directional: if a node you need is missing, it may still be in
+  `snapshot --json` or `--raw`. Text selectors are **exact** (`text=/regex/`
+  never matches; `find` is the contains-match), a `text-field` exposes its value
+  as the node's **label**, and a value that can contain `"` or `'` (generated
+  passwords, captured payloads) is better addressed by ref than by selector.
+- A word that appears twice (tile `group` + its `text` label) is
+  `AMBIGUOUS_MATCH`; the **`group`** is the tappable one. Pass that ref, or
+  `--first`.
 - Compose surfaces some buttons as `kind:"text"`; query by label rather than
   filtering `kind=="button"`.
+
+### Reading trees without guessing
+
+```bash
+$AD apps                                   # what is installed on this lease
+$AD snapshot --json | jq -r '.. | objects | select(.kind=="text-field") | .label'
+$AD snapshot --raw | grep -F 'bundleId":"com.example.flipperdroid.debug' | head -3
+```
+
+`--json` is one document, `{success, data: {…}}` — `.nodes[]` does not exist and
+`jq` on the wrong path silently yields nothing. `--raw` is **NDJSON, one object
+per line, including every `com.android.systemui` status-bar node**, so filter on
+`bundleId` before grepping for your own text.
 
 ## Flows as code
 
@@ -95,6 +118,13 @@ $AD replay docs/flows/home-smoke.yaml --maestro
   command; the tool prints the daemon URL and session to keep using.
 
 ## Evidence for humans
+
+**Screens with `SecureFlag.SecureWindow()` render black** — by design, not a
+tool failure: `view/PasswordGeneratorScreen.kt` and `view/TotpScreen.kt` set
+`FLAG_SECURE`, so the status bar appears and the app surface is pure black while
+the accessibility tree is perfectly correct. Verify those screens from the tree
+(`--settle` diffs, `--json`) and never claim a screenshot proves anything there;
+`record` + contact sheet goes through the same block.
 
 ```bash
 $AD screenshot /tmp/shot.png                       # one frame

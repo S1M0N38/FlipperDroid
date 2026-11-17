@@ -105,11 +105,22 @@ shown in the thread's scripts menu as "From t3.json":
 | Unit tests | `./gradlew testDebugUnitTest` (also `runOnSettle` in worktree threads) |
 | Lint | `./gradlew lint` |
 
+The install script pins `android.injected.device.serial`, because Gradle otherwise
+installs to every device its adb server sees. That serial is whatever
+`scripts/adb-env.sh` resolved — the *first* booted emulator — which is not always
+the lease the Device panel is showing, so with two leases open the app can land on
+the wrong one. When more than one device is attached, prefer
+`"$LAUNCHER" install <pkg> <apk>` from the repo root.
+
 There is deliberately **no launch script**: the agent-device launcher path is
 per-lease and per-thread, so a static command cannot carry it (see
 [`CONTEXT.md`](CONTEXT.md) and `device-interaction.md`). Edits to `t3.json` are
 picked up by the card directly — the file is the source of truth, the per-machine
 project settings are a mirror.
+
+Lint is a gate, not advice: `./gradlew lint` has `abortOnError = true` (warnings
+stay report-only) and also checks the release variant, so run it before
+pushing anything that touches resources or manifests.
 
 ## CI and release
 
@@ -131,6 +142,9 @@ eval "$(scripts/adb-env.sh)"     # prints ANDROID_ADB_SERVER_PORT + ANDROID_SERI
 ./gradlew connectedAndroidTest -Pandroid.injected.device.serial="$ANDROID_SERIAL"
 adb logcat | grep -i flipperdroid
 ```
+
+One test only: `./gradlew testDebugUnitTest --tests "com.example.flipperdroid.LogicUnitTest.totp_rfc6238_vectors"`
+(class or method; the same selector works for `connectedAndroidTest` class names).
 
 Pin the serial for `installDebug`/`connectedAndroidTest` too: Gradle targets
 **every** device its adb server sees, and opening a second lease in the Device
