@@ -1,5 +1,7 @@
 # FlipperDroid
 
+> This repo is a fork of [FlipperDroid-2.0](https://github.com/SamwellOt/FlipperDroid-2.0) which is a fork of [FlipperDroid](https://github.com/Jeremiznoo/FlipperDroid)
+
 **FlipperDroid** is an Android application developed in Kotlin (Jetpack Compose), inspired by the well-known **Flipper Zero** device. It brings a broad set of wireless and hardware security-testing tools to Android smartphones, leveraging their native radios (NFC, BLE, Wi-Fi, IR) and, where available, root.
 
 <p align="center">
