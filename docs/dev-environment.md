@@ -42,6 +42,23 @@ ever raises its own floor above that). It is the *`targetSdk`* half — and the
 `OldTargetApi` nag that comes with it — that this project is deliberately not
 doing yet.
 
+### One debug keystore, under XDG
+
+AGP signs debug builds with `$ANDROID_USER_HOME/debug.keystore`, and that
+defaults to `$XDG_CONFIG_HOME/.android` — but only when `XDG_CONFIG_HOME` is set,
+otherwise `~/.android`. A non-interactive shell (agent, script, runner) never
+sources `~/.bashrc`, which is where this machine exports `XDG_CONFIG_HOME`, so
+two shells could sign the same APK with two different keys: alternating installs
+then fail with `INSTALL_FAILED_UPDATE_INCOMPATIBLE`, and the APK digest changes
+between `apksigner verify --print-certs` runs for no visible reason.
+
+This machine pins it in `~/.config/mise/config.toml` `[env]` (`XDG_CONFIG_HOME`,
+`XDG_DATA_HOME`, `ANDROID_USER_HOME=~/.config/.android`), and `scripts/adb-env.sh`
+re-exports those for shells that did not go through mise activation. The only
+debug keystore is `~/.config/.android/debug.keystore` (SHA-256 `a6d12f5b…`); if a
+build suddenly signs with something else, check `echo $ANDROID_USER_HOME` and
+`./gradlew --stop` (a daemon started under the old environment keeps it).
+
 ### Why only one system image
 
 T3 Code lists one device per emulator model, always at the **newest installed**
@@ -54,7 +71,8 @@ silently changes which Android version every test runs on.
 
 ```bash
 # 1. open a device: T3 Code → Device panel, or the device_* tools of the agent.
-#    It returns a launcher bound to that lease, plus the install directory.
+#    It prints the launcher bound to that lease; keep it in $LAUNCHER.
+LAUNCHER="<the agent-device path device_open printed>"
 
 # 2. build and install (agent-device install needs the thread's workspace root)
 ./gradlew assembleDebug
@@ -97,9 +115,14 @@ random emulator port, so both values change per session:
 
 ```bash
 eval "$(scripts/adb-env.sh)"     # prints ANDROID_ADB_SERVER_PORT + ANDROID_SERIAL
-./gradlew connectedAndroidTest
+./gradlew connectedAndroidTest -Pandroid.injected.device.serial="$ANDROID_SERIAL"
 adb logcat | grep -i flipperdroid
 ```
+
+Pin the serial for `installDebug`/`connectedAndroidTest` too: Gradle targets
+**every** device its adb server sees, and opening a second lease in the Device
+panel silently adds one. `adb` itself stays single-device because `adb-env.sh`
+exports `ANDROID_SERIAL`.
 
 ## Test matrix
 

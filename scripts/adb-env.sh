@@ -36,6 +36,22 @@ serial="$(ANDROID_ADB_SERVER_PORT="$port" adb devices 2>/dev/null | awk '$2 == "
 printf 'export ANDROID_ADB_SERVER_PORT=%s\n' "$port"
 printf 'export ANDROID_SERIAL=%s\n' "$serial"
 
+# Android toolchain environment. AGP signs debug builds with
+# $ANDROID_USER_HOME/debug.keystore, defaulting to $XDG_CONFIG_HOME/.android and
+# falling back to ~/.android when XDG_CONFIG_HOME is unset. A non-interactive
+# shell never sources ~/.bashrc, so it would pick a *different* keystore than the
+# T3 terminal and every other install would fail with
+# INSTALL_FAILED_UPDATE_INCOMPATIBLE. Take these from mise so adb, Gradle and the
+# terminal agree; anything already set in the caller's environment wins.
+if command -v mise >/dev/null 2>&1; then
+  mise_env="$(mise env 2>/dev/null || true)"
+  for name in XDG_CONFIG_HOME XDG_DATA_HOME ANDROID_USER_HOME; do
+    [ -n "${!name:-}" ] && continue
+    value="$(printf '%s\n' "$mise_env" | sed -n "s/^export ${name}=//p" | head -1)"
+    [ -n "$value" ] && printf 'export %s=%s\n' "$name" "$value"
+  done
+fi
+
 model="$(ANDROID_ADB_SERVER_PORT="$port" adb -s "$serial" shell getprop ro.product.model 2>/dev/null | tr -d '\r')"
 sdk="$(ANDROID_ADB_SERVER_PORT="$port" adb -s "$serial" shell getprop ro.build.version.sdk 2>/dev/null | tr -d '\r')"
 printf 'echo %q >&2\n' "adb-env: ${model:-device} on Android ${sdk:-?} ($serial)"

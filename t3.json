@@ -3,7 +3,7 @@
   "scripts": [
     {
       "name": "Build + install",
-      "command": "eval \"$(scripts/adb-env.sh)\" && ./gradlew installDebug",
+      "command": "eval \"$(scripts/adb-env.sh)\" && ./gradlew installDebug -Pandroid.injected.device.serial=\"$ANDROID_SERIAL\"",
       "icon": "build"
     },
     {
