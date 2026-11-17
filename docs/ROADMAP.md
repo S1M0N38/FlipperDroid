@@ -25,11 +25,11 @@ and proposals for new features, with an **honest** assessment of Android feasibi
 - **Flipper format decoders** — `.nfc` (read/generate), `.sub` (read/analyze) + save `.nfc` in NFC.
 - Central **Logs screen** (`AppLog`) with export.
 - **SettingsScreen** — connected/persisted toggles (working keep-screen-on).
-- **Unit tests** (`src/test/LogicUnitTest.kt`) for the pure logic: TOTP, IR encoders, `.ir` parser, DuckyScript, Mifare, Wi-Fi channel, skimmer, `.nfc`/`.sub`.
+- **Unit tests** (`src/test/`, one `*LogicTest` per area plus Robolectric `AndroidTierTest`) for the pure logic: TOTP, IR encoders, `.ir` parser, DuckyScript, Mifare, Wi-Fi channel, skimmer, `.nfc`/`.sub`.
 - New manifest permissions: `TRANSMIT_IR`, `CAMERA`.
 
 ### Note on build/SDK
-CI (GitHub Actions) builds, runs the JVM tests and lint on every push/PR. Locally, point `local.properties` at your Android SDK (`sdk.dir`) and run:
+CI (GitHub Actions) builds, runs the JVM tests and lint on every push/PR. Locally no `local.properties` is needed — the SDK comes from `ANDROID_HOME` (see [`dev-environment.md`](dev-environment.md)) — so just run:
 - `./gradlew testDebugUnitTest` — runs the unit tests (no device needed).
 - `./gradlew assembleDebug` — builds the APK.
 

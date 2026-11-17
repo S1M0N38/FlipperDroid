@@ -24,9 +24,10 @@ tools) boots an emulator and prints a launcher bound to it, under
   because it lacks the `--config <host>.json` + `--session t3-<thread>` pair the
   launcher supplies.
 - The lease **starts with no apps installed** and is **wiped when it ends**:
-  install each session (`agent-device install <pkg> <apk>` from the repo root
-  always hits the panel's device; `./gradlew installDebug` installs to *every*
-  device the adb server sees).
+  install each session. `agent-device install <pkg> <apk>` from the repo root
+  targets the lease *this launcher* is bound to; `./gradlew installDebug`
+  installs to every device the adb server sees (pin `android.injected.device.serial`
+  to narrow it).
 - **`agent-device close` ends the lease**, it is not a pause: the device is
   wiped and the panel loses it. Use `device_close` (with `shutdown: true`) for
   the panel entry, and treat `close` as the last line of the last session.
