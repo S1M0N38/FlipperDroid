@@ -57,7 +57,9 @@ class ModernAdvertisementService(
         // as long as the payload fits in 31 bytes (the case for the vast majority of spam
         // payloads) and only switch to EXTENDED when it actually overflows.
         val hasScanResponse = advertisementSet.scanResponse != null
-        val extendedSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+        // No SDK_INT check here: the class is @RequiresApi(O) and
+        // getAdvertisementService only builds it on API 26+.
+        val extendedSupported =
             _bluetoothAdapter?.isLeExtendedAdvertisingSupported == true
         val data = advertisementSet.advertiseData
         val estimatedBytes = AdvertisementPayload.estimateLegacyBytes(
