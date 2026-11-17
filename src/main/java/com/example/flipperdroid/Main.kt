@@ -127,7 +127,12 @@ class MainActivity : ComponentActivity() {
         // could trigger on a "ghost" tag without a new tap.
         if (savedInstanceState == null) {
             handleNfcIntent(intent)
-            setIntent(Intent())
+            // Consume the tag, not the Intent. Re-delivering the launch Intent (task
+            // restored after process death) must not replay a ghost tag, but the
+            // Intent itself has to survive: instrumented tests match the activity's
+            // current Intent with Intent.filterEquals, and an empty Intent made every
+            // ActivityScenario/Compose-test launch time out after 45 s.
+            intent.removeExtra(NfcAdapter.EXTRA_TAG)
         }
     }
 
