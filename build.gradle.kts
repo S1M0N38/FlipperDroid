@@ -2,7 +2,6 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    id("org.jetbrains.dokka") version "1.9.20"
 }
 
 android {
@@ -34,6 +33,12 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Lets a worktree build live next to another one on the same
+            // emulator/phone: the release id stays com.example.flipperdroid.
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
         release {
             isMinifyEnabled = false
             if (!System.getenv("RELEASE_KEYSTORE_FILE").isNullOrBlank()) {
@@ -65,8 +70,11 @@ android {
     }
     testOptions {
         // JVM tests sometimes touch android.util.Log: default values are returned
-        // instead of throwing "Method ... not mocked".
+        // instead of throwing "Method ... not mocked". Prefer Robolectric for
+        // anything that needs real Android behaviour (see RootShellTest).
         unitTests.isReturnDefaultValues = true
+        // Robolectric needs the merged resources and manifest.
+        unitTests.isIncludeAndroidResources = true
     }
 }
 
@@ -90,6 +98,8 @@ dependencies {
     implementation(libs.androidx.material.icons.extended)
 
     testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
