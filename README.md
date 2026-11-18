@@ -2,17 +2,7 @@
 
 > This repo is a fork of [FlipperDroid-2.0](https://github.com/SamwellOt/FlipperDroid-2.0) which is a fork of [FlipperDroid](https://github.com/Jeremiznoo/FlipperDroid)
 
-**FlipperDroid** is an Android application developed in Kotlin (Jetpack Compose), inspired by the well-known **Flipper Zero** device. It brings a broad set of wireless and hardware security-testing tools to Android smartphones, leveraging their native radios (NFC, BLE, Wi-Fi, IR) and, where available, root.
-
-<p align="center">
-  <img src="https://github.com/Jeremiznoo/FlipperDroid/blob/main/src/main/ic_launcher-playstore.png">
-</p>
-
----
-
-## Overview
-
-FlipperDroid turns a modern Android phone into a flexible, portable alternative to a Flipper Zero for the protocols a phone *can* actually speak. It follows one guiding principle: **be honest about capability** — features that need root, an IR blaster, monitor mode or external hardware check for it and say so, instead of silently doing nothing.
+**FlipperDroid** is an Android application inspired by the well-known **Flipper Zero** device. It brings a broad set of wireless and hardware security-testing tools to Android smartphones, leveraging their native radios (NFC, BLE, Wi-Fi, IR) and, where available, root.
 
 ---
 
@@ -93,9 +83,14 @@ needed.
 
 ## Docs
 
-All long-form documentation lives in [`docs/`](docs/) — start with
-[`docs/01-context.md`](docs/01-context.md) for what the code is made of, or
-[`docs/00-index.md`](docs/00-index.md) for the index.
+All long-form documentation lives in [`docs/`](docs/):
+
+- [`docs/00-index.md`](docs/00-index.md) — index of the docs
+- [`docs/01-context.md`](docs/01-context.md) — constraints and silent-failure traps when you change code
+- [`docs/02-environment.md`](docs/02-environment.md) — toolchain, emulator leases, test tiers, CI and release
+- [`docs/03-device.md`](docs/03-device.md) — driving a phone with agent-device
+- [`docs/04-capabilities.md`](docs/04-capabilities.md) — what a phone can do natively, with root, with external hardware, or never
+- [`docs/05-roadmap.md`](docs/05-roadmap.md) — shipped vs planned, and the honest limits
 
 ---
 
@@ -138,7 +133,3 @@ This project is released under the **MIT License**. See the [`LICENSE`](LICENSE)
 - The Flipper Zero project for functional inspiration, and the community **Flipper-IRDB** for IR code references.
 - LineageOS and the Android open-source ecosystem.
 - F-Droid for supporting free and open software distribution.
-
----
-
-## Screenshots
