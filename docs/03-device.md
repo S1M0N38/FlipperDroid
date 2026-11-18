@@ -110,8 +110,20 @@ process.
 
 ## Flows as code
 
-```bash
-$AD replay docs/flows/home-smoke.yaml --maestro
+A flow is plain Maestro YAML, run with `$AD replay <file>.yaml --maestro`. This is
+the shape that works on a lease — the conditional step is required because a fresh
+lease starts on the legal gate:
+
+```yaml
+appId: com.example.flipperdroid.debug
+---
+- launchApp
+- runFlow:
+    when:
+      visible: "Accept and continue"      # fresh lease, unaccepted gate
+    commands:
+      - tapOn: "Accept and continue"
+- assertVisible: "NFC Reader"
 ```
 
 - `replay --maestro` works on a T3 lease; `agent-device test <suite>` does **not** —

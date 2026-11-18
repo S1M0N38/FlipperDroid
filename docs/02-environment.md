@@ -36,7 +36,6 @@ shells that skipped mise. If a build signs with an unexpected key: check
 LAUNCHER="<the agent-device path device_open printed>"   # per lease, per thread
 ./gradlew assembleDebug
 "$LAUNCHER" install com.example.flipperdroid.debug build/outputs/apk/debug/Flipperdroid-debug.apk
-"$LAUNCHER" replay docs/flows/home-smoke.yaml --maestro
 
 eval "$(scripts/adb-env.sh)"   # ANDROID_ADB_SERVER_PORT + ANDROID_SERIAL
 ./gradlew testDebugUnitTest --tests "com.example.flipperdroid.LogicUnitTest.totp_rfc6238_vectors"
