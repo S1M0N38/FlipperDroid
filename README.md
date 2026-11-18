@@ -57,7 +57,7 @@ FlipperDroid turns a modern Android phone into a flexible, portable alternative 
 - **Logs** — central, exportable activity log.
 - Customizable settings (theme, keep-screen-on, …).
 
-> Sub-GHz (300–900 MHz), 125 kHz LF RFID, iButton/1-Wire and GPIO are **not** possible on a phone's internal radios — they need external hardware. See [`docs/ANDROID_CAPABILITIES.md`](docs/ANDROID_CAPABILITIES.md).
+> Sub-GHz (300–900 MHz), 125 kHz LF RFID, iButton/1-Wire and GPIO are **not** possible on a phone's internal radios — they need external hardware. See [`docs/android-capabilities.md`](docs/android-capabilities.md).
 
 ---
 
@@ -93,19 +93,9 @@ needed.
 
 ## Docs
 
-Everything long-form lives in [`docs/`](docs/). Start with
-[`docs/CONTEXT.md`](docs/CONTEXT.md) — what the pieces are and the invariants that
-bite — then:
-
-| Doc | Contents |
-|---|---|
-| [`docs/CONTEXT.md`](docs/CONTEXT.md) | project shape, package map, ViewModel patterns, invariants, BLE/IR/flipper specifics |
-| [`docs/dev-environment.md`](docs/dev-environment.md) | toolchain, keystore, emulator lease, test tiers, project scripts, CI/release |
-| [`docs/device-interaction.md`](docs/device-interaction.md) | driving a phone with agent-device: loop, refs, flows, gotchas |
-| [`docs/ROADMAP.md`](docs/ROADMAP.md) | what is implemented, what is next, what a phone cannot do |
-| [`docs/ANDROID_CAPABILITIES.md`](docs/ANDROID_CAPABILITIES.md) | native vs root vs external-hardware vs impossible |
-| [`docs/AUDIT_REPORT.md`](docs/AUDIT_REPORT.md) | quality/defect audit history and open items |
-| [`CHANGELOG.md`](CHANGELOG.md) | released changes |
+All long-form documentation lives in [`docs/`](docs/) — start with
+[`docs/context.md`](docs/context.md) for what the code is made of, or
+[`docs/README.md`](docs/README.md) for the index.
 
 ---
 

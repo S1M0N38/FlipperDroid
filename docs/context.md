@@ -165,6 +165,6 @@ timings verified against SB-Projects / IRremoteESP8266. `.ir` files store
 |---|---|
 | Toolchain, keystore, emulator lease, test tiers, CI/release, project scripts | [`dev-environment.md`](dev-environment.md) |
 | Driving a phone with agent-device (loop, refs, flows, gotchas) | [`device-interaction.md`](device-interaction.md) |
-| What a phone physically can/can't do | [`ANDROID_CAPABILITIES.md`](ANDROID_CAPABILITIES.md) |
-| Implemented vs planned | [`ROADMAP.md`](ROADMAP.md) |
-| Defect/quality audit history | [`AUDIT_REPORT.md`](AUDIT_REPORT.md) |
+| What a phone physically can/can't do | [`android-capabilities.md`](android-capabilities.md) |
+| Implemented vs planned | [`roadmap.md`](roadmap.md) |
+| Defect/quality audit history | [`audit-report.md`](audit-report.md) |

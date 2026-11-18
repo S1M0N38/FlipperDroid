@@ -5,7 +5,7 @@
 > `network_security_config` for ONVIF, `allowBackup=false` with backup rules,
 > IR burst polarity, the fake traceroute/BLE-fuzzer/MQTT/CoAP behaviour, and the
 > unauthenticated HTTP file server. The `NfcRelayAttack` module mentioned below
-> no longer exists. Open items are tracked in [`ROADMAP.md`](ROADMAP.md).
+> no longer exists. Open items are tracked in [`roadmap.md`](roadmap.md).
 
 # FlipperDroid 2.1.0 — Quality, defect and opportunity audit
 
@@ -50,12 +50,12 @@ Paths relative to `src/main/java/com/example/flipperdroid/`.
 - **[Medium] `as BluetoothManager/WifiManager/UsbManager` casts** without `as?` in `Main.kt:146`, `BluetoothViewModel.kt:113` (called in `onCreate` → crash on open in an emulator/device without Bluetooth), `SkimmerDetectorViewModel.kt:94`, `HidKeyboardViewModel.kt:89`, `WifiAnalyzer/Deauther/Wardriving/EvilPortal`.
 - **[Medium] `AboutScreen.kt:85` shows "Version 1.0.0"** (actual: 2.1.0). Use `packageManager.getPackageInfo(...).versionName` or `buildFeatures { buildConfig = true }`.
 - **[Low] NFC foreground dispatch**: `techListsArray = arrayOf(arrayOf(NfcA, NfcB, NfcF, NfcV))` is an AND list (the tag would have to support all 4) — it only works because `TAG_DISCOVERED` is in the filter. Consider `enableReaderMode`, which also eliminates the "stale" intent (§3.2).
-- **[Low] Outdated docs**: CHANGELOG without 2.1.0; ROADMAP mentions an SDK in `/home/archiznoo`; the agent instructions then in `CLAUDE.md` (now [`CONTEXT.md`](CONTEXT.md)) didn't list ~15 modules (Bluetooth Classic, LAN Discovery, Netcat, GPS Spoof, Crypto Tools, Wi-Fi QR, Default Creds, Tracker Detector, NDEF Emulator, Card Emulation, red team); `.github/release-v2.0.0.txt` and `assets/logs/exemple.log` are committed junk; `ANDROID_CAPABILITIES.md:22` marks "Relay NFC/HCE" as available.
+- **[Low] Outdated docs**: CHANGELOG without 2.1.0; ROADMAP mentions an SDK in `/home/archiznoo`; the agent instructions then in `CLAUDE.md` (now [`context.md`](context.md)) didn't list ~15 modules (Bluetooth Classic, LAN Discovery, Netcat, GPS Spoof, Crypto Tools, Wi-Fi QR, Default Creds, Tracker Detector, NDEF Emulator, Card Emulation, red team); `.github/release-v2.0.0.txt` and `assets/logs/exemple.log` are committed junk; `android-capabilities.md:22` marks "Relay NFC/HCE" as available.
 - **[Low] i18n**: 376 hardcoded `Text("…")`, `strings.xml` with 2 entries, UI mixes PT/FR/EN (e.g. NFC logs in French, "Retour" in BLE Spam).
 
 ### 3.2 NFC / EMV / Flipper
 
-- **[High] NFC relay is a misleading stub**: `nfc/NfcRelayAttack.kt` only builds a fixed command list with empty responses and tries to open a socket to `127.0.0.1:6669` (nothing listens); `NfcRelayAttackViewModel.captureRelayAttack/replayCapture/exportCaptures` have **no callers at all** (Main.kt only routes tags to `NfcViewModel` and `EmvReaderViewModel`); the screen says "Scan an NFC card to capture" but that never happens. Recommendation: remove the module (and the ANDROID_CAPABILITIES line) or rename it honestly to "APDU probe" using `ApduCapture`, which already exists and works.
+- **[High] NFC relay is a misleading stub**: `nfc/NfcRelayAttack.kt` only builds a fixed command list with empty responses and tries to open a socket to `127.0.0.1:6669` (nothing listens); `NfcRelayAttackViewModel.captureRelayAttack/replayCapture/exportCaptures` have **no callers at all** (Main.kt only routes tags to `NfcViewModel` and `EmvReaderViewModel`); the screen says "Scan an NFC card to capture" but that never happens. Recommendation: remove the module (and the capabilities-matrix line) or rename it honestly to "APDU probe" using `ApduCapture`, which already exists and works.
 - **[High] Card data in plaintext + backup**: `EmulationStore` stores the READ RECORD responses (which typically include PAN/track 2/name) in `hce_emulation`. Fix: exclude from backup, mask 5A/57/5F20 and encrypt with a Keystore key. `EmvCardData.toString()` (`EmvCardReader.kt:349-356`) prints the full PAN (latent leak).
 - **[High] Ultralight/NTAG clone writes config/lock/PWD/PACK** (`MifareUltralightUtils.kt:52-58` only skips pages 0–3). It can lock the target card irreversibly. Fix: identify the type via `GET_VERSION` and skip the configuration range (NTAG213 40–44, 215 130–134, 216 226–230); writing those pages only with an explicit opt-in.
 - **[High] Two simultaneous connections to the same Type-4 tag**: `NfcViewModel.onTagScanned` opens `Ndef.connect()` on IO while `Main.kt:174` triggers `EmvReaderViewModel.readCard` → `IsoDep.connect()` on the same `Tag` (the comment in `NfcViewModel.kt:91-93` itself explains why this fails). Fix: a single coordinator per tag (Mutex) and route to EMV only IsoDep tags.

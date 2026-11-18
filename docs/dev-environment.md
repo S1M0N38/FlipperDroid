@@ -2,7 +2,7 @@
 
 How this project is built and tested on the `pro` machine. Everything here is
 CLI-only: no Android Studio. For what the code is made of, read
-[`CONTEXT.md`](CONTEXT.md); for driving a phone, [`device-interaction.md`](device-interaction.md).
+[`context.md`](context.md); for driving a phone, [`device-interaction.md`](device-interaction.md).
 
 ## Toolchain
 
@@ -114,7 +114,7 @@ the wrong one. When more than one device is attached, prefer
 
 There is deliberately **no launch script**: the agent-device launcher path is
 per-lease and per-thread, so a static command cannot carry it (see
-[`CONTEXT.md`](CONTEXT.md) and `device-interaction.md`). Edits to `t3.json` are
+[`context.md`](context.md) and `device-interaction.md`). Edits to `t3.json` are
 picked up by the card directly — the file is the source of truth, the per-machine
 project settings are a mirror.
 

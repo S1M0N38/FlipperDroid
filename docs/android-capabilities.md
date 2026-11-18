@@ -6,7 +6,7 @@ could do it natively (🟢), needs root (🔴), needs external hardware (🔌) o
 
 > **Status:** many of the 🟢/🔴 items below are already implemented (BLE HID, Evil Portal, 2FA/TOTP,
 > `.nfc`/`.sub` decoders, Wardriving, Skimmer, WiFi Analyzer + MAC spoof, BadUSB gadget, IR base).
-> See the current "✅ Implemented" list in [`ROADMAP.md`](ROADMAP.md). Full U2F/FIDO2 remains
+> See the current "✅ Implemented" list in [`roadmap.md`](roadmap.md). Full U2F/FIDO2 remains
 > out of scope (it requires a relying-party backend + FIDO2/Credential Provider APIs and on-device testing).
 
 ---
