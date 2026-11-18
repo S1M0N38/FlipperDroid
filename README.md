@@ -2,17 +2,7 @@
 
 > This repo is a fork of [FlipperDroid-2.0](https://github.com/SamwellOt/FlipperDroid-2.0) which is a fork of [FlipperDroid](https://github.com/Jeremiznoo/FlipperDroid)
 
-**FlipperDroid** is an Android application developed in Kotlin (Jetpack Compose), inspired by the well-known **Flipper Zero** device. It brings a broad set of wireless and hardware security-testing tools to Android smartphones, leveraging their native radios (NFC, BLE, Wi-Fi, IR) and, where available, root.
-
-<p align="center">
-  <img src="https://github.com/Jeremiznoo/FlipperDroid/blob/main/src/main/ic_launcher-playstore.png">
-</p>
-
----
-
-## Overview
-
-FlipperDroid turns a modern Android phone into a flexible, portable alternative to a Flipper Zero for the protocols a phone *can* actually speak. It follows one guiding principle: **be honest about capability** — features that need root, an IR blaster, monitor mode or external hardware check for it and say so, instead of silently doing nothing.
+**FlipperDroid** is an Android application inspired by the well-known **Flipper Zero** device. It brings a broad set of wireless and hardware security-testing tools to Android smartphones, leveraging their native radios (NFC, BLE, Wi-Fi, IR) and, where available, root.
 
 ---
 
@@ -57,7 +47,7 @@ FlipperDroid turns a modern Android phone into a flexible, portable alternative 
 - **Logs** — central, exportable activity log.
 - Customizable settings (theme, keep-screen-on, …).
 
-> Sub-GHz (300–900 MHz), 125 kHz LF RFID, iButton/1-Wire and GPIO are **not** possible on a phone's internal radios — they need external hardware. See [`ANDROID_CAPABILITIES.md`](ANDROID_CAPABILITIES.md).
+> Sub-GHz (300–900 MHz), 125 kHz LF RFID, iButton/1-Wire and GPIO are **not** possible on a phone's internal radios — they need external hardware. See [`docs/04-capabilities.md`](docs/04-capabilities.md).
 
 ---
 
@@ -87,10 +77,20 @@ Misuse of this software for unauthorized access, emulation, or attacks on third-
 ```
 
 The Android SDK is found through `ANDROID_HOME`; `local.properties` is not
-needed. Emulator work (T3 Code + Simlock, `scripts/adb-env.sh`, and which tests
-run where) is documented in [`docs/dev-environment.md`](docs/dev-environment.md).
-See [`CLAUDE.md`](CLAUDE.md) for architecture notes and [`ROADMAP.md`](ROADMAP.md)
-for what's implemented and what's next.
+needed.
+
+---
+
+## Docs
+
+All long-form documentation lives in [`docs/`](docs/):
+
+- [`docs/00-index.md`](docs/00-index.md) — index of the docs
+- [`docs/01-context.md`](docs/01-context.md) — constraints and silent-failure traps when you change code
+- [`docs/02-environment.md`](docs/02-environment.md) — toolchain, emulator leases, test tiers, CI and release
+- [`docs/03-device.md`](docs/03-device.md) — driving a phone with agent-device
+- [`docs/04-capabilities.md`](docs/04-capabilities.md) — what a phone can do natively, with root, with external hardware, or never
+- [`docs/05-roadmap.md`](docs/05-roadmap.md) — shipped vs planned, and the honest limits
 
 ---
 
@@ -103,16 +103,21 @@ FlipperDroid/
 │   │   ├── Main.kt          # MainActivity + Compose NavHost
 │   │   ├── view/            # one *Screen.kt per feature
 │   │   ├── viewmodel/       # one ViewModel per feature (StateFlow)
-│   │   ├── nfc/             # EMV reader, Mifare utils, HCE service
+│   │   ├── nfc/             # EMV reader, Mifare utils, NDEF/ISO-DEP HCE
 │   │   ├── model/           # BLE advertisement engine
 │   │   ├── infrared/        # IR protocol encoders + .ir parser
 │   │   ├── flipper/         # .nfc / .sub file readers-writers
+│   │   ├── camera/ iot/ network/ redteam/ reports/   # pure-logic helpers
 │   │   ├── security/        # TOTP generator
-│   │   ├── util/            # AppLog
+│   │   ├── util/            # AppLog, RootShell, ShellArgs, SecureStore, …
 │   │   └── ui/theme/        # Compose theme
 │   ├── assets/              # nmap binaries, infrared/*.ir, legal texts
 │   └── AndroidManifest.xml
-├── src/test/                # JVM unit tests (LogicUnitTest)
+├── src/test/                # JVM + Robolectric tests
+├── src/androidTest/         # Compose UI smoke test
+├── docs/                    # all long-form documentation (see Docs above)
+├── scripts/adb-env.sh       # exports the lease's adb port + serial
+├── t3.json                  # project scripts for T3 Code
 ├── build.gradle.kts         # Kotlin DSL build configuration
 └── gradlew / gradlew.bat    # Gradle wrapper
 ```
@@ -128,7 +133,3 @@ This project is released under the **MIT License**. See the [`LICENSE`](LICENSE)
 - The Flipper Zero project for functional inspiration, and the community **Flipper-IRDB** for IR code references.
 - LineageOS and the Android open-source ecosystem.
 - F-Droid for supporting free and open software distribution.
-
----
-
-## Screenshots

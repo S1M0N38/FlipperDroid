@@ -6,7 +6,7 @@ could do it natively (🟢), needs root (🔴), needs external hardware (🔌) o
 
 > **Status:** many of the 🟢/🔴 items below are already implemented (BLE HID, Evil Portal, 2FA/TOTP,
 > `.nfc`/`.sub` decoders, Wardriving, Skimmer, WiFi Analyzer + MAC spoof, BadUSB gadget, IR base).
-> See the current "✅ Implemented" list in [`ROADMAP.md`](ROADMAP.md). Full U2F/FIDO2 remains
+> See the current "✅ Implemented" list in [`05-roadmap.md`](05-roadmap.md). Full U2F/FIDO2 remains
 > out of scope (it requires a relying-party backend + FIDO2/Credential Provider APIs and on-device testing).
 
 ---
@@ -96,14 +96,6 @@ Key libraries for the app: `usb-serial-for-android` (CDC/FTDI/CP210x/CH34x), `Us
 
 ---
 
-## Suggested priorities for FlipperDroid (cheapest to most powerful)
-
-1. 🟢 **Wi-Fi analyzer** (channel graph) and **Flipper format decoders** (`.nfc`/`.ir`) — native, cheap.
-2. 🟢 **IR code database** (Flipper-IRDB) + more protocols — turns IR into a genuinely universal remote.
-3. 🟢 **BLE advertiser/beacon** (iBeacon/Eddystone) and **BLE HID device** (BLE keyboard for a PC — a cable-free "BadKB").
-4. 🔌 **ESP32/Evil-M5 controller** (serial-OTG or BLE) — unlocks real deauth/beacon/evil-portal/wardriving.
-5. 🔌 **Proxmark3 controller** (BLE/OTG) — unlocks full LF/HF RFID.
-6. 🔌 **RTL-SDR/HackRF bridge** — unlocks Sub-GHz (reception; TX with HackRF).
-7. 🔴 **BadUSB via USB Gadget + DuckyScript** (root) — BadUSB for real.
+## The one rule to remember
 
 > **Rule of thumb:** anything involving **raw radio** (Sub-GHz, LF RFID, Wi-Fi injection, BLE sniffing) requires **external hardware or a special chip/firmware**. Anything that is a **high-level protocol** (NFC/HCE, BLE GATT, IP/network, IR TX, camera/sensors) the phone can do on its own.

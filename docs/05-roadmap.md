@@ -25,11 +25,11 @@ and proposals for new features, with an **honest** assessment of Android feasibi
 - **Flipper format decoders** — `.nfc` (read/generate), `.sub` (read/analyze) + save `.nfc` in NFC.
 - Central **Logs screen** (`AppLog`) with export.
 - **SettingsScreen** — connected/persisted toggles (working keep-screen-on).
-- **Unit tests** (`src/test/LogicUnitTest.kt`) for the pure logic: TOTP, IR encoders, `.ir` parser, DuckyScript, Mifare, Wi-Fi channel, skimmer, `.nfc`/`.sub`.
+- **Unit tests** (`src/test/`, one `*LogicTest` per area plus Robolectric `AndroidTierTest`) for the pure logic: TOTP, IR encoders, `.ir` parser, DuckyScript, Mifare, Wi-Fi channel, skimmer, `.nfc`/`.sub`.
 - New manifest permissions: `TRANSMIT_IR`, `CAMERA`.
 
 ### Note on build/SDK
-CI (GitHub Actions) builds, runs the JVM tests and lint on every push/PR. Locally, point `local.properties` at your Android SDK (`sdk.dir`) and run:
+CI (GitHub Actions) builds, runs the JVM tests and lint on every push/PR. Locally no `local.properties` is needed — the SDK comes from `ANDROID_HOME` (see [`02-environment.md`](02-environment.md)) — so just run:
 - `./gradlew testDebugUnitTest` — runs the unit tests (no device needed).
 - `./gradlew assembleDebug` — builds the APK.
 
@@ -41,23 +41,12 @@ CI (GitHub Actions) builds, runs the JVM tests and lint on every push/PR. Locall
 
 The rest below remains as backlog.
 
-## Context: what the Flipper Zero has vs. what a phone has
+## What a phone does and does not replace
 
-| Flipper Zero interface | Dedicated radio/hardware | Does an Android phone have it? |
-|---|---|---|
-| **Sub-GHz** (300–928 MHz, CC1101) | Yes | ❌ No (no Sub-GHz radio) |
-| **RFID 125 kHz** (LF) | Yes | ❌ No (the phone's NFC is 13.56 MHz only) |
-| **NFC 13.56 MHz** | Yes | ✅ Yes (limited by the NFC controller) |
-| **Infrared** | Yes (TX+RX) | ⚠️ Only some phones (TX only, no RX) |
-| **iButton / 1-Wire** | Yes | ❌ No |
-| **GPIO** | Yes | ❌ No (no exposed pins) |
-| **BadUSB (HID gadget)** | Yes | ⚠️ Requires a kernel with USB gadget + root |
-| **Bluetooth LE** | Yes | ✅ Yes |
-| **U2F** | Yes | ✅ Yes (via API) |
-
-> **Key conclusion:** a phone **never** replaces the Sub-GHz, the 125 kHz RFID, the iButton or the GPIO
-> of the Flipper — the radio hardware is missing. Where FlipperDroid can shine is **NFC, IR, BLE, Wi-Fi and USB**,
-> and in file-format compatibility (`.nfc`, `.ir`, `.sub`) to interoperate with a real Flipper.
+Sub-GHz, 125 kHz RFID, iButton/1-Wire and GPIO are hardware a phone does not
+have; the plan below is about NFC, IR, BLE, Wi-Fi, USB and Flipper file formats.
+Per-interface detail and the external-hardware alternatives are in
+[`04-capabilities.md`](04-capabilities.md).
 
 ---
 
@@ -125,24 +114,11 @@ The rest below remains as backlog.
 
 ---
 
-## LOW priority / Not feasible on a phone (document honestly)
+## Not feasible on a phone
 
-| Feature | Verdict | Reason / alternative |
-|---|---|---|
-| **Sub-GHz** (433 MHz garage, etc.) | ❌ Not feasible | No Sub-GHz radio. Alternative: external CC1101 dongle over USB. |
-| **RFID 125 kHz** (LF badges) | ❌ Not feasible | The phone's NFC is 13.56 MHz. Requires an external LF reader. |
-| **iButton / 1-Wire** | ❌ Not feasible | No 1-Wire hardware. |
-| **GPIO / hardware debug** | ❌ Not feasible | No pins. Alternative: USB-serial/OTG adapter. |
-| **App Catalog / plugins** | ⚠️ Rethink | Internal modules + deep links; copying the Flipper `.fap` makes no sense. |
-
----
-
-## Recommended technical fixes (technical debt)
-
-- **`BluetoothViewModel`**: incomplete (no `startScan()` or public StateFlows) — either complete it (item 5) or remove it.
-- **BadUSB**: rewrite for USB Gadget (item 8).
-- **`namespace`/`applicationId` = `com.example.flipperdroid`**: change to a real domain before publishing.
-- **Tests**: only the generated `ExampleUnitTest`/`ExampleInstrumentedTest` exist — add coverage for the parsers (NEC/IR, `.nfc`, Mifare dictionary).
+The hardware cases are in [`04-capabilities.md`](04-capabilities.md) §D. The one
+plan item worth dropping rather than copying: Flipper's app catalog/`.fap`
+plugins — this project extends through internal modules and deep links.
 
 ---
 
