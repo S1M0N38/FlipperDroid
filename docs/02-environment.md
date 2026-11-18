@@ -62,6 +62,11 @@ eval "$(scripts/adb-env.sh)"   # ANDROID_ADB_SERVER_PORT + ANDROID_SERIAL
 | real UI | `connectedAndroidTest`, or `$LAUNCHER replay … --maestro` |
 | radios, IR blaster, USB gadget, root on real silicon | a rooted phone; the emulator only proves the "unsupported"/"no root" paths |
 
+Two rules the suite already earned: keep logic in a pure core with a thin ViewModel
+(pattern: `camera/OnvifTools`), because logic that sits `private` inside a ViewModel
+cannot be tested; and assert the value, not `size` — an inverted IR burst layout once
+passed every test that only checked array lengths.
+
 ## Root on the emulator
 
 The API 34 `google_apis` image is `userdebug` and ships the AOSP `su`: it rejects
