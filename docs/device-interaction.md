@@ -80,16 +80,24 @@ $AD snapshot --json | jq -r '.. | objects | select(.kind=="text-field") | .label
 $AD snapshot --raw | grep -F 'bundleId":"com.example.flipperdroid.debug' | head -3
 ```
 
-`--json` is one document, `{success, data: {…}}` — `.nodes[]` does not exist and a
-wrong `jq` path silently returns nothing. `--raw` is NDJSON, one object per line,
+`--json` is one document, `{success, data: {…}}` — `.nodes[]` does not exist, bounds
+live in `rect` rather than `bounds`, and a wrong `jq` path silently returns nothing.
+`checked` is how you find a switch: **pressing a switch row's label does nothing**, so
+grab the `checked` node (or tap its `rect` centre) instead of the text beside it. `--raw` is NDJSON, one object per line,
 including every `com.android.systemui` node — filter on `bundleId` first.
 
-## Resetting the app without adb
+## Preparing app state
 
 ```bash
-$AD settings clear-app-state com.example.flipperdroid.debug   # wipes prefs on *this* lease
-$AD open com.example.flipperdroid.debug --relaunch            # --foreground would reuse the old task
+$AD settings permission grant all --app com.example.flipperdroid.debug   # before a scripted run
+$AD settings clear-app-state com.example.flipperdroid.debug             # wipe prefs on *this* lease
+$AD open com.example.flipperdroid.debug --relaunch                       # --foreground reuses the old task
 ```
+
+A permission dialog appearing mid-script derails it (one showcase re-recorded a chunk
+because of that). `grant all` warns and skips what the device cannot grant (`NFC` on the
+emulator); if a dialog still appears, dismiss it with `find "Allow" --first`, never with
+coordinates.
 
 `adb shell pm clear` is the wrong instinct: `scripts/adb-env.sh` resolves the *first*
 booted emulator, not necessarily this lease (one showcase run wiped another thread's
