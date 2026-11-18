@@ -42,13 +42,11 @@ eval "$(scripts/adb-env.sh)"   # ANDROID_ADB_SERVER_PORT + ANDROID_SERIAL
 ./gradlew testDebugUnitTest --tests "com.example.flipperdroid.LogicUnitTest.totp_rfc6238_vectors"
 ```
 
-- The printed launcher path **is** the lease handle. Each `device_open` returns its
-  own — opening a second device does not retarget the first — and `install` must run
-  from the thread workspace root. Leases are wiped, so install every session.
-- Gradle installs to **every** device its adb server sees: pin
-  `-Pandroid.injected.device.serial="$ANDROID_SERIAL"`. `adb-env.sh` resolves the
-  *first* booted emulator, which is not always the one in the Device panel, so with
-  two leases prefer `"$LAUNCHER" install <pkg> <apk>`.
+- Lease semantics — launcher, wiped leases, which device an install reaches — are in
+  [`device-interaction.md`](device-interaction.md). What matters when building: Gradle
+  installs to **every** device its adb server sees, so pin
+  `-Pandroid.injected.device.serial="$ANDROID_SERIAL"`, and remember `adb-env.sh`
+  resolves the *first* booted emulator rather than the panel's lease.
 - `t3.json` is the source of truth for the project scripts (`install`, `test`,
   `lint`). There is deliberately **no launch script**: the launcher path cannot be
   static.

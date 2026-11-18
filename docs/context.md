@@ -29,7 +29,8 @@ line, read-only screens do not.
 - Secrets and captured credentials live in `SecureStore`, never in `AppLog` (it
   feeds `LogsScreen`). Screens showing them call `SecureWindow()` from
   `util/SecureFlag.kt` — which also blanks screenshots (see `device-interaction.md`).
-- Log through `AppLog`, not `android.util.Log`: `LogsScreen` reads only `AppLog`.
+- Log through `AppLog`, not `android.util.Log`: `LogsScreen` reads only `AppLog`,
+  and it is in-memory — a process restart drops the history.
 - Effects that must apply app-wide are applied in `MainActivity` (theme in
   `setContent`, keep-screen-on in `onResume`); applying them inside the screen looks
   right until the process is recreated and then silently reverts.

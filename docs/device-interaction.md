@@ -54,9 +54,23 @@ $AD is exists 'text="Settings"'
   matches, `find` is the contains match), a `text-field` exposes its value as the
   node's **label**, and a value that can contain quotes is better addressed by ref.
 - A word appearing twice (tile `group` + its `text`) is `AMBIGUOUS_MATCH`; the
-  `group` is the tappable one — pass its ref, or `--first`.
+  `group` is the tappable one. `find "<tile>" --first` is the robust way to tap a
+  grid tile; a coordinate tap can miss when the tile is only half on screen.
 - Compose sometimes surfaces a button as `kind:"text"`, so query by label instead
   of filtering `kind=="button"`.
+
+## Getting around (the three that cost the most time)
+
+- **To leave a screen, press the app's top-bar `Back` button** (`find "Back" --first`).
+  `back --settle` often answers `+0 -0` without moving, `back --in-app` can pop two
+  levels, and from Home `back` exits to the launcher — never loop it to get Home.
+- **`scroll top` lies on this app's grid** — it has answered "Already at top" at the
+  bottom. Scroll with `scroll up --until 'text="<a tile near the top>"'`, or repeat
+  `scroll up`, and confirm with a snapshot.
+- **Detect Home by its header, not by a tile.** Off-screen grid tiles are absent
+  from the tree, so `is exists 'text="NFC Reader"'` fails on Home as soon as the
+  grid is scrolled. The subtitle `Wireless & hardware toolkit` is present only on
+  Home.
 
 ## Reading trees
 
@@ -69,6 +83,22 @@ $AD snapshot --raw | grep -F 'bundleId":"com.example.flipperdroid.debug' | head 
 `--json` is one document, `{success, data: {…}}` — `.nodes[]` does not exist and a
 wrong `jq` path silently returns nothing. `--raw` is NDJSON, one object per line,
 including every `com.android.systemui` node — filter on `bundleId` first.
+
+## Resetting the app without adb
+
+```bash
+$AD settings clear-app-state com.example.flipperdroid.debug   # wipes prefs on *this* lease
+$AD open com.example.flipperdroid.debug --relaunch            # --foreground would reuse the old task
+```
+
+`adb shell pm clear` is the wrong instinct: `scripts/adb-env.sh` resolves the *first*
+booted emulator, not necessarily this lease (one showcase run wiped another thread's
+device that way). If you do need `adb` on this lease, take its serial from
+`$AD perf frames --json` (`data.deviceId`) and pass `-s`.
+
+The tooling force-stops the app often enough to matter: in-memory state (`AppLog`
+history) is gone and the legal gate can reappear, so keep stateful flows in one
+process.
 
 ## Flows as code
 
