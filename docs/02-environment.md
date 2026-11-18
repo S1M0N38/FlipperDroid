@@ -1,8 +1,8 @@
 # Development environment
 
 CLI-only on `pro`: no Android Studio and no Gradle-sync advice. Code shape lives
-in [`context.md`](context.md); driving a phone in
-[`device-interaction.md`](device-interaction.md).
+in [`01-context.md`](01-context.md); driving a phone in
+[`03-device.md`](03-device.md).
 
 - JDK 21 and the Android SDK come from `mise` (`ANDROID_HOME`). There is **no
   `local.properties`** and none is needed — do not create one. Reinstall the SDK
@@ -43,7 +43,7 @@ eval "$(scripts/adb-env.sh)"   # ANDROID_ADB_SERVER_PORT + ANDROID_SERIAL
 ```
 
 - Lease semantics — launcher, wiped leases, which device an install reaches — are in
-  [`device-interaction.md`](device-interaction.md). What matters when building: Gradle
+  [`03-device.md`](03-device.md). What matters when building: Gradle
   installs to **every** device its adb server sees, so pin
   `-Pandroid.injected.device.serial="$ANDROID_SERIAL"`, and remember `adb-env.sh`
   resolves the *first* booted emulator rather than the panel's lease.
@@ -57,8 +57,8 @@ eval "$(scripts/adb-env.sh)"   # ANDROID_ADB_SERVER_PORT + ANDROID_SERIAL
 
 | Change | Where it runs |
 |---|---|
-| pure logic (IR encoders, `.ir`/`.nfc`/`.sub` parsing, TOTP, `ShellArgs`, BLE payloads) | `testDebugUnitTest`, sibling `*LogicTest` |
-| anything touching `Context`, `SharedPreferences`, `Log` | same task, Robolectric `AndroidTierTest` |
+| pure logic: a new `*LogicTest` beside the existing ones | `./gradlew testDebugUnitTest` |
+| anything touching `Context`, `SharedPreferences`, `Log`: Robolectric `AndroidTierTest` or a new `@Config(sdk = [34])` file — 34 is deliberate, the emulator is API 34 while `compileSdk` is 35 | same task |
 | real UI | `connectedAndroidTest`, or `$LAUNCHER replay … --maestro` |
 | radios, IR blaster, USB gadget, root on real silicon | a rooted phone; the emulator only proves the "unsupported"/"no root" paths |
 

@@ -57,7 +57,7 @@ FlipperDroid turns a modern Android phone into a flexible, portable alternative 
 - **Logs** — central, exportable activity log.
 - Customizable settings (theme, keep-screen-on, …).
 
-> Sub-GHz (300–900 MHz), 125 kHz LF RFID, iButton/1-Wire and GPIO are **not** possible on a phone's internal radios — they need external hardware. See [`docs/android-capabilities.md`](docs/android-capabilities.md).
+> Sub-GHz (300–900 MHz), 125 kHz LF RFID, iButton/1-Wire and GPIO are **not** possible on a phone's internal radios — they need external hardware. See [`docs/04-capabilities.md`](docs/04-capabilities.md).
 
 ---
 
@@ -94,8 +94,8 @@ needed.
 ## Docs
 
 All long-form documentation lives in [`docs/`](docs/) — start with
-[`docs/context.md`](docs/context.md) for what the code is made of, or
-[`docs/README.md`](docs/README.md) for the index.
+[`docs/01-context.md`](docs/01-context.md) for what the code is made of, or
+[`docs/00-index.md`](docs/00-index.md) for the index.
 
 ---
 

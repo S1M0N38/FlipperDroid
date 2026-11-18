@@ -5,7 +5,7 @@
 > `network_security_config` for ONVIF, `allowBackup=false` with backup rules,
 > IR burst polarity, the fake traceroute/BLE-fuzzer/MQTT/CoAP behaviour, and the
 > unauthenticated HTTP file server. The `NfcRelayAttack` module mentioned below
-> no longer exists. Open items are tracked in [`roadmap.md`](roadmap.md).
+> no longer exists. Open items are tracked in [`05-roadmap.md`](05-roadmap.md).
 
 # FlipperDroid 2.1.0 — Quality, defect and opportunity audit
 
@@ -50,7 +50,7 @@ Paths relative to `src/main/java/com/example/flipperdroid/`.
 - **[Medium] `as BluetoothManager/WifiManager/UsbManager` casts** without `as?` in `Main.kt:146`, `BluetoothViewModel.kt:113` (called in `onCreate` → crash on open in an emulator/device without Bluetooth), `SkimmerDetectorViewModel.kt:94`, `HidKeyboardViewModel.kt:89`, `WifiAnalyzer/Deauther/Wardriving/EvilPortal`.
 - **[Medium] `AboutScreen.kt:85` shows "Version 1.0.0"** (actual: 2.1.0). Use `packageManager.getPackageInfo(...).versionName` or `buildFeatures { buildConfig = true }`.
 - **[Low] NFC foreground dispatch**: `techListsArray = arrayOf(arrayOf(NfcA, NfcB, NfcF, NfcV))` is an AND list (the tag would have to support all 4) — it only works because `TAG_DISCOVERED` is in the filter. Consider `enableReaderMode`, which also eliminates the "stale" intent (§3.2).
-- **[Low] Outdated docs**: CHANGELOG without 2.1.0; ROADMAP mentions an SDK in `/home/archiznoo`; the agent instructions then in `CLAUDE.md` (now [`context.md`](context.md)) didn't list ~15 modules (Bluetooth Classic, LAN Discovery, Netcat, GPS Spoof, Crypto Tools, Wi-Fi QR, Default Creds, Tracker Detector, NDEF Emulator, Card Emulation, red team); `.github/release-v2.0.0.txt` and `assets/logs/exemple.log` are committed junk; `android-capabilities.md:22` marks "Relay NFC/HCE" as available.
+- **[Low] Outdated docs**: CHANGELOG without 2.1.0; ROADMAP mentions an SDK in `/home/archiznoo`; the agent instructions then in `CLAUDE.md` (now [`01-context.md`](01-context.md)) didn't list ~15 modules (Bluetooth Classic, LAN Discovery, Netcat, GPS Spoof, Crypto Tools, Wi-Fi QR, Default Creds, Tracker Detector, NDEF Emulator, Card Emulation, red team); `.github/release-v2.0.0.txt` and `assets/logs/exemple.log` are committed junk; `04-capabilities.md:22` marks "Relay NFC/HCE" as available.
 - **[Low] i18n**: 376 hardcoded `Text("…")`, `strings.xml` with 2 entries, UI mixes PT/FR/EN (e.g. NFC logs in French, "Retour" in BLE Spam).
 
 ### 3.2 NFC / EMV / Flipper
@@ -122,25 +122,7 @@ Paths relative to `src/main/java/com/example/flipperdroid/`.
 - No coverage: BER-TLV and EMV parsing, Mifare block 0 builder, `writeDump` skip rules, NTAG protected pages, NDEF Type-4 responder (CC/NLEN/READ BINARY), DuckyScript parser (private), HID report layout, `IrFile` CRLF/raw, `CryptoTools`, Markdown/HTML escaping, `parseIpRange`, Wigle CSV, `parsePacketLine`, `captureCredentials`, Netcat traversal, SSDP `headerOf`, ARP/WoL, 6 GHz, `getSecurityType`.
 - A lot of pure logic is `private` inside ViewModels (not testable). Pattern to follow: `camera/OnvifTools` (pure core + thin VM).
 
-## 4. Improvement opportunities and new implementations
+## 4. Improvements
 
-### 4.1 Foundations (highest return on effort)
-1. **A real release pipeline**: keystore signing via secrets, `assembleRelease` + R8, mandatory `lint` and `testDebugUnitTest` on PRs, release only by tag, `versionCode` derived from the tag, F-Droid metadata (`fastlane/metadata`), ktlint/detekt.
-2. **Desugaring** (or a documented `minSdk 26`) and a single, current version catalog (Compose BOM 2025.x, lifecycle 2.9, stable navigation 2.9, core-ktx 1.16).
-3. **Central `RootShell`** (argv quoting, timeout, stderr, exit code, kill by default) + `SecureStore` (EncryptedSharedPreferences/Keystore) for TOTP, dumps and captures; `allowBackup=false` or exclusion rules; `FLAG_SECURE` on sensitive screens; `AppLog` with secret redaction.
-4. **Foreground service** (`connectedDevice`/`location`) so BLE spam/beacon/scan, wardriving and Evil Portal keep running with the screen off — today everything lives in ViewModels and dies with the Activity.
-5. **Strings in resources + i18n** (PT-BR/EN/FR), and a standardized `UnsupportedScreen`/"capability missing" (NFC off, no IR, no BT, no root) instead of every screen improvising.
-6. **Refactor pure logic out of the ViewModels** (`network/`, `ir/`, `badusb/DuckyParser`, `nfc/Type4Responder`) and cover it with real-vector tests (IR captures, real `.nfc`/`.ir` files from Flipper-IRDB, RFC 6238 SHA-256/512 vectors).
-
-### 4.2 Per module — interesting implementations feasible on Android
-- **NFC**: `GET_VERSION` to identify NTAG213/215/216 and the real capacity; `PWD_AUTH` with a supplied password to read protected pages; import key dictionaries in the Flipper format (`mf_classic_dict`) and cache keys per sector; DESFire `GetVersion` (read-only); NDEF with Smart Poster/MIME/UTF-16 and multiple records; `UPDATE BINARY` in the Type-4 emulator (emulated tag writable by a reader); extra read-only EMV (ATC, PIN try counter, transaction log via `GET DATA`), handling of `61xx/6Cxx`; `.nfc` with real ATQA/SAK, `Page N:` layout for Ultralight and `??` for unknown; `enableReaderMode` instead of foreground dispatch.
-- **BLE**: scanner with filters (name/UUID/RSSI), AD structure decoding (flags, iBeacon/Eddystone, service data), RSSI history, JSON/CSV export, standard service/characteristic names (assigned numbers), GATT operation queue + MTU; tracker detector with "presence time" despite MAC rotation, audible alert, Google Find My Device network; HID with mouse and DuckyScript over BLE reusing the gadget engine, keyboard layouts (ABNT2); Beacon with Eddystone-UID/TLM and AltBeacon; Bluetooth Classic with OBEX push and an RFCOMM server.
-- **Wi-Fi/network**: an **ESP32 companion (Marauder/Evil-M5) over USB-serial or BLE** — the only realistic path for deauth/beacon/evil twin (already in ROADMAP); 6 GHz band and `getInformationElements()` for SAE/OWE; wardriving in a foreground service with WiGLE upload; a bundled OUI database to label BSSIDs/ARP/LAN; LAN discovery with NetBIOS (137), SNMP `sysDescr` with a supplied community, `Server:` parsing and TLS certificate capture; packet capture **without root via `VpnService`** (own-device traffic only, say so clearly) with pcap output; nmap with `--datadir`, `-oX` and a cancel button; Netcat with TLS/auth and a read-only mode; cameras with `GetSnapshotUri` + RTSP preview (Media3), DESCRIBE with Digest to validate credentials, Hikvision `/ISAPI` and Dahua `magicBox.cgi` probes, throttling in the audit.
-- **IR**: import the whole Flipper-IRDB with search and favourites, Pronto Hex import, raw timing editor, macros, learning via an "external IR receiver" (honest: the phone has no RX).
-- **BadUSB**: DuckyScript 3 (REPEAT, HOLD/RELEASE, MOUSE), explicit errors for unknown commands, a payload library, non-US layouts, mouse gadget.
-- **Utilities**: HOTP and Steam Guard, biometric vault unlock; PDF reports (`PdfDocument`) with persistence; QR scanner with history; Crypto Tools with hex/Base64 keys and more encodings.
-
-### 4.3 Suggested plan (3 sprints)
-1. **Sprint 1 — stop lying and stop breaking**: desugaring; signed release + per-tag workflow; `RootShell` and input validation; cleartext config for ONVIF + WS-Discovery namespace; IR burst polarity + honest "Sent"; BadUSB stuck key and combos; `BleSpamScreen` per version; remove/relabel the NFC relay, traceroute, fuzzer, MQTT/CoAP, legacy BadUSB.
-2. **Sprint 2 — privacy and robustness**: `SecureStore` for TOTP/captures, backup off, `FLAG_SECURE`, credentials out of `AppLog`, Netcat serving only a subfolder with auth; HTTP servers with timeout and pool; NTAG clone with protected pages; a single coordinator per NFC tag; `onCleared` and foreground services.
-3. **Sprint 3 — continuous quality**: extract pure logic + vector tests; version catalog; strings/i18n; docs (CHANGELOG 2.1.0, complete CLAUDE.md, remove artifacts); lint/detekt in CI; then the 4.2 features by priority.
+Deliberately not copied here: this document records what was wrong, not what to
+build next. Planning lives in [`05-roadmap.md`](05-roadmap.md).

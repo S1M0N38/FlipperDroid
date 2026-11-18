@@ -72,7 +72,7 @@ android {
         // Lint the release variant too, so an issue that only exists there cannot
         // reach a tag build.
         checkReleaseBuilds = true
-        // Deliberately frozen toolchain (see docs/dev-environment.md): the emulator
+        // Deliberately frozen toolchain (see docs/02-environment.md): the emulator
         // and the target device class are API 34, and compileSdk/targetSdk stay at
         // 35. Every newer AndroidX release needs minCompileSdk 37 and AGP 9 needs
         // Gradle 9.6 + SDK 37, so these two checks can only be silenced by retiring

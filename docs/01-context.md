@@ -15,22 +15,16 @@ line, read-only screens do not.
   fields needs no gate.
 - `java.time` comes from core-library desugaring. `Process.waitFor(timeout, unit)`
   does not exist below 26: it compiles and then throws.
-- Release APKs are built and signed only in CI, on a `v*` tag. Never publish a
-  debug APK.
 - Backups are off and cleartext HTTP is allowed app-wide
   (`res/xml/network_security_config.xml`) because ONVIF/LAN devices speak nothing
   else. Both are deliberate — do not "fix" them.
-- New tests: pure logic in a sibling `*LogicTest`, anything touching `Context`/
-  `SharedPreferences` in Robolectric (`AndroidTierTest` or a new
-  `@Config(sdk = [34])` file — 34 is deliberate: the emulator is API 34 while
-  `compileSdk` is 35).
 - Runtime receivers listen only to protected system broadcasts (Wi-Fi scan results,
   `ACTION_FOUND`), so they need no `RECEIVER_EXPORTED` flag on target 35.
-- Secrets and captured credentials live in `SecureStore`, never in `AppLog` (it
-  feeds `LogsScreen`). Screens showing them call `SecureWindow()` from
-  `util/SecureFlag.kt` — which also blanks screenshots (see `device-interaction.md`).
-- Log through `AppLog`, not `android.util.Log`: `LogsScreen` reads only `AppLog`,
-  and it is in-memory — a process restart drops the history.
+- Secrets and captured credentials live in `SecureStore`, never in `AppLog`.
+  Screens showing them call `SecureWindow()` (`util/SecureFlag.kt`), which also
+  blanks screenshots — see [`03-device.md`](03-device.md).
+- Log through `AppLog`, not `android.util.Log`: `LogsScreen` reads only it, and it
+  is in-memory (a restart drops the history).
 - Effects that must apply app-wide are applied in `MainActivity` (theme in
   `setContent`, keep-screen-on in `onResume`); applying them inside the screen looks
   right until the process is recreated and then silently reverts.

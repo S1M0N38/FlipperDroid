@@ -3,7 +3,7 @@
 #
 # Covers the legal gate (a freshly leased, freshly installed emulator starts on
 # it), the Home grid, and entering one screen. The device-side sibling of
-# `HomeSmokeTest` (src/androidTest); see docs/device-interaction.md.
+# `HomeSmokeTest` (src/androidTest); see docs/03-device.md.
 appId: com.example.flipperdroid.debug
 ---
 - launchApp
